@@ -1,0 +1,21 @@
+# General
+.DS_Store
+*.tar.gz
+*.zip
+*.log
+__pycache__/
+*.pyc
+
+# Python / Backend (api-descargas)
+api-descargas/venv/
+api-descargas/.env
+api-descargas/*.db
+
+# Flutter / Frontend (cliente-finamp)
+cliente-finamp/.dart_tool/
+cliente-finamp/build/
+cliente-finamp/.flutter-plugins
+cliente-finamp/.flutter-plugins-dependencies
+cliente-finamp/.packages
+cliente-finamp/.pub-cache/
+cliente-finamp/.pub/
