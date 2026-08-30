@@ -14,7 +14,7 @@ from typing import List, Optional
 load_dotenv()
 
 API_KEY = os.getenv("API_KEY", "default_secret_key")
-MEDIA_DIR = "/opt/synapmusic/media"
+MEDIA_DIR = "/opt/synapmusic/media"  # Restaurado a ruta absoluta obligatoria
 JELLYFIN_URL = os.getenv("JELLYFIN_URL", "http://localhost:8096")
 JELLYFIN_API_KEY = os.getenv("JELLYFIN_API_KEY", "")
 DEEZER_ARL = os.getenv("DEEZER_ARL", "")
@@ -118,7 +118,140 @@ async def download_music(request: DownloadRequest, background_tasks: BackgroundT
         "message": f"Descarga de '{request.query}' iniciada en segundo plano."
     }
 
+
+def clean_title(title):
+    import re
+    # Quitar palabras entre parentesis o corchetes que contengan official, video, audio, lyric, live, cover
+    cleaned = re.sub(r'[\(\[][^\)\]]*(official|video|audio|lyric|live|cover|hd|hq|1080p|4k)[^\)\]]*[\)\]]', '', title, flags=re.IGNORECASE)
+    cleaned = re.sub(r'(official music video|official video|official audio|lyric video|music video)', '', cleaned, flags=re.IGNORECASE)
+    # Limpiar guiones o espacios multiples
+    cleaned = re.sub(r'\s+', ' ', cleaned)
+    return cleaned.strip()
+
+def enrich_metadata_for_ytdlp(file_path, original_query):
+    print(f"  [Metadatos] Iniciando enriquecimiento para: {os.path.basename(file_path)}")
+    clean = clean_title(original_query)
+    
+    cover_bytes = None
+    try:
+        import requests
+        dz_res = requests.get("https://api.deezer.com/search/track", params={"q": clean, "limit": 1}, timeout=5)
+        if dz_res.status_code == 200:
+            dz_data = dz_res.json().get("data", [])
+            if dz_data:
+                cover_url = dz_data[0].get("album", {}).get("cover_xl")
+                if cover_url:
+                    cover_bytes = requests.get(cover_url, timeout=5).content
+                    print("  ✓ Portada obtenida desde Deezer")
+    except Exception as e:
+        print(f"  [!] Error buscando portada en deezer: {e}")
+
+    if not cover_bytes:
+        import glob
+        base_name = os.path.splitext(file_path)[0]
+        thumbs = glob.glob(f"{base_name}.*")
+        thumb_file = None
+        for t in thumbs:
+            if t != file_path and (t.endswith(".jpg") or t.endswith(".webp") or t.endswith(".png")):
+                thumb_file = t
+                break
+        
+        if thumb_file:
+            try:
+                from PIL import Image
+                import io
+                with Image.open(thumb_file) as img:
+                    width, height = img.size
+                    new_size = min(width, height)
+                    left = (width - new_size)/2
+                    top = (height - new_size)/2
+                    right = (width + new_size)/2
+                    bottom = (height + new_size)/2
+                    img_cropped = img.crop((left, top, right, bottom))
+                    img_cropped = img_cropped.convert("RGB")
+                    b = io.BytesIO()
+                    img_cropped.save(b, format="JPEG")
+                    cover_bytes = b.getvalue()
+                os.remove(thumb_file)
+                print("  ✓ Portada rescatada y recortada desde miniatura de YouTube")
+            except Exception as e:
+                print(f"  [!] Error procesando miniatura de YT: {e}")
+
+    try:
+        from mutagen.mp3 import MP3
+        from mutagen.id3 import ID3, APIC, TXXX, error
+        audio = MP3(file_path, ID3=ID3)
+        try:
+            audio.add_tags()
+        except error:
+            pass
+            
+        filename = os.path.basename(file_path)
+        name_without_ext = os.path.splitext(filename)[0]
+        parts = name_without_ext.split(" - ", 1)
+        if len(parts) == 2:
+            artist_text = parts[0].strip()
+            title_text = parts[1].strip()
+        else:
+            artist_text = "Unknown Artist"
+            title_text = name_without_ext.strip()
+            
+        from mutagen.id3 import TIT2, TPE1, TALB
+        audio.tags.add(TIT2(encoding=3, text=[title_text]))
+        audio.tags.add(TPE1(encoding=3, text=[artist_text]))
+        audio.tags.add(TALB(encoding=3, text=[title_text]))
+            
+        if cover_bytes:
+            audio.tags.add(
+                APIC(
+                    encoding=3,
+                    mime='image/jpeg',
+                    type=3, # front cover
+                    desc='Cover',
+                    data=cover_bytes
+                )
+            )
+            
+        audio.tags.add(
+            TXXX(
+                encoding=3,
+                desc='synap_source',
+                text=['youtube']
+            )
+        )
+        audio.save(v2_version=3)
+    except Exception as e:
+        print(f"  [!] Error inyectando metadatos MP3: {e}")
+
+    # Letras (Estrategia Dual)
+    def fetch_lyrics(q):
+        try:
+            import requests
+            res = requests.get("https://lrclib.net/api/search", params={"q": q}, timeout=5)
+            if res.status_code == 200:
+                data = res.json()
+                if data and isinstance(data, list) and len(data) > 0:
+                    best = data[0]
+                    return best.get("syncedLyrics") or best.get("plainLyrics")
+        except:
+            pass
+        return None
+
+    lyrics = fetch_lyrics(original_query)
+    if lyrics:
+        print("  ✓ Letra exacta encontrada (LRCLIB)")
+    elif clean != original_query:
+        lyrics = fetch_lyrics(clean)
+        if lyrics:
+            print("  ✓ Letra limpia de estudio encontrada (LRCLIB)")
+            
+    if lyrics:
+        lrc_path = os.path.splitext(file_path)[0] + ".lrc"
+        with open(lrc_path, "w", encoding="utf-8") as f:
+            f.write(lyrics)
+
 def run_dual_download(queries: List[str]):
+
     """Motor Híbrido con Cascada Completa: Deemix -> spotDL -> yt-dlp (con verificación física)."""
     import glob
     import random
@@ -200,7 +333,7 @@ def run_dual_download(queries: List[str]):
             
             if new_files:
                 print(f"  ✓ Deemix descargó: {os.path.basename(list(new_files)[0])}")
-            elif "already downloaded" in out_deemix.lower() or "completed download" in out_deemix.lower() or "100%" in out_deemix:
+            elif "already downloaded" in out_deemix.lower():
                 print(f"  ✓ Deemix ya tenía descargado: {url}")
                 # We do not append to failed_deemix
             else:
@@ -257,36 +390,64 @@ def run_dual_download(queries: List[str]):
             env["PATH"] = deno_path + ":" + env.get("PATH", "")
         
         for query in failed_spotdl:
-            files_before = get_media_files()
             if query.startswith("http"):
                 search_query = query
             else:
                 search_query = f"ytsearch1:{query} audio"
             
+            import tempfile
+            import shutil
+            
+            temp_dir = os.path.join(MEDIA_DIR, ".synap_temp")
+            # Limpiar temp_dir antes de descargar por si quedó basura
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+            os.makedirs(temp_dir, exist_ok=True)
+            
             ytdlp_cmd = [
                 "yt-dlp",
                 "-x", "--audio-format", "mp3", "--audio-quality", "0",
                 "--extractor-args", "youtube:player_client=android",
-                "-o", f"{MEDIA_DIR}/%(title)s.%(ext)s",
+                "--write-thumbnail",
+                "-o", f"{temp_dir}/%(title)s.%(ext)s",
                 search_query
             ]
             
             subprocess.run(ytdlp_cmd, check=False, env=env)
             
-            files_after = get_media_files()
-            new_files = files_after - files_before
-            
-            if new_files:
-                print(f"  ✓ yt-dlp rescató: {os.path.basename(list(new_files)[0])}")
+            # Buscar el mp3 descargado en temp_dir
+            mp3_files = glob.glob(f"{temp_dir}/*.mp3")
+            if mp3_files:
+                file_path = mp3_files[0]
+                print(f"  ✓ yt-dlp rescató: {os.path.basename(file_path)}")
+                try:
+                    # Enrich in temp directory
+                    enrich_metadata_for_ytdlp(file_path, query)
+                except Exception as e:
+                    print(f"  [!] Error global en enrich_metadata: {e}")
+                    
+                # Mover archivos a MEDIA_DIR (Solo MP3 y LRC, no mover miniaturas WEBP/JPG sueltas)
+                base_name = os.path.splitext(os.path.basename(file_path))[0]
+                for tmp_f in glob.glob(f"{temp_dir}/{base_name}.*"):
+                    if tmp_f.endswith('.mp3') or tmp_f.endswith('.lrc'):
+                        dest = os.path.join(MEDIA_DIR, os.path.basename(tmp_f))
+                        if os.path.exists(dest):
+                            os.remove(dest)
+                        shutil.move(tmp_f, dest)
             else:
                 print(f"  ✗ FALLO TOTAL: Ningún motor pudo descargar: {query}")
+                
+            # Clean up temp_dir
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
             
             # Pausa anti-bot entre descargas de YouTube
             sleep_time = random.uniform(5.0, 8.0)
             print(f"  [Anti-Bot] Enfriando {sleep_time:.1f}s...")
+            import time
             time.sleep(sleep_time)
     
-    # Fase 5: Indexación y Permisos
+    
     print("Descargas finalizadas. Ajustando permisos...")
     try:
         subprocess.run(["chmod", "-R", "755", MEDIA_DIR])
@@ -607,7 +768,6 @@ async def health_check():
 @app.get("/lyrics", dependencies=[Depends(get_api_key)])
 async def get_lyrics(artist: str, title: str):
     """Obtiene las letras de una canción desde el archivo local o desde la API pública LRCLIB."""
-    import os
     import urllib.parse
     
     # 1. Intento local
@@ -775,7 +935,6 @@ async def migrate_external_playlist(request: MigrationRequest, background_tasks:
     }
 
 import datetime
-import os
 import random
 import asyncio
 
@@ -1196,7 +1355,142 @@ async def get_artist_profile(artist_name: str):
         return {"error": str(e)}
 
 
+
+class MetadataEditRequest(BaseModel):
+    query: str
+    manual_cover_url: Optional[str] = None
+    manual_lyrics: Optional[str] = None
+
+@app.get("/metadata/check/{item_id}", dependencies=[Depends(get_api_key)])
+async def check_metadata_editable(item_id: str):
+    try:
+        import httpx
+        from mutagen.mp3 import MP3
+        from mutagen.id3 import ID3
+        
+        headers = {"X-Emby-Token": JELLYFIN_API_KEY}
+        url = f"{JELLYFIN_URL}/Items?Ids={item_id}&Fields=Path"
+        async with httpx.AsyncClient() as client:
+            res = await client.get(url, headers=headers, timeout=5)
+            data = res.json()
+            items = data.get("Items", [])
+            if not items:
+                return {"editable": False, "error": "Item not found in Jellyfin"}
+                
+            path = items[0].get("Path")
+            if not path or not os.path.exists(path):
+                filename = os.path.basename(path) if path else ""
+                possible_path = os.path.join(MEDIA_DIR, filename)
+                if os.path.exists(possible_path):
+                    path = possible_path
+                else:
+                    return {"editable": False, "error": f"File not found on disk: {path}"}
+            
+            if not path.lower().endswith(".mp3"):
+                return {"editable": False, "reason": "Not an MP3 file"}
+                
+            audio = MP3(path, ID3=ID3)
+            is_youtube = False
+            for tag in audio.tags.values():
+                if tag.FrameID == "TXXX" and tag.desc == "synap_source" and "youtube" in tag.text:
+                    is_youtube = True
+                    break
+                    
+            return {"editable": is_youtube, "title": items[0].get("Name"), "artist": items[0].get("Artists", [""])[0] if items[0].get("Artists") else ""}
+    except Exception as e:
+        return {"editable": False, "error": str(e)}
+
+@app.post("/metadata/edit/{item_id}", dependencies=[Depends(get_api_key)])
+async def edit_metadata(item_id: str, request: MetadataEditRequest):
+    try:
+        import httpx
+        headers = {"X-Emby-Token": JELLYFIN_API_KEY}
+        url = f"{JELLYFIN_URL}/Items?Ids={item_id}&Fields=Path"
+        async with httpx.AsyncClient() as client:
+            res = await client.get(url, headers=headers, timeout=5)
+            items = res.json().get("Items", [])
+            if not items:
+                return {"status": "error", "message": "Item not found"}
+            
+            path = items[0].get("Path")
+            if not path or not os.path.exists(path):
+                filename = os.path.basename(path) if path else ""
+                possible_path = os.path.join(MEDIA_DIR, filename)
+                if os.path.exists(possible_path):
+                    path = possible_path
+                else:
+                    return {"status": "error", "message": "File not found"}
+                    
+            lrc_path = os.path.splitext(path)[0] + ".lrc"
+            if request.manual_lyrics:
+                with open(lrc_path, "w", encoding="utf-8") as f:
+                    f.write(request.manual_lyrics)
+            else:
+                try:
+                    res_lrc = requests.get("https://lrclib.net/api/search", params={"q": request.query}, timeout=5)
+                    if res_lrc.status_code == 200:
+                        data = res_lrc.json()
+                        if data and isinstance(data, list) and len(data) > 0:
+                            lyrics = data[0].get("syncedLyrics") or data[0].get("plainLyrics")
+                            if lyrics:
+                                with open(lrc_path, "w", encoding="utf-8") as f:
+                                    f.write(lyrics)
+                except:
+                    pass
+                    
+            cover_bytes = None
+            if request.manual_cover_url:
+                try:
+                    cover_bytes = requests.get(request.manual_cover_url, timeout=5).content
+                except:
+                    pass
+            else:
+                try:
+                    dz_res = requests.get("https://api.deezer.com/search/track", params={"q": request.query, "limit": 1}, timeout=5)
+                    if dz_res.status_code == 200:
+                        dz_data = dz_res.json().get("data", [])
+                        if dz_data:
+                            cover_url = dz_data[0].get("album", {}).get("cover_xl")
+                            if cover_url:
+                                cover_bytes = requests.get(cover_url, timeout=5).content
+                except:
+                    pass
+                    
+            if cover_bytes:
+                from mutagen.mp3 import MP3
+                from mutagen.id3 import ID3, APIC
+                audio = MP3(path, ID3=ID3)
+                audio.tags.delall("APIC")
+                audio.tags.add(
+                    APIC(
+                        encoding=3,
+                        mime='image/jpeg',
+                        type=3,
+                        desc='Cover',
+                        data=cover_bytes
+                    )
+                )
+                audio.save(v2_version=3)
+                
+                headers_post = {"X-Emby-Token": JELLYFIN_API_KEY, "Content-Type": "image/jpeg"}
+                post_url = f"{JELLYFIN_URL}/Items/{item_id}/Images/Primary"
+                async with httpx.AsyncClient() as c2:
+                    await c2.post(post_url, headers=headers_post, content=cover_bytes)
+                    
+            items[0]["Name"] = request.query
+            update_url = f"{JELLYFIN_URL}/Items/{item_id}"
+            headers_json = {"X-Emby-Token": JELLYFIN_API_KEY, "Content-Type": "application/json"}
+            async with httpx.AsyncClient() as c3:
+                await c3.post(update_url, headers=headers_json, json=items[0])
+                
+            await update_jellyfin_library()
+            return {"status": "success", "message": "Metadata updated successfully"}
+            
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 @app.get("/debug/local-check")
+
 async def debug_local_check(q: str):
     local_data = await check_jellyfin_local(q)
     return {"query": q, "result": local_data}
