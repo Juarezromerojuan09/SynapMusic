@@ -3,7 +3,10 @@ import 'package:get_it/get_it.dart';
 import '../services/jellyfin_api_helper.dart';
 import 'add_to_playlist_sheet.dart';
 
-class TrackOptionsMenuSheet extends StatelessWidget {
+import '../services/synap_api_service.dart';
+import 'fix_metadata_dialog.dart';
+
+class TrackOptionsMenuSheet extends StatefulWidget {
   final String itemId;
   final String? playlistId;
   final String? playlistItemId;
@@ -17,13 +20,38 @@ class TrackOptionsMenuSheet extends StatelessWidget {
     this.onTrackRemoved,
   }) : super(key: key);
 
+  @override
+  State<TrackOptionsMenuSheet> createState() => _TrackOptionsMenuSheetState();
+}
+
+class _TrackOptionsMenuSheetState extends State<TrackOptionsMenuSheet> {
+  bool _isEditable = false;
+  bool _isLoadingEditable = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkEditable();
+  }
+
+  Future<void> _checkEditable() async {
+    final synapApi = SynapApiService();
+    final editable = await synapApi.checkMetadataEditable(widget.itemId);
+    if (mounted) {
+      setState(() {
+        _isEditable = editable;
+        _isLoadingEditable = false;
+      });
+    }
+  }
+
   Future<void> _removeFromPlaylist(BuildContext context) async {
-    if (playlistId == null || playlistItemId == null) return;
+    if (widget.playlistId == null || widget.playlistItemId == null) return;
     
     try {
       await GetIt.instance<JellyfinApiHelper>().removeItemsFromPlaylist(
-        playlistId: playlistId!,
-        entryIds: [playlistItemId!],
+        playlistId: widget.playlistId!,
+        entryIds: [widget.playlistItemId!],
       );
       
       if (context.mounted) {
@@ -31,8 +59,8 @@ class TrackOptionsMenuSheet extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Canción eliminada de la playlist'), backgroundColor: Colors.orange),
         );
-        if (onTrackRemoved != null) {
-          onTrackRemoved!();
+        if (widget.onTrackRemoved != null) {
+          widget.onTrackRemoved!();
         }
       }
     } catch (e) {
@@ -48,7 +76,7 @@ class TrackOptionsMenuSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const Color synapColor = Color(0xFF144477);
-    final bool isInsidePlaylist = playlistId != null && playlistItemId != null;
+    final bool isInsidePlaylist = widget.playlistId != null && widget.playlistItemId != null;
 
     return Container(
       decoration: const BoxDecoration(
@@ -69,6 +97,25 @@ class TrackOptionsMenuSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
+
+          if (!_isLoadingEditable && _isEditable)
+            ListTile(
+              leading: const Icon(Icons.auto_fix_high, color: Colors.blueAccent),
+              title: const Text(
+                'Corregir Metadatos',
+                style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.w600),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (context) => FixMetadataDialog(
+                    itemId: widget.itemId,
+                    currentTitle: '', // Se podría pasar si lo tuviéramos, pero está bien así
+                  ),
+                );
+              },
+            ),
           ListTile(
             leading: Icon(Icons.playlist_add, color: synapColor),
             title: const Text(
@@ -80,7 +127,7 @@ class TrackOptionsMenuSheet extends StatelessWidget {
               showModalBottomSheet(
                 context: context,
                 backgroundColor: Colors.transparent,
-                builder: (_) => AddToPlaylistSheet(itemId: itemId),
+                builder: (_) => AddToPlaylistSheet(itemId: widget.itemId),
               );
             },
           ),

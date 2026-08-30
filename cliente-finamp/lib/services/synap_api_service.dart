@@ -333,4 +333,55 @@ class SynapApiService {
     }
     return null;
   }
+
+  Future<bool> checkMetadataEditable(String itemId) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/metadata/check/$itemId');
+      final request = await HttpClient().getUrl(uri);
+      request.headers.add('X-API-Key', _apiKey);
+      final response = await request.close();
+
+      if (response.statusCode == 200) {
+        final responseBody = await response.transform(utf8.decoder).join();
+        final data = json.decode(responseBody);
+        return data['editable'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Error checkMetadataEditable: $e');
+      return false;
+    }
+  }
+
+  Future<bool> editMetadata({
+    required String itemId,
+    required String query,
+    String? manualCoverUrl,
+    String? manualLyrics,
+  }) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/metadata/edit/$itemId');
+      final request = await HttpClient().postUrl(uri);
+      request.headers.add('X-API-Key', _apiKey);
+      request.headers.contentType = ContentType.json;
+
+      final body = jsonEncode({
+        "query": query,
+        "manual_cover_url": manualCoverUrl,
+        "manual_lyrics": manualLyrics,
+      });
+      request.write(body);
+
+      final response = await request.close();
+      if (response.statusCode == 200) {
+        final responseBody = await response.transform(utf8.decoder).join();
+        final data = json.decode(responseBody);
+        return data['status'] == 'success';
+      }
+      return false;
+    } catch (e) {
+      print('Error editMetadata: $e');
+      return false;
+    }
+  }
 }
