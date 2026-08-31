@@ -61,65 +61,63 @@ def get_media_file_set():
 
 async def run_rescue_phase(missing_tracks):
     """
-    Fase de Rescate con verificación FÍSICA de archivos en disco.
-    No confía en los códigos de salida ni en la salida de texto de spotDL.
+    Fase de Rescate con verificación FÍSICA de archivos en disco usando carpetas únicas.
     """
+    import uuid
+    import shutil
+    import glob
+    from main import enrich_metadata_for_ytdlp
+    
     print(f"[Migrator] Iniciando Fase de Rescate para {len(missing_tracks)} canciones...")
     for track in missing_tracks:
         query = f"{track['artist']} - {track['title']}"
         print(f"[Rescate] Intentando rescatar: {query}")
 
-        # Fotografía ANTES del intento
-        files_before = get_media_file_set()
-
         # Intento 1: spotDL
         print("  -> Intento 1: spotDL")
+        spotdl_tmp = os.path.join(MEDIA_DIR, f".spotdl_tmp_{uuid.uuid4().hex[:6]}")
+        os.makedirs(spotdl_tmp, exist_ok=True)
+        
         subprocess.run(
             ["spotdl", "download", query,
-             "--output", f"{MEDIA_DIR}/{{artist}} - {{title}}.{{output-ext}}",
+             "--output", f"{spotdl_tmp}/{{artist}} - {{title}}.{{output-ext}}",
              "--generate-lrc"],
             capture_output=True
         )
 
-        # Fotografía DESPUÉS del intento
-        files_after = get_media_file_set()
-        new_files = files_after - files_before
+        new_files = glob.glob(f"{spotdl_tmp}/*")
 
         if new_files:
+            for tmp_f in new_files:
+                dest = os.path.join(MEDIA_DIR, os.path.basename(tmp_f))
+                if os.path.exists(dest):
+                    os.remove(dest)
+                shutil.move(tmp_f, dest)
             print(f"  -> Rescatado con spotDL. Archivo: {os.path.basename(list(new_files)[0])}")
         else:
             print("  -> spotDL NO generó archivo. Intento 2: yt-dlp (android client)")
 
-            import tempfile
-            import shutil
-            import glob
+            ytdlp_tmp = os.path.join(MEDIA_DIR, f".ytdlp_tmp_{uuid.uuid4().hex[:6]}")
+            os.makedirs(ytdlp_tmp, exist_ok=True)
             
-            # Importar enricher desde main
-            from main import enrich_metadata_for_ytdlp
-            
-            temp_dir = os.path.join(MEDIA_DIR, ".synap_temp")
-            if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
-            os.makedirs(temp_dir, exist_ok=True)
-            
-            # Asegurar que deno esté en el PATH para yt-dlp
             env = os.environ.copy()
             deno_path = os.path.expanduser("~/.deno/bin")
             if deno_path not in env.get("PATH", ""):
                 env["PATH"] = deno_path + ":" + env.get("PATH", "")
             
+            clean_q = query.replace('"', '').replace("'", "")
             ytdlp_cmd = [
                 "yt-dlp",
                 "-x", "--audio-format", "mp3", "--audio-quality", "0",
                 "--extractor-args", "youtube:player_client=android",
                 "--write-thumbnail",
-                "-o", f"{temp_dir}/{track['artist']} - {track['title']}.%(ext)s",
-                f"ytsearch1:{query} audio"
+                "-o", f"{ytdlp_tmp}/{track['artist']} - {track['title']}.%(ext)s",
+                f"ytsearch1:{clean_q} audio"
             ]
             
             subprocess.run(ytdlp_cmd, check=False, env=env)
             
-            mp3_files = glob.glob(f"{temp_dir}/*.mp3")
+            mp3_files = glob.glob(f"{ytdlp_tmp}/*.mp3")
             if mp3_files:
                 file_path = mp3_files[0]
                 print(f"  -> Rescatado con yt-dlp. Archivo: {os.path.basename(file_path)}")
@@ -128,9 +126,8 @@ async def run_rescue_phase(missing_tracks):
                 except Exception as e:
                     print(f"  [!] Error global en enrich_metadata: {e}")
                     
-                # Mover archivos a MEDIA_DIR (Solo MP3 y LRC, no mover miniaturas WEBP/JPG sueltas)
                 base_name = os.path.splitext(os.path.basename(file_path))[0]
-                for tmp_f in glob.glob(f"{temp_dir}/{base_name}.*"):
+                for tmp_f in glob.glob(f"{ytdlp_tmp}/{base_name}.*"):
                     if tmp_f.endswith('.mp3') or tmp_f.endswith('.lrc'):
                         dest = os.path.join(MEDIA_DIR, os.path.basename(tmp_f))
                         if os.path.exists(dest):
@@ -139,15 +136,15 @@ async def run_rescue_phase(missing_tracks):
             else:
                 print(f"  -> FALLO TOTAL: Ni spotDL ni yt-dlp pudieron descargar: {query}")
                 
-            if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
+            shutil.rmtree(ytdlp_tmp, ignore_errors=True)
             
-            # Pausa de seguridad anti-baneo para yt-dlp (5 a 8 segundos)
             import random
             sleep_time = random.uniform(5.0, 8.0)
             print(f"  -> [Anti-Bot] Enfriando conexión por {sleep_time:.1f} segundos...")
             import time
             time.sleep(sleep_time)
+            
+        shutil.rmtree(spotdl_tmp, ignore_errors=True)
 
     # Ajustar permisos para que Jellyfin pueda leer los archivos nuevos
     subprocess.run(["chmod", "-R", "755", MEDIA_DIR])

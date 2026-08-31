@@ -382,7 +382,8 @@ def run_dual_download(queries: List[str]):
             env["PATH"] = deno_path + ":" + env.get("PATH", "")
         
         for query in failed_spotdl:
-            search_query = query if query.startswith("http") else f"ytsearch1:{query} audio"
+            clean_q = query.replace('"', '').replace("'", "")
+            search_query = query if query.startswith("http") else f"ytsearch1:{clean_q} audio"
             
             ytdlp_tmp = os.path.join(MEDIA_DIR, f".ytdlp_tmp_{uuid.uuid4().hex[:6]}")
             os.makedirs(ytdlp_tmp, exist_ok=True)
