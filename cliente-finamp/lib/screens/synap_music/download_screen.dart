@@ -32,6 +32,8 @@ class _DownloadScreenState extends State<DownloadScreen> {
   
   // States for search
   Map<String, dynamic>? _localJellyfinData;
+  List<dynamic> _localJellyfinDataList = [];
+  bool _showAllLocalMatches = false;
   List<SynapSearchResult> _deezerResults = [];
   List<SynapSearchResult> _youtubeResults = [];
   List<dynamic> _albumResults = [];
@@ -665,7 +667,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
             IconButton(
               icon: const Icon(Icons.download, color: Colors.white),
               onPressed: () {
-                final query = result.queryString ?? (isYoutube ? result.title : '${result.artist} ${result.title}');
+                final query = result.url.isNotEmpty ? result.url : (result.queryString ?? (isYoutube ? result.title : '${result.artist} ${result.title}'));
                 _handleDownload(query);
               },
             ),
@@ -678,7 +680,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
           ],
         ),
         onTap: () {
-          final query = result.queryString ?? (isYoutube ? result.title : '${result.artist} ${result.title}');
+          final query = result.url.isNotEmpty ? result.url : (result.queryString ?? (isYoutube ? result.title : '${result.artist} ${result.title}'));
           _handleDownload(query);
         },
       ),
@@ -698,7 +700,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
                 title: const Text('Descargar a Biblioteca'),
                 onTap: () {
                   Navigator.pop(context);
-                  final query = result.queryString ?? (result.source == 'youtube' ? result.title : '${result.artist} ${result.title}');
+                  final query = result.url.isNotEmpty ? result.url : (result.queryString ?? (result.source == 'youtube' ? result.title : '${result.artist} ${result.title}'));
                   _handleDownload(query);
                 },
               ),
