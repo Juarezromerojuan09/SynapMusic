@@ -289,8 +289,12 @@ def run_dual_download(queries: List[str]):
         elif "spotify.com/track" in query or "youtube.com/watch" in query or "youtu.be/" in query:
             spotdl_queries.append(query)
             query_map[query] = {"original_query": query}
-        else:
+        elif "deezer.com" in query:
             deezer_urls.append(query)
+            query_map[query] = {"original_query": query}
+        else:
+            # Búsquedas de texto plano van a spotDL directo
+            spotdl_queries.append(query)
             query_map[query] = {"original_query": query}
             
     os.makedirs(MEDIA_DIR, exist_ok=True)
@@ -331,7 +335,10 @@ def run_dual_download(queries: List[str]):
 
     failed_spotdl = []
     for track in failed_deemix:
-        spotdl_queries.append(f"{track['artist']} - {track['title']}")
+        if track['artist'] == "Unknown" and track['title'] == "Unknown":
+            spotdl_queries.append(track['query'])
+        else:
+            spotdl_queries.append(f"{track['artist']} - {track['title']}")
 
     if spotdl_queries:
         print(f"[{task_id}] Fase 3: Ejecutando spotDL (Fallback) para {len(spotdl_queries)} pistas...")
