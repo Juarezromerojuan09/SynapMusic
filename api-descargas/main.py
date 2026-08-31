@@ -251,63 +251,32 @@ def enrich_metadata_for_ytdlp(file_path, original_query):
             f.write(lyrics)
 
 def run_dual_download(queries: List[str]):
-
-    """Motor Híbrido con Cascada Completa: Deemix -> spotDL -> yt-dlp (con verificación física)."""
     import glob
     import random
     import time
-    
-    if not queries:
-        return
-        
-    print(f"Iniciando descarga de Motor Dual ({len(queries)} pistas)")
-    os.makedirs(MEDIA_DIR, exist_ok=True)
-    
-    def get_media_files():
-        """Toma una foto de todos los archivos de audio en MEDIA_DIR."""
-        extensions = ("*.mp3", "*.flac", "*.ogg", "*.opus", "*.m4a", "*.wav")
-        files = set()
-        for ext in extensions:
-            files.update(glob.glob(os.path.join(MEDIA_DIR, "**", ext), recursive=True))
-        return files
-    
+    import uuid
+    import shutil
+    import subprocess
+    import os
+
+    task_id = uuid.uuid4().hex[:8]
+    print(f"[{task_id}] Iniciando descarga de Motor Dual ({len(queries)} pistas)")
+
+    query_map = {}
     deezer_urls = []
     spotdl_queries = []
-    query_map = {}  # Mapea cada URL/query a su consulta original para rescate
-    
-    # Fase 1: Clasificación
-    print("Fase 1: Clasificando consultas...")
+
+    print(f"[{task_id}] Fase 1: Clasificando consultas...")
+    import requests
     for query in queries:
-        if "spotify.com" in query:
-            spotdl_queries.append(query)
-        elif "deezer.com" in query:
+        if "deezer.com/track" in query:
             deezer_urls.append(query)
-            # Extraer metadata del track para posible rescate
-            import re as _re
-            track_match = _re.search(r'/track/(\d+)', query)
-            if track_match:
-                try:
-                    track_info = requests.get(f"https://api.deezer.com/track/{track_match.group(1)}", timeout=5).json()
-                    query_map[query] = {
-                        "artist": track_info.get("artist", {}).get("name", "Unknown"),
-                        "title": track_info.get("title", "Unknown"),
-                        "original_query": query
-                    }
-                except Exception:
-                    query_map[query] = query
-            else:
-                query_map[query] = query
-        else:
-            # Buscar en Deezer API sincrónicamente
             try:
-                response = requests.get("https://api.deezer.com/search", params={"q": query}, timeout=5)
-                data = response.json()
-                if data.get("data") and len(data["data"]) > 0:
-                    track = data["data"][0]
-                    deezer_url = track["link"]
-                    deezer_urls.append(deezer_url)
-                    # Guardamos artista y título para posible rescate
-                    query_map[deezer_url] = {
+                track_id = query.split("track/")[1].split("?")[0].split("/")[0]
+                res = requests.get(f"https://api.deezer.com/track/{track_id}", timeout=5)
+                if res.status_code == 200:
+                    track = res.json()
+                    query_map[query] = {
                         "artist": track.get("artist", {}).get("name", "Unknown"),
                         "title": track.get("title", query),
                         "original_query": query
@@ -315,146 +284,146 @@ def run_dual_download(queries: List[str]):
                 else:
                     spotdl_queries.append(query)
             except Exception as e:
-                print(f"Error consultando Deezer para '{query}': {e}")
+                print(f"[{task_id}] Error consultando Deezer para '{query}': {e}")
                 spotdl_queries.append(query)
-                
-    # Fase 2: Descarga Principal (Deemix) con verificación física
+        elif "spotify.com/track" in query or "youtube.com/watch" in query or "youtu.be/" in query:
+            spotdl_queries.append(query)
+            query_map[query] = {"original_query": query}
+        else:
+            deezer_urls.append(query)
+            query_map[query] = {"original_query": query}
+            
+    os.makedirs(MEDIA_DIR, exist_ok=True)
+            
     failed_deemix = []
     if deezer_urls:
-        print(f"Fase 2: Ejecutando Deemix para {len(deezer_urls)} pistas...")
+        print(f"[{task_id}] Fase 2: Ejecutando Deemix para {len(deezer_urls)} pistas...")
         for url in deezer_urls:
-            files_before = get_media_files()
-            command_deemix = ["deemix", "--bitrate", "320", "-p", MEDIA_DIR, url]
+            deemix_tmp = os.path.join(MEDIA_DIR, f".deemix_tmp_{uuid.uuid4().hex[:6]}")
+            os.makedirs(deemix_tmp, exist_ok=True)
+            
+            command_deemix = ["deemix", "--bitrate", "320", "-p", deemix_tmp, url]
             result_deemix = subprocess.run(command_deemix, capture_output=True, text=True)
             out_deemix = result_deemix.stdout + result_deemix.stderr
             print(out_deemix)
-            files_after = get_media_files()
-            new_files = files_after - files_before
+            
+            new_files = glob.glob(f"{deemix_tmp}/**/*", recursive=True)
+            new_files = [f for f in new_files if os.path.isfile(f)]
             
             if new_files:
-                print(f"  ✓ Deemix descargó: {os.path.basename(list(new_files)[0])}")
+                for tmp_f in new_files:
+                    dest = os.path.join(MEDIA_DIR, os.path.basename(tmp_f))
+                    if os.path.exists(dest):
+                        os.remove(dest)
+                    shutil.move(tmp_f, dest)
+                print(f"[{task_id}]   ✓ Deemix descargó desde: {url}")
             elif "already downloaded" in out_deemix.lower():
-                print(f"  ✓ Deemix ya tenía descargado: {url}")
-                # We do not append to failed_deemix
+                print(f"[{task_id}]   ✓ Deemix ya tenía descargado: {url}")
             else:
                 info = query_map.get(url, {})
-                if isinstance(info, dict):
-                    artist = info.get("artist", "Unknown")
-                    title = info.get("title", "Unknown")
-                    original = info.get("original_query", url)
-                else:
-                    artist = "Unknown"
-                    title = "Unknown"
-                    original = url
-                print(f"  ✗ Deemix NO generó archivo para: {original}")
+                artist = info.get("artist", "Unknown") if isinstance(info, dict) else "Unknown"
+                title = info.get("title", "Unknown") if isinstance(info, dict) else "Unknown"
+                original = info.get("original_query", url) if isinstance(info, dict) else url
+                print(f"[{task_id}]   ✗ Deemix NO generó archivo para: {original}")
                 failed_deemix.append({"artist": artist, "title": title, "query": original})
-    
-    # Fase 3: Fallback (spotDL) para queries originales de Spotify + fallos de Deemix
+                
+            shutil.rmtree(deemix_tmp, ignore_errors=True)
+
     failed_spotdl = []
-    
-    # Agregar los fallos de Deemix a spotDL
     for track in failed_deemix:
         spotdl_queries.append(f"{track['artist']} - {track['title']}")
-    
+
     if spotdl_queries:
-        print(f"Fase 3: Ejecutando spotDL (Fallback) para {len(spotdl_queries)} pistas...")
+        print(f"[{task_id}] Fase 3: Ejecutando spotDL (Fallback) para {len(spotdl_queries)} pistas...")
         for query in spotdl_queries:
-            files_before = get_media_files()
+            spotdl_tmp = os.path.join(MEDIA_DIR, f".spotdl_tmp_{uuid.uuid4().hex[:6]}")
+            os.makedirs(spotdl_tmp, exist_ok=True)
+            
             command_spotdl = [
-                "spotdl", "download", query,
-                "--audio", "youtube",
-                "--generate-lrc",
-                "--output", f"{MEDIA_DIR}/{{artist}} - {{title}}.{{output-ext}}"
+                "spotdl",
+                "download",
+                f"{query}",
+                "--output", f"{spotdl_tmp}/{{artists}} - {{title}}.{{ext}}",
+                "--format", "mp3",
+                "--bitrate", "320k"
             ]
             result_spotdl = subprocess.run(command_spotdl, capture_output=True, text=True)
             print(result_spotdl.stdout + result_spotdl.stderr)
-            files_after = get_media_files()
-            new_files = files_after - files_before
+            
+            new_files = glob.glob(f"{spotdl_tmp}/*")
             
             if new_files:
-                print(f"  ✓ spotDL rescató: {os.path.basename(list(new_files)[0])}")
+                for tmp_f in new_files:
+                    dest = os.path.join(MEDIA_DIR, os.path.basename(tmp_f))
+                    if os.path.exists(dest):
+                        os.remove(dest)
+                    shutil.move(tmp_f, dest)
+                print(f"[{task_id}]   ✓ spotDL rescató: {query}")
             elif "already downloaded" in (result_spotdl.stdout + result_spotdl.stderr).lower():
-                print(f"  ✓ spotDL ya tenía descargado: {query}")
+                print(f"[{task_id}]   ✓ spotDL ya tenía descargado: {query}")
             else:
-                print(f"  ✗ spotDL NO generó archivo para: {query}")
+                print(f"[{task_id}]   ✗ spotDL NO generó archivo para: {query}")
                 failed_spotdl.append(query)
-    
-    # Fase 4: Última Cascada (yt-dlp sin cookies, cliente android) para lo que falló en ambas
+                
+            shutil.rmtree(spotdl_tmp, ignore_errors=True)
+
     if failed_spotdl:
-        print(f"Fase 4: Ejecutando yt-dlp (Último Recurso, android client) para {len(failed_spotdl)} pistas...")
-        
-        # Asegurar que deno esté en el PATH para yt-dlp
+        print(f"[{task_id}] Fase 4: Ejecutando yt-dlp para {len(failed_spotdl)} pistas...")
         env = os.environ.copy()
         deno_path = os.path.expanduser("~/.deno/bin")
         if deno_path not in env.get("PATH", ""):
             env["PATH"] = deno_path + ":" + env.get("PATH", "")
         
         for query in failed_spotdl:
-            if query.startswith("http"):
-                search_query = query
-            else:
-                search_query = f"ytsearch1:{query} audio"
+            search_query = query if query.startswith("http") else f"ytsearch1:{query} audio"
             
-            import tempfile
-            import shutil
-            
-            temp_dir = os.path.join(MEDIA_DIR, ".synap_temp")
-            # Limpiar temp_dir antes de descargar por si quedó basura
-            if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
-            os.makedirs(temp_dir, exist_ok=True)
+            ytdlp_tmp = os.path.join(MEDIA_DIR, f".ytdlp_tmp_{uuid.uuid4().hex[:6]}")
+            os.makedirs(ytdlp_tmp, exist_ok=True)
             
             ytdlp_cmd = [
                 "yt-dlp",
                 "-x", "--audio-format", "mp3", "--audio-quality", "0",
                 "--extractor-args", "youtube:player_client=android",
                 "--write-thumbnail",
-                "-o", f"{temp_dir}/%(title)s.%(ext)s",
+                "-o", f"{ytdlp_tmp}/%(title)s.%(ext)s",
                 search_query
             ]
             
             subprocess.run(ytdlp_cmd, check=False, env=env)
             
-            # Buscar el mp3 descargado en temp_dir
-            mp3_files = glob.glob(f"{temp_dir}/*.mp3")
+            mp3_files = glob.glob(f"{ytdlp_tmp}/*.mp3")
             if mp3_files:
                 file_path = mp3_files[0]
-                print(f"  ✓ yt-dlp rescató: {os.path.basename(file_path)}")
+                print(f"[{task_id}]   ✓ yt-dlp rescató: {os.path.basename(file_path)}")
                 try:
-                    # Enrich in temp directory
                     enrich_metadata_for_ytdlp(file_path, query)
                 except Exception as e:
-                    print(f"  [!] Error global en enrich_metadata: {e}")
+                    print(f"[{task_id}]   [!] Error global en enrich_metadata: {e}")
                     
-                # Mover archivos a MEDIA_DIR (Solo MP3 y LRC, no mover miniaturas WEBP/JPG sueltas)
                 base_name = os.path.splitext(os.path.basename(file_path))[0]
-                for tmp_f in glob.glob(f"{temp_dir}/{base_name}.*"):
+                for tmp_f in glob.glob(f"{ytdlp_tmp}/{base_name}.*"):
                     if tmp_f.endswith('.mp3') or tmp_f.endswith('.lrc'):
                         dest = os.path.join(MEDIA_DIR, os.path.basename(tmp_f))
                         if os.path.exists(dest):
                             os.remove(dest)
                         shutil.move(tmp_f, dest)
             else:
-                print(f"  ✗ FALLO TOTAL: Ningún motor pudo descargar: {query}")
+                print(f"[{task_id}]   ✗ FALLO TOTAL: Ningún motor pudo descargar: {query}")
                 
-            # Clean up temp_dir
-            if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
+            shutil.rmtree(ytdlp_tmp, ignore_errors=True)
             
-            # Pausa anti-bot entre descargas de YouTube
             sleep_time = random.uniform(5.0, 8.0)
-            print(f"  [Anti-Bot] Enfriando {sleep_time:.1f}s...")
-            import time
+            print(f"[{task_id}]   [Anti-Bot] Enfriando {sleep_time:.1f}s...")
             time.sleep(sleep_time)
-    
-    
-    print("Descargas finalizadas. Ajustando permisos...")
+
+    print(f"[{task_id}] Descargas finalizadas. Ajustando permisos...")
     try:
         subprocess.run(["chmod", "-R", "755", MEDIA_DIR])
-    except Exception as e:
-        print(f"Advertencia: No se pudieron cambiar los permisos: {e}")
+    except Exception:
+        pass
         
-    print("Notificando a Jellyfin...")
+    print(f"[{task_id}] Notificando a Jellyfin...")
+    import asyncio
     asyncio.run(update_jellyfin_library())
 
 @app.post("/download/bulk", dependencies=[Depends(get_api_key)])
