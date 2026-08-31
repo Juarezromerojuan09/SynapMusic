@@ -634,7 +634,7 @@ async def search_music(q: str, source: str = "deezer", limit: int = 15, offset: 
                         "title": entry.get("title", "Unknown Title"),
                         "artist": entry.get("uploader", "Unknown Artist"),
                         "duration": entry.get("duration_string", ""),
-                        "url": entry.get("webpage_url", ""),
+                        "url": entry.get("webpage_url") or entry.get("url") or "",
                         "cover_url": entry.get("thumbnail", "")
                     })
             except Exception as e:
