@@ -540,11 +540,12 @@ async def check_jellyfin_local(query: str, client: httpx.AsyncClient = None):
     
     async def do_req(c):
         try:
+            params["Limit"] = 15  # Traer más coincidencias para el buscador
             response = await c.get(url, params=params, headers=headers)
             response.raise_for_status()
             data = response.json()
             if data.get("TotalRecordCount", 0) > 0:
-                return {"exists": True, "data": data["Items"][0]}
+                return {"exists": True, "data": data["Items"][0], "data_list": data["Items"]}
         except Exception as e:
             print(f"Error consultando caché local de Jellyfin para '{query}': {e}")
         return {"exists": False}
@@ -574,7 +575,8 @@ async def search_music(q: str, source: str = "deezer", limit: int = 15, offset: 
             
     local_match_data = {
         "exists": local_check["exists"],
-        "jellyfin_data": local_check.get("data") if local_check["exists"] else None
+        "jellyfin_data": local_check.get("data") if local_check["exists"] else None,
+        "jellyfin_data_list": local_check.get("data_list", [])
     }
     results = []
 

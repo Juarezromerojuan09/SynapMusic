@@ -155,8 +155,12 @@ class _DownloadScreenState extends State<DownloadScreen> {
             final localMatch = responseMap['local_match'];
             if (localMatch != null && localMatch['exists'] == true) {
               _localJellyfinData = localMatch['jellyfin_data'];
+              _localJellyfinDataList = localMatch['jellyfin_data_list'] ?? [_localJellyfinData];
+              _showAllLocalMatches = false;
             } else {
               _localJellyfinData = null;
+              _localJellyfinDataList = [];
+              _showAllLocalMatches = false;
             }
           }
           
@@ -342,12 +346,12 @@ class _DownloadScreenState extends State<DownloadScreen> {
     // Resultados de Búsqueda
     return ListView(
       children: [
-        if (_localJellyfinData != null) ...[
+        if (_localJellyfinDataList.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),
             child: Text('En tu biblioteca', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           ),
-          _buildLocalFileCard(),
+          ..._buildLocalFileList(),
           if (_deezerResults.isNotEmpty) ...[
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 16.0),
@@ -401,7 +405,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
             ),
             ..._youtubeResults.map((item) => _buildExternalResultTile(item)).toList(),
           ]
-        ] else if (_localJellyfinData == null) ...[
+        ] else if (_localJellyfinDataList.isEmpty) ...[
           const Center(child: Text('No se encontraron resultados')),
         ]
       ],
@@ -536,11 +540,43 @@ class _DownloadScreenState extends State<DownloadScreen> {
     );
   }
 
-  Widget _buildLocalFileCard() {
-    final itemInfo = _localJellyfinData!;
-    final BaseItemDto track = BaseItemDto.fromJson(itemInfo);
+  List<Widget> _buildLocalFileList() {
+    final listToDisplay = _showAllLocalMatches || _localJellyfinDataList.length <= 3 
+        ? _localJellyfinDataList 
+        : _localJellyfinDataList.take(3).toList();
+        
+    final widgets = listToDisplay.map((itemInfo) {
+      final BaseItemDto track = BaseItemDto.fromJson(itemInfo);
+      return _buildLocalJellyfinTrack(track);
+    }).toList();
     
-    return _buildLocalJellyfinTrack(track);
+    if (!_showAllLocalMatches && _localJellyfinDataList.length > 3) {
+      widgets.add(
+        TextButton.icon(
+          onPressed: () {
+            setState(() {
+              _showAllLocalMatches = true;
+            });
+          },
+          icon: const Icon(Icons.expand_more, color: Colors.grey),
+          label: Text('Ver ${_localJellyfinDataList.length - 3} resultados locales más', style: const TextStyle(color: Colors.grey)),
+        ) as Widget
+      );
+    } else if (_showAllLocalMatches && _localJellyfinDataList.length > 3) {
+      widgets.add(
+        TextButton.icon(
+          onPressed: () {
+            setState(() {
+              _showAllLocalMatches = false;
+            });
+          },
+          icon: const Icon(Icons.expand_less, color: Colors.grey),
+          label: const Text('Ocultar', style: TextStyle(color: Colors.grey)),
+        ) as Widget
+      );
+    }
+    
+    return widgets;
   }
 
   Widget _buildLocalJellyfinTrack(BaseItemDto track) {
