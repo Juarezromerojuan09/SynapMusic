@@ -90,9 +90,18 @@ async def run_rescue_phase(missing_tracks):
         else:
             print("  -> spotDL NO generó archivo. Intento 2: yt-dlp (android client)")
 
-            # Fotografía ANTES del intento con yt-dlp
-            files_before_yt = get_media_file_set()
-
+            import tempfile
+            import shutil
+            import glob
+            
+            # Importar enricher desde main
+            from main import enrich_metadata_for_ytdlp
+            
+            temp_dir = os.path.join(MEDIA_DIR, ".synap_temp")
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+            os.makedirs(temp_dir, exist_ok=True)
+            
             # Asegurar que deno esté en el PATH para yt-dlp
             env = os.environ.copy()
             deno_path = os.path.expanduser("~/.deno/bin")
@@ -103,19 +112,35 @@ async def run_rescue_phase(missing_tracks):
                 "yt-dlp",
                 "-x", "--audio-format", "mp3", "--audio-quality", "0",
                 "--extractor-args", "youtube:player_client=android",
-                "-o", f"{MEDIA_DIR}/{track['artist']} - {track['title']}.%(ext)s",
+                "--write-thumbnail",
+                "-o", f"{temp_dir}/{track['artist']} - {track['title']}.%(ext)s",
                 f"ytsearch1:{query} audio"
             ]
             
             subprocess.run(ytdlp_cmd, check=False, env=env)
-
-            files_after_yt = get_media_file_set()
-            new_files_yt = files_after_yt - files_before_yt
-
-            if new_files_yt:
-                print(f"  -> Rescatado con yt-dlp. Archivo: {os.path.basename(list(new_files_yt)[0])}")
+            
+            mp3_files = glob.glob(f"{temp_dir}/*.mp3")
+            if mp3_files:
+                file_path = mp3_files[0]
+                print(f"  -> Rescatado con yt-dlp. Archivo: {os.path.basename(file_path)}")
+                try:
+                    enrich_metadata_for_ytdlp(file_path, query)
+                except Exception as e:
+                    print(f"  [!] Error global en enrich_metadata: {e}")
+                    
+                # Mover archivos a MEDIA_DIR (Solo MP3 y LRC, no mover miniaturas WEBP/JPG sueltas)
+                base_name = os.path.splitext(os.path.basename(file_path))[0]
+                for tmp_f in glob.glob(f"{temp_dir}/{base_name}.*"):
+                    if tmp_f.endswith('.mp3') or tmp_f.endswith('.lrc'):
+                        dest = os.path.join(MEDIA_DIR, os.path.basename(tmp_f))
+                        if os.path.exists(dest):
+                            os.remove(dest)
+                        shutil.move(tmp_f, dest)
             else:
                 print(f"  -> FALLO TOTAL: Ni spotDL ni yt-dlp pudieron descargar: {query}")
+                
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
             
             # Pausa de seguridad anti-baneo para yt-dlp (5 a 8 segundos)
             import random
