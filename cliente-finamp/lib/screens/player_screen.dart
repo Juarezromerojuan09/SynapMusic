@@ -66,7 +66,7 @@ class PlayerScreen extends StatelessWidget {
         body: Stack(
           children: [
             if (FinampSettingsHelper.finampSettings.showCoverAsPlayerBackground)
-              const _BlurredPlayerScreenBackground(),
+              const RepaintBoundary(child: _BlurredPlayerScreenBackground()),
             SafeArea(
               child: Column(
                 children: [

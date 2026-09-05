@@ -658,6 +658,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                           final artist = (track.artists?.isNotEmpty == true) ? track.artists![0] : (track.albumArtist ?? 'Desconocido');
                           final trackImageUrl = 'http://100.81.156.126:8096/Items/${track.id}/Images/Primary';
                           final trackNumber = _tracks!.indexOf(track) + 1;
+                          final downloadedImage = _downloadsHelper.getDownloadedImage(track);
+                          final coverFile = downloadedImage?.file;
 
                           return TrackListItem(
                             trackId: track.id,
@@ -666,6 +668,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                             artist: artist,
                             isAvailableInServer: true,
                             coverUrl: trackImageUrl,
+                            coverFile: coverFile,
                             onPlayPressed: () async {
                               try {
                                 await GetIt.instance<AudioServiceHelper>().replaceQueueWithItem(
@@ -799,6 +802,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                     final track = _tracks![trackIndex];
                     final artist = (track.artists?.isNotEmpty == true) ? track.artists![0] : (track.albumArtist ?? 'Desconocido');
                     final trackImageUrl = 'http://100.81.156.126:8096/Items/${track.id}/Images/Primary';
+                    final downloadedImage = _downloadsHelper.getDownloadedImage(track);
+                    final coverFile = downloadedImage?.file;
 
                     return TrackListItem(
                       trackId: track.id,
@@ -807,6 +812,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                       artist: artist,
                       isAvailableInServer: true,
                       coverUrl: trackImageUrl,
+                      coverFile: coverFile,
                       onPlayPressed: () async {
                         try {
                           await GetIt.instance<AudioServiceHelper>().replaceQueueWithItem(

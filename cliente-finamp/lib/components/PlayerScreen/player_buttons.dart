@@ -12,7 +12,11 @@ class PlayerButtons extends StatelessWidget {
     final audioHandler = GetIt.instance<MusicPlayerBackgroundTask>();
 
     return StreamBuilder<PlaybackState>(
-      stream: audioHandler.playbackState,
+      stream: audioHandler.playbackState.distinct((prev, curr) =>
+          prev.playing == curr.playing &&
+          prev.processingState == curr.processingState &&
+          prev.shuffleMode == curr.shuffleMode &&
+          prev.repeatMode == curr.repeatMode),
       builder: (context, snapshot) {
         final PlaybackState? playbackState = snapshot.data;
         return Row(

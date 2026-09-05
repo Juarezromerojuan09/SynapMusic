@@ -435,12 +435,20 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
                                           : (downloadedImage != null
                                               ? Image.file(
                                                   downloadedImage.file,
+                                                  width: double.infinity,
+                                                  height: double.infinity,
+                                                  cacheWidth: 350,
+                                                  cacheHeight: 350,
                                                   fit: BoxFit.cover,
                                                   errorBuilder: (_, __, ___) => _buildPlaceholder(),
                                                 )
                                               : ((playlist.imageTags != null && playlist.imageTags!.isNotEmpty)
                                                   ? Image.network(
                                                       imageUrl,
+                                                      width: double.infinity,
+                                                      height: double.infinity,
+                                                      cacheWidth: 350,
+                                                      cacheHeight: 350,
                                                       fit: BoxFit.cover,
                                                       errorBuilder: (_, __, ___) => _buildPlaceholder(),
                                                     )

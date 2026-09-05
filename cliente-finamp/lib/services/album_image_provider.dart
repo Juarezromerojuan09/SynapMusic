@@ -58,6 +58,13 @@ class AlbumImageProvider {
     }
 
     if (await downloadsHelper.verifyDownloadedImage(downloadedImage)) {
+      if (maxWidth != null || maxHeight != null) {
+        return ResizeImage.resizeIfNeeded(
+          maxWidth,
+          maxHeight,
+          FileImage(downloadedImage.file),
+        );
+      }
       return FileImage(downloadedImage.file);
     }
 

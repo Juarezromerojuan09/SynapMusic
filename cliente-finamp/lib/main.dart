@@ -314,7 +314,7 @@ class Finamp extends StatelessWidget {
         RegisterScreen.routeName: (context) => const RegisterScreen(),
         AdminDashboardScreen.routeName: (context) => const AdminDashboardScreen(),
                       ViewSelector.routeName: (context) => const ViewSelector(),
-                      MusicScreen.routeName: (context) => const MusicScreen(),
+                      MusicScreen.routeName: (context) => const MainHomeScreen(),
                       AlbumScreen.routeName: (context) => const AlbumScreen(),
                       MainHomeScreen.routeName: (context) => const MainHomeScreen(),
                       ArtistScreen.routeName: (context) => const ArtistScreen(),

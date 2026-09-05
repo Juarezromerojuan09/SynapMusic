@@ -18,5 +18,9 @@ Stream<MediaState> get mediaStateStream {
   return Rx.combineLatest2<MediaItem?, PlaybackState, MediaState>(
       audioHandler.mediaItem,
       audioHandler.playbackState,
-      (mediaItem, playbackState) => MediaState(mediaItem, playbackState));
+      (mediaItem, playbackState) => MediaState(mediaItem, playbackState))
+    .distinct((prev, curr) =>
+        prev.mediaItem?.id == curr.mediaItem?.id &&
+        prev.playbackState.playing == curr.playbackState.playing &&
+        prev.playbackState.processingState == curr.playbackState.processingState);
 }

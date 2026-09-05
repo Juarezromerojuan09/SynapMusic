@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import '../services/media_state_stream.dart';
+import 'package:audio_service/audio_service.dart';
+import 'package:get_it/get_it.dart';
+import '../services/music_player_background_task.dart';
 
 class TrackListItem extends StatelessWidget {
   final String title;
@@ -10,6 +13,7 @@ class TrackListItem extends StatelessWidget {
   final VoidCallback? onMenuPressed;
   final String? duration;
   final String? coverUrl;
+  final File? coverFile;
   final int? trackNumber;
   final String? trackId;
   final Widget? trailingWidget;
@@ -24,6 +28,7 @@ class TrackListItem extends StatelessWidget {
     this.onMenuPressed,
     this.duration,
     this.coverUrl,
+    this.coverFile,
     this.trackNumber,
     this.trackId,
     this.trailingWidget,
@@ -73,12 +78,27 @@ class TrackListItem extends StatelessWidget {
           ),
         ),
       );
-      if (coverUrl != null && coverUrl!.isNotEmpty) {
+      if ((coverFile != null) || (coverUrl != null && coverUrl!.isNotEmpty)) {
         leadingChildren.add(const SizedBox(width: 8));
       }
     }
 
-    if (coverUrl != null && coverUrl!.isNotEmpty) {
+    if (coverFile != null) {
+      leadingChildren.add(
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.file(
+            coverFile!,
+            width: 46,
+            height: 46,
+            cacheWidth: 120,
+            cacheHeight: 120,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _buildPlaceholder(),
+          ),
+        ),
+      );
+    } else if (coverUrl != null && coverUrl!.isNotEmpty) {
       leadingChildren.add(
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
@@ -86,6 +106,8 @@ class TrackListItem extends StatelessWidget {
             coverUrl!,
             width: 46,
             height: 46,
+            cacheWidth: 120,
+            cacheHeight: 120,
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => _buildPlaceholder(),
           ),
@@ -136,11 +158,10 @@ class TrackListItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: trackId == null
             ? tile
-            : StreamBuilder<MediaState>(
-                stream: mediaStateStream,
+            : StreamBuilder<MediaItem?>(
+                stream: GetIt.instance<MusicPlayerBackgroundTask>().mediaItem,
                 builder: (context, snapshot) {
-                  final mediaItem = snapshot.data?.mediaItem;
-                  final playingId = mediaItem?.extras?['itemJson']?['Id'];
+                  final playingId = snapshot.data?.extras?['itemJson']?['Id'];
                   final isPlaying = playingId != null && playingId == trackId;
                   return Container(
                     decoration: BoxDecoration(

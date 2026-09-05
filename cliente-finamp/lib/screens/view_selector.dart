@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 import '../components/ViewSelector/no_music_libraries_message.dart';
 import '../services/finamp_user_helper.dart';
 import 'music_screen.dart';
+import 'synap_music/main_home_screen.dart';
 import '../services/jellyfin_api_helper.dart';
 import '../models/jellyfin_models.dart';
 import '../components/error_snackbar.dart';
@@ -132,9 +133,9 @@ class _ViewSelectorState extends State<ViewSelector> {
             .where((element) => element.value == true)
             .map((e) => e.key)
             .toList());
-        // allow navigation to music screen while selector is being built
+        // allow navigation to main home screen while selector is being built
         Future.microtask(() => Navigator.of(context)
-            .pushNamedAndRemoveUntil(MusicScreen.routeName, (route) => false));
+            .pushNamedAndRemoveUntil(MainHomeScreen.routeName, (route) => false));
       } catch (e) {
         errorSnackbar(e, context);
       }

@@ -257,6 +257,8 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                   child: CachedNetworkImage(
                     imageUrl: imageUrl,
                     fit: BoxFit.cover,
+                    memCacheWidth: 280,
+                    memCacheHeight: 280,
                     errorWidget: (context, url, error) => Container(
                       color: const Color(0xFF1A1A1A),
                       child: Icon(

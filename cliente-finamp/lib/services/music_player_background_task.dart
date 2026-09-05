@@ -120,6 +120,23 @@ class MusicPlayerBackgroundTask extends BaseAudioHandler {
   Duration _sleepTimerDuration = Duration.zero;
   final ValueNotifier<Timer?> _sleepTimer = ValueNotifier<Timer?>(null);
 
+  /// Periodic timer for reporting progress to Jellyfin (every 15 seconds)
+  Timer? _playbackProgressTimer;
+
+  void _startPlaybackProgressTimer() {
+    _playbackProgressTimer?.cancel();
+    if (!FinampSettingsHelper.finampSettings.isOffline && !_isStopping) {
+      _playbackProgressTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+        _updatePlaybackProgress();
+      });
+    }
+  }
+
+  void _stopPlaybackProgressTimer() {
+    _playbackProgressTimer?.cancel();
+    _playbackProgressTimer = null;
+  }
+
   List<int>? get shuffleIndices => _player.shuffleIndices;
 
   ValueListenable<Timer?> get sleepTimer => _sleepTimer;
@@ -146,16 +163,6 @@ class MusicPlayerBackgroundTask extends BaseAudioHandler {
 
           onTrackChanged(currentItem, currentState, prevItem, prevState);
         }
-      }
-
-      if (playbackState.valueOrNull != null &&
-          playbackState.valueOrNull?.processingState !=
-              AudioProcessingState.idle &&
-          playbackState.valueOrNull?.processingState !=
-              AudioProcessingState.completed &&
-          !FinampSettingsHelper.finampSettings.isOffline &&
-          !_isStopping) {
-        await _updatePlaybackProgress();
       }
     });
 
@@ -186,17 +193,24 @@ class MusicPlayerBackgroundTask extends BaseAudioHandler {
       setSleepTimer(_sleepTimerDuration);
     }
 
+    _startPlaybackProgressTimer();
+    _updatePlaybackProgress();
     return _player.play();
   }
 
   @override
-  Future<void> pause() => _player.pause();
+  Future<void> pause() {
+    _stopPlaybackProgressTimer();
+    _updatePlaybackProgress();
+    return _player.pause();
+  }
 
   @override
   Future<void> stop() async {
     try {
       _audioServiceBackgroundTaskLogger.info("Stopping audio service");
 
+      _stopPlaybackProgressTimer();
       _isStopping = true;
 
       // Tell Jellyfin we're no longer playing audio if we're online
@@ -486,8 +500,19 @@ class MusicPlayerBackgroundTask extends BaseAudioHandler {
       );
 
       if (playbackData != null) {
-        await _jellyfinApiHelper.reportPlaybackStart(playbackData);
+        try {
+          await _jellyfinApiHelper
+              .reportPlaybackStart(playbackData)
+              .timeout(const Duration(seconds: 3));
+        } catch (e) {
+          _audioServiceBackgroundTaskLogger
+              .fine("Playback start report ignored/failed: $e");
+        }
       }
+    }
+
+    if (_player.playing) {
+      _startPlaybackProgressTimer();
     }
   }
 
@@ -647,16 +672,21 @@ class MusicPlayerBackgroundTask extends BaseAudioHandler {
   }
 
   Future<void> _updatePlaybackProgress() async {
+    if (FinampSettingsHelper.finampSettings.isOffline || _isStopping) {
+      return;
+    }
     try {
       JellyfinApiHelper jellyfinApiHelper = GetIt.instance<JellyfinApiHelper>();
 
       final playbackInfo = generateCurrentPlaybackProgressInfo();
       if (playbackInfo != null) {
-        await jellyfinApiHelper.updatePlaybackProgress(playbackInfo);
+        await jellyfinApiHelper
+            .updatePlaybackProgress(playbackInfo)
+            .timeout(const Duration(seconds: 3));
       }
     } catch (e) {
-      _audioServiceBackgroundTaskLogger.severe(e);
-      return Future.error(e);
+      _audioServiceBackgroundTaskLogger
+          .fine("Playback progress report ignored/failed: $e");
     }
   }
 
