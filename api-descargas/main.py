@@ -3,12 +3,18 @@ import asyncio
 import httpx
 import requests
 import subprocess
-from fastapi import FastAPI, Depends, HTTPException, Security, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, Security, BackgroundTasks, Request, File, UploadFile, Form
+from fastapi.responses import FileResponse
 from playlist_migrator import run_migration_task
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from typing import List, Optional
+import sqlite3
+import uuid
+import json
+from zoneinfo import ZoneInfo
+from datetime import datetime
 
 # Cargar variables de entorno desde .env
 load_dotenv()
@@ -19,8 +25,242 @@ JELLYFIN_URL = os.getenv("JELLYFIN_URL", "http://localhost:8096")
 JELLYFIN_API_KEY = os.getenv("JELLYFIN_API_KEY", "")
 DEEZER_ARL = os.getenv("DEEZER_ARL", "")
 
+# Configuración de Feedback / Ayuda y comentarios
+FEEDBACK_DIR = os.getenv("FEEDBACK_DIR", os.path.join(os.path.dirname(__file__), "feedback_images"))
+FEEDBACK_DB = os.getenv("FEEDBACK_DB", os.path.join(os.path.dirname(__file__), "feedback.db"))
+os.makedirs(FEEDBACK_DIR, exist_ok=True)
+
+def init_feedback_db():
+    try:
+        conn = sqlite3.connect(FEEDBACK_DB)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS feedback (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT,
+                user_name TEXT,
+                title TEXT,
+                message TEXT,
+                created_at TEXT,
+                images TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error inicializando feedback.db: {e}")
+
+init_feedback_db()
+
+def patch_deemix_libraries():
+    """
+    Parchea automáticamente deezer-py y deemix para solucionar:
+    1. IndexError: list index out of range en deezer/utils.py (track['MEDIA'][0]['HREF'])
+    2. KeyError: 'explicit_lyrics' en deemix/itemgen.py (trackAPI['explicit_lyrics'])
+    """
+    import sys
+    import glob
+    import re
+
+    # --- 1. deezer/utils.py ---
+    deezer_candidates = set()
+    try:
+        import deezer.utils
+        if hasattr(deezer.utils, '__file__') and deezer.utils.__file__:
+            deezer_candidates.add(os.path.abspath(deezer.utils.__file__))
+    except Exception:
+        pass
+
+    for p in sys.path:
+        target = os.path.abspath(os.path.join(p, "deezer", "utils.py"))
+        if os.path.isfile(target):
+            deezer_candidates.add(target)
+
+    try:
+        venv_root = os.path.dirname(os.path.dirname(sys.executable))
+        for f in glob.glob(os.path.join(venv_root, "**", "deezer", "utils.py"), recursive=True):
+            if os.path.isfile(f):
+                deezer_candidates.add(os.path.abspath(f))
+    except Exception:
+        pass
+
+    fixed_deezer_paths = [
+        "/home/juarezromerojuan09/api-descargas/venv/lib64/python3.13/site-packages/deezer/utils.py",
+        "/home/juarezromerojuan09/api-descargas/venv/lib/python3.13/site-packages/deezer/utils.py",
+    ]
+    for fp in fixed_deezer_paths:
+        if os.path.isfile(fp):
+            deezer_candidates.add(os.path.abspath(fp))
+
+    safe_preview = "result['preview'] = track['MEDIA'][0]['HREF'] if track.get('MEDIA') and len(track['MEDIA']) > 0 else None"
+    pattern_preview = re.compile(r"result\s*\[\s*['\"]preview['\"]\s*\]\s*=\s*track\s*\[\s*['\"]MEDIA['\"]\s*\]\s*\[\s*0\s*\]\s*\[\s*['\"]HREF['\"]\s*\]")
+
+    for path in deezer_candidates:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                code = f.read()
+
+            changed = False
+            if pattern_preview.search(code):
+                code = pattern_preview.sub(safe_preview, code)
+                changed = True
+
+            if "'explicit_lyrics': False" not in code and "'track_token_expire': track['TRACK_TOKEN_EXPIRE']" in code:
+                code = code.replace(
+                    "'track_token_expire': track['TRACK_TOKEN_EXPIRE']",
+                    "'track_token_expire': track['TRACK_TOKEN_EXPIRE'],\n        'explicit_lyrics': False"
+                )
+                changed = True
+
+            if changed:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(code)
+                print(f"[Auto-Patch Deezer] Corregido satisfactoriamente en: {path}")
+            else:
+                print(f"[Auto-Patch Deezer] Verificado: {path} ya cuenta con el parche.")
+        except Exception as e:
+            print(f"[Auto-Patch Deezer] Error al inspeccionar/parchear {path}: {e}")
+
+    # --- 2. deemix/itemgen.py ---
+    deemix_candidates = set()
+    try:
+        import deemix.itemgen
+        if hasattr(deemix.itemgen, '__file__') and deemix.itemgen.__file__:
+            deemix_candidates.add(os.path.abspath(deemix.itemgen.__file__))
+    except (Exception, BaseException):
+        pass
+
+    for p in sys.path:
+        target = os.path.abspath(os.path.join(p, "deemix", "itemgen.py"))
+        if os.path.isfile(target):
+            deemix_candidates.add(target)
+
+    try:
+        venv_root = os.path.dirname(os.path.dirname(sys.executable))
+        for f in glob.glob(os.path.join(venv_root, "**", "deemix", "itemgen.py"), recursive=True):
+            if os.path.isfile(f):
+                deemix_candidates.add(os.path.abspath(f))
+    except Exception:
+        pass
+
+    fixed_deemix_paths = [
+        "/home/juarezromerojuan09/api-descargas/venv/lib64/python3.13/site-packages/deemix/itemgen.py",
+        "/home/juarezromerojuan09/api-descargas/venv/lib/python3.13/site-packages/deemix/itemgen.py",
+    ]
+    for fp in fixed_deemix_paths:
+        if os.path.isfile(fp):
+            deemix_candidates.add(os.path.abspath(fp))
+
+    gen_pattern = re.compile(r"(\w+)\s*\[\s*['\"]explicit_lyrics['\"]\s*\]")
+    gen_replace = r"\1.get('explicit_lyrics', False)"
+
+    for path in deemix_candidates:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                code = f.read()
+
+            changed = False
+            # Limpiar posibles barras invertidas escapadas erróneamente (\'explicit_lyrics\')
+            if chr(92) + chr(39) in code:
+                code = code.replace(chr(92) + chr(39), chr(39))
+                changed = True
+            if chr(92) + chr(34) in code:
+                code = code.replace(chr(92) + chr(34), chr(34))
+                changed = True
+
+            # Corregir accesos directos inseguros
+            if gen_pattern.search(code):
+                code = gen_pattern.sub(gen_replace, code)
+                changed = True
+
+            if changed:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(code)
+                print(f"[Auto-Patch Deemix] Corregido satisfactoriamente en: {path}")
+            elif ".get('explicit_lyrics', False)" in code:
+                print(f"[Auto-Patch Deemix] Verificado: {path} ya cuenta con el parche.")
+        except Exception as e:
+            print(f"[Auto-Patch Deemix] Error al inspeccionar/parchear {path}: {e}")
+
+    # --- 3. deemix/utils/pathtemplates.py ---
+    pathtemplates_candidates = set()
+    try:
+        import deemix.utils.pathtemplates
+        if hasattr(deemix.utils.pathtemplates, '__file__') and deemix.utils.pathtemplates.__file__:
+            pathtemplates_candidates.add(os.path.abspath(deemix.utils.pathtemplates.__file__))
+    except (Exception, BaseException):
+        pass
+
+    for p in sys.path:
+        target = os.path.abspath(os.path.join(p, "deemix", "utils", "pathtemplates.py"))
+        if os.path.isfile(target):
+            pathtemplates_candidates.add(target)
+
+    try:
+        venv_root = os.path.dirname(os.path.dirname(sys.executable))
+        for f in glob.glob(os.path.join(venv_root, "**", "deemix", "utils", "pathtemplates.py"), recursive=True):
+            if os.path.isfile(f):
+                pathtemplates_candidates.add(os.path.abspath(f))
+    except Exception:
+        pass
+
+    fixed_pathtemplates = [
+        "/home/juarezromerojuan09/api-descargas/venv/lib64/python3.13/site-packages/deemix/utils/pathtemplates.py",
+        "/home/juarezromerojuan09/api-descargas/venv/lib/python3.13/site-packages/deemix/utils/pathtemplates.py",
+    ]
+    for fp in fixed_pathtemplates:
+        if os.path.isfile(fp):
+            pathtemplates_candidates.add(os.path.abspath(fp))
+
+    for path in pathtemplates_candidates:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                code = f.read()
+
+            changed = False
+            if 'filename.replace("%upc%", track.album.barcode)' in code:
+                code = code.replace(
+                    'filename.replace("%upc%", track.album.barcode)',
+                    'filename.replace("%upc%", str(track.album.barcode or ""))'
+                )
+                changed = True
+            if 'filename.replace("%isrc%", track.ISRC)' in code:
+                code = code.replace(
+                    'filename.replace("%isrc%", track.ISRC)',
+                    'filename.replace("%isrc%", str(track.ISRC or ""))'
+                )
+                changed = True
+
+            if changed:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(code)
+                print(f"[Auto-Patch Deemix] Corregido TypeError de barcode en: {path}")
+            elif 'track.album.barcode or ""' in code:
+                print(f"[Auto-Patch Deemix] Verificado: {path} ya cuenta con el parche de barcode.")
+        except Exception as e:
+            print(f"[Auto-Patch Deemix] Error al inspeccionar/parchear {path}: {e}")
+
+# Alias para compatibilidad
+patch_deezer_utils = patch_deemix_libraries
+
+def get_deemix_binary():
+    """Obtiene la ruta absoluta al ejecutable deemix."""
+    import sys
+    import shutil
+    venv_deemix = os.path.join(os.path.dirname(sys.executable), "deemix")
+    if os.path.isfile(venv_deemix) and os.access(venv_deemix, os.X_OK):
+        return venv_deemix
+    which_path = shutil.which("deemix")
+    if which_path:
+        return which_path
+    server_path = "/home/juarezromerojuan09/api-descargas/venv/bin/deemix"
+    if os.path.isfile(server_path) and os.access(server_path, os.X_OK):
+        return server_path
+    return "deemix"
+
 def setup_deemix():
-    """Configura el entorno de Deemix inyectando ARL y config.json."""
+    """Configura el entorno de Deemix inyectando ARL, config.json y aplicando el parche a deezer-py."""
+    patch_deezer_utils()
     if not DEEZER_ARL:
         print("Advertencia: DEEZER_ARL no configurada. Deemix fallará.")
         return
@@ -33,7 +273,6 @@ def setup_deemix():
     with open(os.path.join(deemix_config_dir, ".arl"), "w") as f:
         f.write(DEEZER_ARL)
         
-    # Escribir la configuración en formato plano (flat)
     # Escribir la configuración en formato plano (flat)
     config_data = {
         "downloadLocation": MEDIA_DIR,
@@ -306,7 +545,7 @@ def run_dual_download(queries: List[str]):
             deemix_tmp = os.path.join(MEDIA_DIR, f".deemix_tmp_{uuid.uuid4().hex[:6]}")
             os.makedirs(deemix_tmp, exist_ok=True)
             
-            command_deemix = ["deemix", "--bitrate", "320", "-p", deemix_tmp, url]
+            command_deemix = [get_deemix_binary(), "--bitrate", "320", "-p", deemix_tmp, url]
             result_deemix = subprocess.run(command_deemix, capture_output=True, text=True)
             out_deemix = result_deemix.stdout + result_deemix.stderr
             print(out_deemix)
@@ -883,6 +1122,149 @@ async def approve_user(user_id: str):
             raise HTTPException(status_code=500, detail="Error aprobando al usuario")
             
         return {"status": "success", "message": "Usuario aprobado correctamente."}
+
+class UpdateUserNameRequest(BaseModel):
+    name: str
+
+@app.post("/users/{user_id}/name", dependencies=[Depends(get_api_key)])
+async def update_user_name(user_id: str, req: UpdateUserNameRequest):
+    """Actualiza el nombre de un usuario en Jellyfin."""
+    headers = {"X-Emby-Token": JELLYFIN_API_KEY}
+    async with httpx.AsyncClient() as client:
+        get_user_url = f"{JELLYFIN_URL}/Users/{user_id}"
+        user_resp = await client.get(get_user_url, headers=headers)
+        if user_resp.status_code != 200:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        user_data = user_resp.json()
+        user_data["Name"] = req.name
+        
+        update_url = f"{JELLYFIN_URL}/Users/{user_id}"
+        update_resp = await client.post(update_url, headers=headers, json=user_data)
+        if update_resp.status_code not in [200, 204]:
+            raise HTTPException(status_code=500, detail="Error actualizando nombre en Jellyfin")
+        return {"status": "success", "message": "Nombre actualizado", "name": req.name}
+
+@app.post("/users/{user_id}/avatar", dependencies=[Depends(get_api_key)])
+async def update_user_avatar(user_id: str, request: Request):
+    """Actualiza la foto de perfil del usuario en Jellyfin."""
+    headers = {
+        "X-Emby-Token": JELLYFIN_API_KEY,
+        "Content-Type": request.headers.get("content-type", "image/jpeg")
+    }
+    body = await request.body()
+    async with httpx.AsyncClient() as client:
+        avatar_url = f"{JELLYFIN_URL}/Users/{user_id}/Images/Primary"
+        resp = await client.post(avatar_url, headers=headers, content=body)
+        if resp.status_code not in [200, 204]:
+            raise HTTPException(status_code=500, detail="Error subiendo avatar a Jellyfin")
+        return {"status": "success", "message": "Avatar actualizado"}
+
+@app.post("/feedback", dependencies=[Depends(get_api_key)])
+async def submit_feedback(
+    user_id: str = Form(...),
+    user_name: str = Form(...),
+    title: str = Form(...),
+    message: str = Form(...),
+    files: Optional[List[UploadFile]] = File(None)
+):
+    """Guarda un nuevo comentario de retroalimentación con fecha y hora CDMX."""
+    now_cdmx = datetime.now(ZoneInfo("America/Mexico_City")).strftime("%d/%m/%Y %I:%M %p")
+    image_filenames = []
+    
+    if files:
+        for file in files:
+            if file and file.filename:
+                ext = os.path.splitext(file.filename)[1] or ".jpg"
+                unique_name = f"{uuid.uuid4().hex}{ext}"
+                file_path = os.path.join(FEEDBACK_DIR, unique_name)
+                content = await file.read()
+                if content:
+                    with open(file_path, "wb") as f:
+                        f.write(content)
+                    image_filenames.append(unique_name)
+                    
+    conn = sqlite3.connect(FEEDBACK_DB)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO feedback (user_id, user_name, title, message, created_at, images)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (user_id, user_name, title, message, now_cdmx, json.dumps(image_filenames)))
+    feedback_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return {
+        "status": "success",
+        "message": "Comentario enviado con éxito",
+        "id": feedback_id,
+        "created_at": now_cdmx
+    }
+
+@app.get("/feedback", dependencies=[Depends(get_api_key)])
+async def get_feedback_list():
+    """Obtiene la lista de comentarios para administradores."""
+    conn = sqlite3.connect(FEEDBACK_DB)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id, user_id, user_name, title, message, created_at, images
+        FROM feedback
+        ORDER BY id DESC
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    
+    results = []
+    for row in rows:
+        images_list = []
+        try:
+            images_list = json.loads(row[6]) if row[6] else []
+        except Exception:
+            images_list = []
+            
+        results.append({
+            "id": row[0],
+            "user_id": row[1],
+            "user_name": row[2],
+            "title": row[3],
+            "message": row[4],
+            "created_at": row[5],
+            "images": images_list
+        })
+    return results
+
+@app.delete("/feedback/{feedback_id}", dependencies=[Depends(get_api_key)])
+async def delete_feedback(feedback_id: int):
+    """Elimina un comentario y sus imágenes asociadas."""
+    conn = sqlite3.connect(FEEDBACK_DB)
+    cursor = conn.cursor()
+    cursor.execute("SELECT images FROM feedback WHERE id = ?", (feedback_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Comentario no encontrado")
+        
+    try:
+        images = json.loads(row[0]) if row[0] else []
+        for img in images:
+            img_path = os.path.join(FEEDBACK_DIR, img)
+            if os.path.exists(img_path):
+                os.remove(img_path)
+    except Exception as e:
+        print(f"Error borrando imágenes de feedback: {e}")
+        
+    cursor.execute("DELETE FROM feedback WHERE id = ?", (feedback_id,))
+    conn.commit()
+    conn.close()
+    return {"status": "success", "message": "Comentario eliminado"}
+
+@app.get("/feedback/images/{filename}")
+async def get_feedback_image(filename: str):
+    """Sirve las imágenes adjuntas a los comentarios."""
+    file_path = os.path.join(FEEDBACK_DIR, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Imagen no encontrada")
+    return FileResponse(file_path)
 
 async def expand_url(url: str) -> str:
     """Expande URLs acortadas (ej. link.deezer.com) a su URL real."""

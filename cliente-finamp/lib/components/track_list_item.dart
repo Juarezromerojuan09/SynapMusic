@@ -31,27 +31,27 @@ class TrackListItem extends StatelessWidget {
 
   Widget _buildPlaceholder() {
     return Container(
-      width: 45,
-      height: 45,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
-        color: Colors.grey.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(4),
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: const Icon(Icons.music_note, color: Colors.grey),
+      child: const Icon(Icons.music_note, color: Color(0xFFA0A0A0)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    const Color synapColor = Color(0xFF144477);
+    const Color synapAccent = Color(0xFF8B93FF);
 
     Widget actualTrailingWidget = trailingWidget ?? (isAvailableInServer 
       ? IconButton(
-          icon: const Icon(Icons.more_vert),
+          icon: const Icon(Icons.more_vert, color: Color(0xFFA0A0A0)),
           onPressed: onMenuPressed,
         ) 
       : IconButton(
-          icon: const Icon(Icons.download, color: synapColor),
+          icon: const Icon(Icons.download, color: synapAccent),
           onPressed: onDownloadPressed,
         ));
 
@@ -60,34 +60,39 @@ class TrackListItem extends StatelessWidget {
     if (trackNumber != null) {
       leadingChildren.add(
         SizedBox(
-          width: 24,
+          width: 26,
           child: Center(
             child: Text(
               '$trackNumber',
-              style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Color(0xFFA0A0A0),
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
       );
+      if (coverUrl != null && coverUrl!.isNotEmpty) {
+        leadingChildren.add(const SizedBox(width: 8));
+      }
     }
 
-    if (coverUrl != null) {
-      if (coverUrl!.isNotEmpty) {
-        leadingChildren.add(
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: Image.network(
-              coverUrl!,
-              width: 45,
-              height: 45,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _buildPlaceholder(),
-            ),
+    if (coverUrl != null && coverUrl!.isNotEmpty) {
+      leadingChildren.add(
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.network(
+            coverUrl!,
+            width: 46,
+            height: 46,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _buildPlaceholder(),
           ),
-        );
-      } else {
-        leadingChildren.add(_buildPlaceholder());
-      }
+        ),
+      );
+    } else if (trackNumber == null) {
+      leadingChildren.add(_buildPlaceholder());
     }
 
     Widget leadingWidget = Row(
@@ -95,57 +100,59 @@ class TrackListItem extends StatelessWidget {
       children: leadingChildren,
     );
 
-    final tile = InkWell(
+    final tile = ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 2.0),
       onTap: isAvailableInServer ? onPlayPressed : null,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: Row(
-          children: [
-            leadingWidget,
-            const SizedBox(width: 4),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16)),
-                  const SizedBox(height: 2),
-                  Text(
-                    duration != null ? '$artist • $duration' : artist,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 4),
-            actualTrailingWidget,
-          ],
+      leading: leadingWidget,
+      title: Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 15,
         ),
       ),
+      subtitle: Text(
+        duration != null ? '$artist • $duration' : artist,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Color(0xFFA0A0A0),
+          fontSize: 13,
+        ),
+      ),
+      trailing: actualTrailingWidget,
     );
 
-    if (trackId == null) return tile;
-
-    return StreamBuilder<MediaState>(
-      stream: mediaStateStream,
-      builder: (context, snapshot) {
-        final mediaItem = snapshot.data?.mediaItem;
-        final playingId = mediaItem?.extras?['itemJson']?['Id'];
-        final isPlaying = playingId != null && playingId == trackId;
-        final color = isPlaying ? synapColor.withOpacity(0.2) : Colors.transparent;
-        return Container(
-          color: color,
-          child: Row(
-            children: [
-              if (isPlaying)
-                Container(width: 4, height: 40, color: synapColor, margin: const EdgeInsets.only(left: 4)),
-              Expanded(child: tile),
-            ],
-          ),
-        );
-      },
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 0),
+      decoration: BoxDecoration(
+        color: const Color(0xFF151515),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: trackId == null
+            ? tile
+            : StreamBuilder<MediaState>(
+                stream: mediaStateStream,
+                builder: (context, snapshot) {
+                  final mediaItem = snapshot.data?.mediaItem;
+                  final playingId = mediaItem?.extras?['itemJson']?['Id'];
+                  final isPlaying = playingId != null && playingId == trackId;
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: isPlaying ? synapAccent.withOpacity(0.12) : Colors.transparent,
+                      border: isPlaying ? Border.all(color: synapAccent.withOpacity(0.3), width: 1) : null,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: tile,
+                  );
+                },
+              ),
+      ),
     );
   }
 }

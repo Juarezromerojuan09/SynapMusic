@@ -23,6 +23,8 @@ import 'download_screen.dart';
 import 'library_playlists_screen.dart';
 import 'album_detail_screen.dart';
 import 'artist_profile_screen.dart';
+import 'user_profile_screen.dart';
+import 'help_feedback_screen.dart';
 
 import '../../models/jellyfin_models.dart';
 
@@ -72,7 +74,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const Color synapColor = Color(0xFF144477);
+    const Color synapColor = Color(0xFF8B93FF);
 
     return WillPopScope(
       onWillPop: () async {
@@ -87,6 +89,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
         return isFirstRouteInCurrentTab;
       },
       child: Scaffold(
+        backgroundColor: const Color(0xFF0A0A0A),
         body: Column(
           children: [
             Expanded(
@@ -102,10 +105,13 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
+        backgroundColor: const Color(0xFF0A0A0A),
         selectedItemColor: synapColor,
-        unselectedItemColor: Colors.grey,
+        unselectedItemColor: const Color(0xFFA0A0A0),
         showSelectedLabels: true,
         showUnselectedLabels: true,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -185,10 +191,10 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
       ),
     );
   }
@@ -211,7 +217,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
 
         final items = snapshot.data!;
         return SizedBox(
-          height: 190,
+          height: 220,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -231,92 +237,110 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
   Widget _buildCard(String imageUrl, String title, String subtitle, {bool isCircular = false, VoidCallback? onTap, int? rank, String? extraSubtitle}) {
     return GestureDetector(
       onTap: onTap,
-      child: SizedBox(
-        width: 120,
+      child: Container(
+        width: 140,
+        margin: const EdgeInsets.symmetric(horizontal: 4.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: isCircular ? CrossAxisAlignment.center : CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    decoration: rank != null
-                        ? BoxDecoration(
-                            border: Border.all(color: const Color(0xFF144477), width: 3),
-                            borderRadius: BorderRadius.circular(isCircular ? 60 : 11),
-                          )
-                        : null,
-                    padding: rank != null ? const EdgeInsets.all(3) : EdgeInsets.zero,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(isCircular ? 60 : 8),
-                      child: CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        width: 120,
-                        height: 120,
-                        fit: BoxFit.cover,
-                        errorWidget: (context, url, error) => Container(
-                          color: Colors.grey[800],
-                          child: Icon(isCircular ? Icons.person : Icons.music_note, size: 50, color: Colors.white),
-                        ),
-                        placeholder: (context, url) => Container(
-                          color: Colors.grey[800],
-                          child: Icon(isCircular ? Icons.person : Icons.music_note, size: 50, color: Colors.white),
-                        ),
+            Stack(
+              children: [
+                Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: isCircular ? BoxShape.circle : BoxShape.rectangle,
+                    borderRadius: isCircular ? null : BorderRadius.circular(12),
+                    color: const Color(0xFF1A1A1A),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) => Container(
+                      color: const Color(0xFF1A1A1A),
+                      child: Icon(
+                        isCircular ? Icons.person : Icons.music_note,
+                        size: 48,
+                        color: const Color(0xFFA0A0A0),
                       ),
                     ),
-                  ),
-                  if (rank != null)
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF144477),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '$rank',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
+                    placeholder: (context, url) => Container(
+                      color: const Color(0xFF1A1A1A),
+                      child: const Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B93FF)),
                           ),
                         ),
                       ),
                     ),
-                ],
-              ),
+                  ),
+                ),
+                if (rank != null)
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1A1A), // Círculo oscuro
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2), // Borde blanco delgado de 2px
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$rank',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(
               title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.white,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
+              textAlign: isCircular ? TextAlign.center : TextAlign.start,
             ),
             const SizedBox(height: 2),
             Text(
               subtitle,
-              style: const TextStyle(color: Colors.grey, fontSize: 11),
+              style: const TextStyle(
+                color: Color(0xFFA0A0A0),
+                fontSize: 12,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
+              textAlign: isCircular ? TextAlign.center : TextAlign.start,
             ),
             if (extraSubtitle != null) ...[
               const SizedBox(height: 2),
               Text(
                 extraSubtitle,
-                style: const TextStyle(color: Colors.blueGrey, fontSize: 11, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Color(0xFF8B93FF),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
+                textAlign: isCircular ? TextAlign.center : TextAlign.start,
               ),
             ],
           ],
@@ -334,82 +358,105 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
     final userHelper = GetIt.instance<FinampUserHelper>();
     final serverUrl = 'http://100.81.156.126:8096'; // We can just use the VPN IP for now
     final userImageUrl = '${serverUrl}/Users/${_userId}/Images/Primary';
-    
 
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('SynapMusic', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF144477))),
-                    PopupMenuButton<String>(
-                      onSelected: (value) async {
-                        if (value == 'logout') {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Cerrar Sesión'),
-                              content: const Text('¿Estás seguro de que deseas cerrar sesión?'),
-                              actions: [
-                                TextButton(
-                                  child: const Text('Cancelar'),
-                                  onPressed: () => Navigator.of(context).pop(false),
-                                ),
-                                TextButton(
-                                  child: const Text('Cerrar sesión', style: TextStyle(color: Colors.red)),
-                                  onPressed: () => Navigator.of(context).pop(true),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (confirm == true) {
-                            try {
-                              final audioHandler = GetIt.instance<MusicPlayerBackgroundTask>();
-                              if (audioHandler.playbackState.valueOrNull?.playing == true) {
-                                await audioHandler.stop();
-                              }
-                              final jellyfinApiHelper = GetIt.instance<JellyfinApiHelper>();
-                              await jellyfinApiHelper.logoutCurrentUser().onError((_, __) {});
-                              
-                              if (!context.mounted) return;
-                              Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(SplashScreen.routeName, (route) => false);
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                            }
-                          }
-                        } else if (value == 'admin') {
-                          Navigator.of(context, rootNavigator: true).push(
-                            MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opción en desarrollo')));
-                        }
-                      },
-                      child: CircleAvatar(
-                        radius: 20,
-                        backgroundImage: CachedNetworkImageProvider(userImageUrl),
-                        onBackgroundImageError: (_, __) {},
-                        child: const Icon(Icons.person, color: Colors.transparent), // fallback is handled by background
-                      ),
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(value: 'profile', child: Text('Perfil')),
-                        const PopupMenuItem(value: 'settings', child: Text('Configuración')),
-                        if (_isAdmin)
-                          const PopupMenuItem(value: 'admin', child: Text('Admin')),
-                        const PopupMenuItem(value: 'help', child: Text('Ayudas y comentarios')),
-                        const PopupMenuDivider(),
-                        const PopupMenuItem(value: 'logout', child: Text('Cerrar sesión', style: TextStyle(color: Colors.red))),
+      backgroundColor: const Color(0xFF0A0A0A),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        titleSpacing: 16.0,
+        title: const Text(
+          'SynapMusic',
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF8B93FF),
+          ),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: PopupMenuButton<String>(
+              color: const Color(0xFF1A1A1A),
+              onSelected: (value) async {
+                if (value == 'profile') {
+                  Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(builder: (context) => const UserProfileScreen()),
+                  ).then((_) {
+                    if (mounted) setState(() {});
+                  });
+                } else if (value == 'settings') {
+                  Navigator.of(context, rootNavigator: true).pushNamed(SettingsScreen.routeName);
+                } else if (value == 'admin') {
+                  Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+                  );
+                } else if (value == 'help') {
+                  Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(builder: (context) => HelpFeedbackScreen(isAdmin: _isAdmin)),
+                  );
+                } else if (value == 'logout') {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      backgroundColor: const Color(0xFF1A1A1A),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      title: const Text('Cerrar Sesión', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      content: const Text('¿Estás seguro de que deseas cerrar sesión?', style: TextStyle(color: Color(0xFFA0A0A0))),
+                      actions: [
+                        TextButton(
+                          child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A0A0))),
+                          onPressed: () => Navigator.of(context).pop(false),
+                        ),
+                        TextButton(
+                          child: const Text('Cerrar sesión', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                          onPressed: () => Navigator.of(context).pop(true),
+                        ),
                       ],
                     ),
-                  ],
-                ),
+                  );
+                  if (confirm == true) {
+                    try {
+                      final audioHandler = GetIt.instance<MusicPlayerBackgroundTask>();
+                      if (audioHandler.playbackState.valueOrNull?.playing == true) {
+                        await audioHandler.stop();
+                      }
+                      final jellyfinApiHelper = GetIt.instance<JellyfinApiHelper>();
+                      await jellyfinApiHelper.logoutCurrentUser().onError((_, __) {});
+                      
+                      if (!context.mounted) return;
+                      Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(SplashScreen.routeName, (route) => false);
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                    }
+                  }
+                }
+              },
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: const Color(0xFF1A1A1A),
+                backgroundImage: CachedNetworkImageProvider(userImageUrl),
+                onBackgroundImageError: (_, __) {},
+                child: const Icon(Icons.person, color: Color(0xFFA0A0A0), size: 20),
               ),
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 'profile', child: Text('Perfil', style: TextStyle(color: Colors.white))),
+                const PopupMenuItem(value: 'settings', child: Text('Configuración', style: TextStyle(color: Colors.white))),
+                if (_isAdmin)
+                  const PopupMenuItem(value: 'admin', child: Text('Admin', style: TextStyle(color: Colors.white))),
+                const PopupMenuItem(value: 'help', child: Text('Ayuda y comentarios', style: TextStyle(color: Colors.white))),
+                const PopupMenuDivider(height: 1),
+                const PopupMenuItem(value: 'logout', child: Text('Cerrar sesión', style: TextStyle(color: Colors.redAccent))),
+              ],
+            ),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
 
             _buildSectionTitle('Top 10 México'),
             _buildHorizontalList(_topMexicoStream, (item, index) {
@@ -504,9 +551,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
             }),
             
             const SizedBox(height: 30),
-            
-            ],
-          ),
+          ],
         ),
       ),
     );

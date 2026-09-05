@@ -10,6 +10,8 @@ class ProgressState {
   final Duration position;
 
   ProgressState(this.mediaItem, this.playbackState, this.position);
+
+  Duration? get total => mediaItem?.duration;
 }
 
 /// Encapsulate all the different data we're interested in into a single

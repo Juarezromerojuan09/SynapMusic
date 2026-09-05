@@ -60,63 +60,120 @@ class PlayerScreen extends StatelessWidget {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          actions: const [
-            SleepTimerButton(),
-            AddToPlaylistButton(),
-          ],
-        ),
+        backgroundColor: const Color(0xFF0A0A0A),
         // Required for sleep timer input
         resizeToAvoidBottomInset: false,
-        extendBodyBehindAppBar: true,
         body: Stack(
           children: [
             if (FinampSettingsHelper.finampSettings.showCoverAsPlayerBackground)
               const _BlurredPlayerScreenBackground(),
-            const SafeArea(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Expanded(
-                      child: _PlayerScreenAlbumImage(),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SongName(),
-                            ProgressSlider(),
-                            PlayerButtons(),
-                            Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: PlaybackMode(),
+            SafeArea(
+              child: Column(
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 30),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                "NOW PLAYING",
+                                style: TextStyle(
+                                  color: Color(0xFFA0A0A0),
+                                  fontSize: 11,
+                                  letterSpacing: 1.5,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                Align(
-                                  alignment: Alignment.center,
-                                  child: _PlayerScreenFavoriteButton(),
-                                ),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: QueueButton(),
-                                )
-                              ],
-                            )
+                              ),
+                              const SizedBox(height: 4),
+                              StreamBuilder<MediaItem?>(
+                                stream: audioHandler.mediaItem,
+                                builder: (context, snapshot) {
+                                  final albumName = snapshot.data?.album ?? "SynapMusic";
+                                  return Text(
+                                    albumName,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert, color: Colors.white),
+                          color: const Color(0xFF1A1A1A),
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(value: 'sleep', child: SleepTimerButton()),
+                            const PopupMenuItem(value: 'add', child: AddToPlaylistButton()),
                           ],
                         ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Artwork
+                  const Expanded(
+                    flex: 5,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                      child: _PlayerScreenAlbumImage(),
+                    ),
+                  ),
+                  
+                  // Controls Section
+                  Expanded(
+                    flex: 4,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          // Info Row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const Expanded(child: SongName()),
+                              const _PlayerScreenFavoriteButton(),
+                            ],
+                          ),
+                          
+                          // Progress Bar
+                          const ProgressSlider(),
+                          
+                          // Playback Controls
+                          const PlayerButtons(),
+                          
+                          // Bottom Actions
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Icon(Icons.cast, color: Color(0xFFA0A0A0)),
+                              const PlaybackMode(),
+                              const QueueButton(),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                        ],
                       ),
-                    )
-                  ],
-                ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -250,28 +307,54 @@ class _PlayerScreenAlbumImageState extends ConsumerState<_PlayerScreenAlbumImage
             }
           }
 
-          final Widget originalImage = item == null
-              ? AspectRatio(
-                  aspectRatio: 1,
-                  child: ClipRRect(
-                    borderRadius: AlbumImage.borderRadius,
-                    child: Container(color: Theme.of(context).cardColor),
-                  ),
-                )
-              : AlbumImage(
-                  item: item,
-                  imageProviderCallback: (imageProvider) =>
-                      WidgetsBinding.instance.addPostFrameCallback((_) => ref
-                          .read(_albumImageProvider.notifier)
-                          .state = imageProvider),
-                  itemsToPrecache: audioHandler.queue.value
-                      .sublist(min(
-                          (audioHandler.playbackState.value.queueIndex ?? 0) + 1,
-                          audioHandler.queue.value.length))
-                      .take(3)
-                      .map((e) => BaseItemDto.fromJson(e.extras!["itemJson"]))
-                      .toList(),
-                );
+          final Widget originalImage = Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.55),
+                  blurRadius: 28,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24.0),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: item == null || item.imageId == null
+                    ? Container(
+                        color: const Color(0xFF1A1A1A),
+                        child: const Icon(Icons.music_note, size: 80, color: Color(0xFFA0A0A0)),
+                      )
+                    : LayoutBuilder(builder: (context, constraints) {
+                        final MediaQueryData mediaQuery = MediaQuery.of(context);
+                        final int physicalWidth =
+                            (constraints.maxWidth * mediaQuery.devicePixelRatio).toInt();
+                        final int physicalHeight =
+                            (constraints.maxHeight * mediaQuery.devicePixelRatio).toInt();
+
+                        return BareAlbumImage(
+                          item: item,
+                          maxWidth: physicalWidth,
+                          maxHeight: physicalHeight,
+                          imageProviderCallback: (imageProvider) =>
+                              WidgetsBinding.instance.addPostFrameCallback((_) => ref
+                                  .read(_albumImageProvider.notifier)
+                                  .state = imageProvider),
+                          itemsToPrecache: audioHandler.queue.value
+                              .sublist(min(
+                                  (audioHandler.playbackState.value.queueIndex ?? 0) + 1,
+                                  audioHandler.queue.value.length))
+                              .take(3)
+                              .map((e) => BaseItemDto.fromJson(e.extras!["itemJson"]))
+                              .toList(),
+                        );
+                      }),
+              ),
+            ),
+          );
 
           return Stack(
             children: [
@@ -282,11 +365,18 @@ class _PlayerScreenAlbumImageState extends ConsumerState<_PlayerScreenAlbumImage
                         aspectRatio: 1,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: AlbumImage.borderRadius,
+                            color: const Color(0xFF151515).withOpacity(0.92),
+                            borderRadius: BorderRadius.circular(24.0),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.5),
+                                blurRadius: 24,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
                           ),
                           child: _isLoadingLyrics 
-                            ? const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF144477))))
+                            ? const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B93FF))))
                             : StreamBuilder<ProgressState>(
                                 stream: progressStateStream,
                                 builder: (context, progressSnapshot) {
@@ -339,7 +429,7 @@ class _PlayerScreenAlbumImageState extends ConsumerState<_PlayerScreenAlbumImage
                                             style: TextStyle(
                                               fontSize: isCurrent ? 30 : 22,
                                               fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
-                                              color: isCurrent ? const Color(0xFF144477) : Colors.white.withOpacity(opacity),
+                                              color: isCurrent ? const Color(0xFF8B93FF) : Colors.white.withOpacity(opacity),
                                               shadows: [
                                                 Shadow(
                                                   offset: const Offset(0, 1),
@@ -379,7 +469,7 @@ class _PlayerScreenAlbumImageState extends ConsumerState<_PlayerScreenAlbumImage
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: _isShowingLyrics ? const Color(0xFF144477) : Colors.black54,
+                      color: _isShowingLyrics ? const Color(0xFF8B93FF) : Colors.black54,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(

@@ -116,15 +116,15 @@ class _PrivateUserSignInState extends State<PrivateUserSignIn> {
                               ElevatedButton(
                                 onPressed: isAuthenticating ? null : () async => await sendForm(),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF144477),
-                                  foregroundColor: Colors.white,
+                                  backgroundColor: const Color(0xFF8B93FF),
+                                  foregroundColor: Colors.black,
                                   padding: const EdgeInsets.symmetric(vertical: 16),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
                                 child: isAuthenticating
-                                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
                                     : Text(
                                         AppLocalizations.of(context)!.next.toUpperCase(),
                                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),

@@ -97,22 +97,22 @@ class _FixMetadataDialogState extends State<FixMetadataDialog> {
                 labelText: 'Título para búsqueda',
                 labelStyle: const TextStyle(color: Colors.white54),
                 enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF144477))),
+                focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF8B93FF))),
               ),
             ),
             const SizedBox(height: 20),
             const Text(
               'Opción Manual (Deja vacío para autocompletar)',
-              style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold),
+              style: TextStyle(color: Color(0xFFA0A0A0), fontSize: 12, fontWeight: FontWeight.bold),
             ),
             TextField(
               controller: _coverController,
               style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(
                 labelText: 'URL de Portada (Opcional)',
-                labelStyle: TextStyle(color: Colors.white54),
+                labelStyle: TextStyle(color: Color(0xFFA0A0A0)),
                 enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF144477))),
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF8B93FF))),
               ),
             ),
             const SizedBox(height: 12),
@@ -122,9 +122,9 @@ class _FixMetadataDialogState extends State<FixMetadataDialog> {
               style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(
                 labelText: 'Letra exacta (Opcional)',
-                labelStyle: TextStyle(color: Colors.white54),
+                labelStyle: TextStyle(color: Color(0xFFA0A0A0)),
                 enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF144477))),
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF8B93FF))),
               ),
             ),
             const SizedBox(height: 24),
@@ -133,15 +133,15 @@ class _FixMetadataDialogState extends State<FixMetadataDialog> {
               children: [
                 TextButton(
                   onPressed: _isLoading ? null : () => Navigator.pop(context),
-                  child: const Text('Cancelar', style: TextStyle(color: Colors.white70)),
+                  child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A0A0))),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _submit,
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF144477)),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B93FF)),
                   child: _isLoading 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Aplicar / Autocompletar', style: TextStyle(color: Colors.white)),
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                    : const Text('Aplicar / Autocompletar', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),

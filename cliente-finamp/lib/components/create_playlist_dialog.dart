@@ -61,23 +61,27 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
 
   @override
   Widget build(BuildContext context) {
-    const Color synapColor = Color(0xFF144477);
+    const Color synapColor = Color(0xFF8B93FF);
 
     return AlertDialog(
-      title: const Text('Crear nueva playlist'),
+      backgroundColor: const Color(0xFF1A1A1A),
+      title: const Text('Crear nueva playlist', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       content: TextField(
         controller: _nameController,
         autofocus: true,
-        decoration: const InputDecoration(
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
           hintText: 'Nombre de la playlist',
-          border: OutlineInputBorder(),
+          hintStyle: const TextStyle(color: Color(0xFFA0A0A0)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.white24)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         onSubmitted: (_) => _createPlaylist(),
       ),
       actions: [
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          child: const Text('Cancelar', style: TextStyle(color: Color(0xFFA0A0A0))),
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : _createPlaylist,
@@ -88,10 +92,10 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
                   ),
                 )
-              : const Text('Crear', style: TextStyle(color: Colors.white)),
+              : const Text('Crear', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         ),
       ],
     );

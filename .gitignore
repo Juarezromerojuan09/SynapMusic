@@ -19,3 +19,13 @@ cliente-finamp/.flutter-plugins-dependencies
 cliente-finamp/.packages
 cliente-finamp/.pub-cache/
 cliente-finamp/.pub/
+
+# Scratch & Temporary test files
+patch_*.py
+test.*
+test_*.py
+check_real_mp3.py
+fix_syntax*.py
+get_*.py
+dummy.sh
+last_top_run.txt

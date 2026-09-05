@@ -140,8 +140,9 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B93FF))))
           : _albumData == null
               ? Center(child: Text('Error al cargar el álbum'))
               : CustomScrollView(
@@ -183,7 +184,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                                   width: 56,
                                   height: 56,
                                   decoration: const BoxDecoration(
-                                    color: Color(0xFF144477),
+                                    color: Color(0xFF8B93FF),
                                     shape: BoxShape.circle,
                                   ),
                                   child: IconButton(
@@ -248,7 +249,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                                       icon: Icon(
                                         Icons.download_for_offline, 
                                         size: 24, 
-                                        color: isFullyDownloaded ? const Color(0xFF144477) : Colors.white,
+                                        color: isFullyDownloaded ? const Color(0xFF8B93FF) : Colors.white,
                                       ),
                                       onPressed: _downloadFullAlbum,
                                     );

@@ -46,7 +46,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
   bool _isInitialLoading = true;
   Future<List<dynamic>>? _globalAlbumsFuture;
 
-  final Color _synapColor = const Color(0xFF144477); 
+  final Color _synapColor = const Color(0xFF8B93FF); 
 
   @override
   void initState() {
@@ -267,6 +267,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        backgroundColor: const Color(0xFF0A0A0A),
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.only(top: 16.0, left: 16.0, right: 16.0),
@@ -275,21 +276,26 @@ class _DownloadScreenState extends State<DownloadScreen> {
                 TextField(
                   controller: _searchController,
                   onChanged: _onSearchChanged,
+                  style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Buscar canción, artista o pegar URL...',
-                    prefixIcon: const Icon(Icons.search),
+                    hintStyle: const TextStyle(color: Color(0xFFA0A0A0)),
+                    prefixIcon: const Icon(Icons.search, color: Color(0xFFA0A0A0)),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30.0),
+                      borderRadius: BorderRadius.circular(50.0),
+                      borderSide: BorderSide.none,
                     ),
                     filled: true,
-                    fillColor: Theme.of(context).cardColor,
+                    fillColor: const Color(0xFF1A1A1A),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
                   ),
                 ),
                 const SizedBox(height: 16),
                 TabBar(
-                  labelColor: _synapColor,
-                  unselectedLabelColor: Colors.grey,
-                  indicatorColor: _synapColor,
+                  labelColor: const Color(0xFF8B93FF),
+                  unselectedLabelColor: const Color(0xFFA0A0A0),
+                  indicatorColor: const Color(0xFF8B93FF),
+                  indicatorWeight: 3,
                   tabs: const [
                     Tab(text: 'Canciones'),
                     Tab(text: 'Álbumes'),
@@ -326,8 +332,8 @@ class _DownloadScreenState extends State<DownloadScreen> {
         children: [
           if (_recommendations != null && _recommendations!.isNotEmpty) ...[
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.0),
-              child: Text('Recomendaciones', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+              padding: EdgeInsets.symmetric(vertical: 12.0),
+              child: Text('Recomendaciones', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Colors.white)),
             ),
             ..._recommendations!.map((item) => _buildLocalJellyfinTrack(item)).toList(),
             const SizedBox(height: 16),
@@ -335,8 +341,8 @@ class _DownloadScreenState extends State<DownloadScreen> {
           
           if (_discoveries != null && _discoveries!.isNotEmpty) ...[
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.0),
-              child: Text('Descubrimiento', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+              padding: EdgeInsets.symmetric(vertical: 12.0),
+              child: Text('Descubrimiento', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Colors.white)),
             ),
             ..._discoveries!.map((item) => _buildLocalJellyfinTrack(item)).toList(),
             const SizedBox(height: 16),
@@ -350,8 +356,8 @@ class _DownloadScreenState extends State<DownloadScreen> {
       children: [
         if (_localJellyfinDataList.isNotEmpty) ...[
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
-            child: Text('En tu biblioteca', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            padding: EdgeInsets.symmetric(vertical: 12.0),
+            child: Text('En tu biblioteca', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
           ),
           ..._buildLocalFileList(),
           if (_deezerResults.isNotEmpty) ...[
@@ -619,70 +625,89 @@ class _DownloadScreenState extends State<DownloadScreen> {
     final isYoutube = result.source == 'youtube';
     final durationText = result.duration ?? '';
     
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(8),
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.network(
-            result.coverUrl ?? '',
-            width: 60,
-            height: 60,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
-              width: 60, height: 60, color: Colors.grey[800],
-              child: const Icon(Icons.music_note, color: Colors.white),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 0),
+      decoration: BoxDecoration(
+        color: const Color(0xFF151515),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          leading: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              result.coverUrl ?? '',
+              width: 48,
+              height: 48,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 48,
+                height: 48,
+                color: const Color(0xFF1A1A1A),
+                child: const Icon(Icons.music_note, color: Color(0xFFA0A0A0)),
+              ),
             ),
           ),
-        ),
-        title: Text(result.title, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(result.artist, maxLines: 1, overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                if (durationText.isNotEmpty) ...[
-                  const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(durationText, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                  const SizedBox(width: 12),
-                ],
-                if (isYoutube) ...[
-                  const Icon(Icons.play_circle_filled, size: 14, color: Colors.red),
-                  const SizedBox(width: 4),
-                  const Text('YouTube', style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold)),
-                ],
+          title: Text(
+            result.title,
+            style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white, fontSize: 15),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                result.artist,
+                style: const TextStyle(color: Color(0xFFA0A0A0), fontSize: 13),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (durationText.isNotEmpty || isYoutube) ...[
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    if (durationText.isNotEmpty) ...[
+                      const Icon(Icons.access_time, size: 12, color: Color(0xFFA0A0A0)),
+                      const SizedBox(width: 4),
+                      Text(durationText, style: const TextStyle(fontSize: 11, color: Color(0xFFA0A0A0))),
+                      const SizedBox(width: 8),
+                    ],
+                    if (isYoutube) ...[
+                      const Icon(Icons.play_circle_filled, size: 12, color: Colors.redAccent),
+                      const SizedBox(width: 4),
+                      const Text('YouTube', style: TextStyle(fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                    ],
+                  ],
+                ),
               ],
-            ),
-          ],
+            ],
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.download, color: Color(0xFF8B93FF)),
+                onPressed: () {
+                  final query = result.url.isNotEmpty ? result.url : (result.queryString ?? (isYoutube ? result.title : '${result.artist} ${result.title}'));
+                  _handleDownload(query);
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.more_vert, color: Color(0xFFA0A0A0)),
+                onPressed: () {
+                  _showExternalOptionsMenu(result);
+                },
+              ),
+            ],
+          ),
+          onTap: () {
+            final query = result.url.isNotEmpty ? result.url : (result.queryString ?? (isYoutube ? result.title : '${result.artist} ${result.title}'));
+            _handleDownload(query);
+          },
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.download, color: Colors.white),
-              onPressed: () {
-                final query = result.url.isNotEmpty ? result.url : (result.queryString ?? (isYoutube ? result.title : '${result.artist} ${result.title}'));
-                _handleDownload(query);
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.more_vert),
-              onPressed: () {
-                _showExternalOptionsMenu(result);
-              },
-            ),
-          ],
-        ),
-        onTap: () {
-          final query = result.url.isNotEmpty ? result.url : (result.queryString ?? (isYoutube ? result.title : '${result.artist} ${result.title}'));
-          _handleDownload(query);
-        },
       ),
     );
   }

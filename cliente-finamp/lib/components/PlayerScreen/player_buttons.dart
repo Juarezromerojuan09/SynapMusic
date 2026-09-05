@@ -28,7 +28,7 @@ class PlayerButtons extends StatelessWidget {
                 playbackState == null
                     ? AudioServiceShuffleMode.none
                     : playbackState.shuffleMode,
-                Theme.of(context).colorScheme.secondary,
+                const Color(0xFF8B93FF),
               ),
               onPressed: playbackState != null
                   ? () async {
@@ -42,47 +42,54 @@ class PlayerButtons extends StatelessWidget {
                       }
                     }
                   : null,
-              iconSize: 20,
+              iconSize: 22,
             ),
             IconButton(
               tooltip: AppLocalizations.of(context)!.skipToPrevious,
-              icon: const Icon(Icons.skip_previous),
+              icon: const Icon(Icons.skip_previous, color: Colors.white),
               onPressed: playbackState != null
                   ? () async => await audioHandler.skipToPrevious()
                   : null,
               iconSize: 36,
             ),
-            SizedBox(
-              height: 56,
-              width: 56,
-              child: FloatingActionButton(
-                tooltip: AppLocalizations.of(context)!.togglePlayback,
-                // We set a heroTag because otherwise the play button on AlbumScreenContent will do hero widget stuff
-                heroTag: "PlayerScreenFAB",
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                splashColor:
-                    Theme.of(context).colorScheme.onPrimary.withOpacity(0.24),
-                onPressed: playbackState != null
-                    ? () async {
-                        if (playbackState.playing) {
-                          await audioHandler.pause();
-                        } else {
-                          await audioHandler.play();
-                        }
+            GestureDetector(
+              onTap: playbackState != null
+                  ? () async {
+                      if (playbackState.playing) {
+                        await audioHandler.pause();
+                      } else {
+                        await audioHandler.play();
                       }
-                    : null,
-                child: Icon(
-                  playbackState == null || playbackState.playing
-                      ? Icons.pause
-                      : Icons.play_arrow,
-                  size: 36,
+                    }
+                  : null,
+              child: Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8B93FF),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF8B93FF).withOpacity(0.45),
+                      blurRadius: 18,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    playbackState == null || playbackState.playing
+                        ? Icons.pause
+                        : Icons.play_arrow,
+                    size: 38,
+                    color: Colors.black,
+                  ),
                 ),
               ),
             ),
             IconButton(
                 tooltip: AppLocalizations.of(context)!.skipToNext,
-                icon: const Icon(Icons.skip_next),
+                icon: const Icon(Icons.skip_next, color: Colors.white),
                 onPressed: playbackState != null
                     ? () async => audioHandler.skipToNext()
                     : null,
@@ -97,7 +104,7 @@ class PlayerButtons extends StatelessWidget {
                 playbackState == null
                     ? AudioServiceRepeatMode.none
                     : playbackState.repeatMode,
-                Theme.of(context).colorScheme.secondary,
+                const Color(0xFF8B93FF),
               ),
               onPressed: playbackState != null
                   ? () async {
@@ -116,7 +123,7 @@ class PlayerButtons extends StatelessWidget {
                       }
                     }
                   : null,
-              iconSize: 20,
+              iconSize: 22,
             ),
           ],
         );
@@ -125,22 +132,22 @@ class PlayerButtons extends StatelessWidget {
   }
 
   Widget _getRepeatingIcon(
-      AudioServiceRepeatMode repeatMode, Color iconColour) {
+      AudioServiceRepeatMode repeatMode, Color activeColor) {
     if (repeatMode == AudioServiceRepeatMode.all) {
-      return Icon(Icons.repeat, color: iconColour);
+      return Icon(Icons.repeat, color: activeColor);
     } else if (repeatMode == AudioServiceRepeatMode.one) {
-      return Icon(Icons.repeat_one, color: iconColour);
+      return Icon(Icons.repeat_one, color: activeColor);
     } else {
-      return const Icon(Icons.repeat);
+      return const Icon(Icons.repeat, color: Color(0xFFA0A0A0));
     }
   }
 
   Icon _getShufflingIcon(
-      AudioServiceShuffleMode shuffleMode, Color iconColour) {
+      AudioServiceShuffleMode shuffleMode, Color activeColor) {
     if (shuffleMode == AudioServiceShuffleMode.all) {
-      return Icon(Icons.shuffle, color: iconColour);
+      return Icon(Icons.shuffle, color: activeColor);
     } else {
-      return const Icon(Icons.shuffle);
+      return const Icon(Icons.shuffle, color: Color(0xFFA0A0A0));
     }
   }
 }

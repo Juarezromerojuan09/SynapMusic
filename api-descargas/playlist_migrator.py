@@ -9,15 +9,268 @@ import re
 MEDIA_DIR = "/opt/synapmusic/media"
 
 
+def patch_deemix_libraries():
+    """
+    Parchea automáticamente deezer-py y deemix para solucionar:
+    1. IndexError: list index out of range en deezer/utils.py (track['MEDIA'][0]['HREF'])
+    2. KeyError: 'explicit_lyrics' en deemix/itemgen.py (trackAPI['explicit_lyrics'])
+    """
+    import sys
+    import glob
+
+    # --- 1. deezer/utils.py ---
+    deezer_candidates = set()
+    try:
+        import deezer.utils
+        if hasattr(deezer.utils, '__file__') and deezer.utils.__file__:
+            deezer_candidates.add(os.path.abspath(deezer.utils.__file__))
+    except Exception:
+        pass
+
+    for p in sys.path:
+        target = os.path.abspath(os.path.join(p, "deezer", "utils.py"))
+        if os.path.isfile(target):
+            deezer_candidates.add(target)
+
+    try:
+        venv_root = os.path.dirname(os.path.dirname(sys.executable))
+        for f in glob.glob(os.path.join(venv_root, "**", "deezer", "utils.py"), recursive=True):
+            if os.path.isfile(f):
+                deezer_candidates.add(os.path.abspath(f))
+    except Exception:
+        pass
+
+    fixed_deezer_paths = [
+        "/home/juarezromerojuan09/api-descargas/venv/lib64/python3.13/site-packages/deezer/utils.py",
+        "/home/juarezromerojuan09/api-descargas/venv/lib/python3.13/site-packages/deezer/utils.py",
+    ]
+    for fp in fixed_deezer_paths:
+        if os.path.isfile(fp):
+            deezer_candidates.add(os.path.abspath(fp))
+
+    safe_preview = "result['preview'] = track['MEDIA'][0]['HREF'] if track.get('MEDIA') and len(track['MEDIA']) > 0 else None"
+    pattern_preview = re.compile(r"result\s*\[\s*['\"]preview['\"]\s*\]\s*=\s*track\s*\[\s*['\"]MEDIA['\"]\s*\]\s*\[\s*0\s*\]\s*\[\s*['\"]HREF['\"]\s*\]")
+
+    for path in deezer_candidates:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                code = f.read()
+
+            changed = False
+            if pattern_preview.search(code):
+                code = pattern_preview.sub(safe_preview, code)
+                changed = True
+
+            if "'explicit_lyrics': False" not in code and "'track_token_expire': track['TRACK_TOKEN_EXPIRE']" in code:
+                code = code.replace(
+                    "'track_token_expire': track['TRACK_TOKEN_EXPIRE']",
+                    "'track_token_expire': track['TRACK_TOKEN_EXPIRE'],\n        'explicit_lyrics': False"
+                )
+                changed = True
+
+            if changed:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(code)
+                print(f"[Auto-Patch Deezer] Corregido satisfactoriamente en: {path}")
+            else:
+                print(f"[Auto-Patch Deezer] Verificado: {path} ya cuenta con el parche.")
+        except Exception as e:
+            print(f"[Auto-Patch Deezer] Error al inspeccionar/parchear {path}: {e}")
+
+    # --- 2. deemix/itemgen.py ---
+    deemix_candidates = set()
+    try:
+        import deemix.itemgen
+        if hasattr(deemix.itemgen, '__file__') and deemix.itemgen.__file__:
+            deemix_candidates.add(os.path.abspath(deemix.itemgen.__file__))
+    except (Exception, BaseException):
+        pass
+
+    for p in sys.path:
+        target = os.path.abspath(os.path.join(p, "deemix", "itemgen.py"))
+        if os.path.isfile(target):
+            deemix_candidates.add(target)
+
+    try:
+        venv_root = os.path.dirname(os.path.dirname(sys.executable))
+        for f in glob.glob(os.path.join(venv_root, "**", "deemix", "itemgen.py"), recursive=True):
+            if os.path.isfile(f):
+                deemix_candidates.add(os.path.abspath(f))
+    except Exception:
+        pass
+
+    fixed_deemix_paths = [
+        "/home/juarezromerojuan09/api-descargas/venv/lib64/python3.13/site-packages/deemix/itemgen.py",
+        "/home/juarezromerojuan09/api-descargas/venv/lib/python3.13/site-packages/deemix/itemgen.py",
+    ]
+    for fp in fixed_deemix_paths:
+        if os.path.isfile(fp):
+            deemix_candidates.add(os.path.abspath(fp))
+
+    gen_pattern = re.compile(r"(\w+)\s*\[\s*['\"]explicit_lyrics['\"]\s*\]")
+    gen_replace = r"\1.get('explicit_lyrics', False)"
+
+    for path in deemix_candidates:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                code = f.read()
+
+            changed = False
+            # Limpiar posibles barras invertidas escapadas erróneamente (\'explicit_lyrics\')
+            if chr(92) + chr(39) in code:
+                code = code.replace(chr(92) + chr(39), chr(39))
+                changed = True
+            if chr(92) + chr(34) in code:
+                code = code.replace(chr(92) + chr(34), chr(34))
+                changed = True
+
+            # Corregir accesos directos inseguros
+            if gen_pattern.search(code):
+                code = gen_pattern.sub(gen_replace, code)
+                changed = True
+
+            if changed:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(code)
+                print(f"[Auto-Patch Deemix] Corregido satisfactoriamente en: {path}")
+            elif ".get('explicit_lyrics', False)" in code:
+                print(f"[Auto-Patch Deemix] Verificado: {path} ya cuenta con el parche.")
+        except Exception as e:
+            print(f"[Auto-Patch Deemix] Error al inspeccionar/parchear {path}: {e}")
+
+    # --- 3. deemix/utils/pathtemplates.py ---
+    pathtemplates_candidates = set()
+    try:
+        import deemix.utils.pathtemplates
+        if hasattr(deemix.utils.pathtemplates, '__file__') and deemix.utils.pathtemplates.__file__:
+            pathtemplates_candidates.add(os.path.abspath(deemix.utils.pathtemplates.__file__))
+    except (Exception, BaseException):
+        pass
+
+    for p in sys.path:
+        target = os.path.abspath(os.path.join(p, "deemix", "utils", "pathtemplates.py"))
+        if os.path.isfile(target):
+            pathtemplates_candidates.add(target)
+
+    try:
+        venv_root = os.path.dirname(os.path.dirname(sys.executable))
+        for f in glob.glob(os.path.join(venv_root, "**", "deemix", "utils", "pathtemplates.py"), recursive=True):
+            if os.path.isfile(f):
+                pathtemplates_candidates.add(os.path.abspath(f))
+    except Exception:
+        pass
+
+    fixed_pathtemplates = [
+        "/home/juarezromerojuan09/api-descargas/venv/lib64/python3.13/site-packages/deemix/utils/pathtemplates.py",
+        "/home/juarezromerojuan09/api-descargas/venv/lib/python3.13/site-packages/deemix/utils/pathtemplates.py",
+    ]
+    for fp in fixed_pathtemplates:
+        if os.path.isfile(fp):
+            pathtemplates_candidates.add(os.path.abspath(fp))
+
+    for path in pathtemplates_candidates:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                code = f.read()
+
+            changed = False
+            if 'filename.replace("%upc%", track.album.barcode)' in code:
+                code = code.replace(
+                    'filename.replace("%upc%", track.album.barcode)',
+                    'filename.replace("%upc%", str(track.album.barcode or ""))'
+                )
+                changed = True
+            if 'filename.replace("%isrc%", track.ISRC)' in code:
+                code = code.replace(
+                    'filename.replace("%isrc%", track.ISRC)',
+                    'filename.replace("%isrc%", str(track.ISRC or ""))'
+                )
+                changed = True
+
+            if changed:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(code)
+                print(f"[Auto-Patch Deemix] Corregido TypeError de barcode en: {path}")
+            elif 'track.album.barcode or ""' in code:
+                print(f"[Auto-Patch Deemix] Verificado: {path} ya cuenta con el parche de barcode.")
+        except Exception as e:
+            print(f"[Auto-Patch Deemix] Error al inspeccionar/parchear {path}: {e}")
+
+# Alias para compatibilidad
+patch_deezer_utils = patch_deemix_libraries
+
+# Ejecutar parche al cargar el módulo
+patch_deemix_libraries()
+
+
+def get_deemix_binary():
+    """Obtiene la ruta al binario deemix en venv o PATH."""
+    import sys
+    import shutil
+    venv_deemix = os.path.join(os.path.dirname(sys.executable), "deemix")
+    if os.path.isfile(venv_deemix) and os.access(venv_deemix, os.X_OK):
+        return venv_deemix
+    which_path = shutil.which("deemix")
+    if which_path:
+        return which_path
+    server_path = "/home/juarezromerojuan09/api-descargas/venv/bin/deemix"
+    if os.path.isfile(server_path) and os.access(server_path, os.X_OK):
+        return server_path
+    return "deemix"
+
+
 async def get_deezer_playlist_info(playlist_id: str):
     url = f"https://api.deezer.com/playlist/{playlist_id}"
-    async with httpx.AsyncClient() as client:
-        res = await client.get(url)
-        if res.status_code == 200:
-            data = res.json()
-            title = data.get("title", "Deezer Playlist")
-            tracks = [{"title": t["title"], "artist": t["artist"]["name"]} for t in data.get("tracks", {}).get("data", [])]
-            return title, tracks
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            res = await client.get(url)
+            if res.status_code == 200:
+                data = res.json()
+                playlist_title = data.get("title", "Deezer Playlist")
+                nb_tracks = data.get("nb_tracks", 0)
+                tracks_obj = data.get("tracks", {})
+                raw_tracks = list(tracks_obj.get("data", []))
+
+                # Si la playlist tiene más canciones que el tope de 400 devuelto en la raíz:
+                # El endpoint dedicado /playlist/{id}/tracks permite paginar hasta el total real
+                current_index = len(raw_tracks)
+                while current_index < nb_tracks:
+                    page_url = f"https://api.deezer.com/playlist/{playlist_id}/tracks?limit=100&index={current_index}"
+                    try:
+                        p_res = await client.get(page_url)
+                        if p_res.status_code == 200:
+                            p_data = p_res.json()
+                            batch = p_data.get("data", [])
+                            if not batch:
+                                break
+                            raw_tracks.extend(batch)
+                            current_index += len(batch)
+                            if not p_data.get("next") and current_index >= p_data.get("total", nb_tracks):
+                                break
+                        else:
+                            break
+                    except Exception as e:
+                        print(f"[Migrator] Error obteniendo tracks de Deezer en index {current_index}: {e}")
+                        break
+
+                tracks = []
+                for t in raw_tracks:
+                    if not isinstance(t, dict):
+                        continue
+                    t_title = t.get("title")
+                    art_obj = t.get("artist")
+                    t_artist = art_obj.get("name") if isinstance(art_obj, dict) else "Unknown Artist"
+                    if t_title:
+                        tracks.append({
+                            "title": t_title,
+                            "artist": t_artist or "Unknown Artist",
+                            "id": t.get("id"),
+                            "link": t.get("link")
+                        })
+                print(f"[Migrator] Deezer playlist obtenida: '{playlist_title}' con {len(tracks)} canciones (Total en Deezer: {nb_tracks}).")
+                return playlist_title, tracks
+        except Exception as e:
+            print(f"[Migrator] Error consultando API de Deezer: {e}")
     return "Deezer Playlist", []
 
 
@@ -36,17 +289,59 @@ def get_spotify_playlist_info(url: str):
     return "Spotify Playlist", tracks
 
 
-async def search_jellyfin_for_track(client: httpx.AsyncClient, base_url: str, headers: dict, title: str):
+async def search_jellyfin_for_track(client: httpx.AsyncClient, base_url: str, headers: dict, title: str, artist: str = ""):
     search_url = f"{base_url}/Items"
-    params = {"SearchTerm": title, "IncludeItemTypes": "Audio", "Recursive": "true", "Limit": 5}
+    
+    # 1. Búsqueda directa por título
+    params = {"SearchTerm": title, "IncludeItemTypes": "Audio", "Recursive": "true", "Limit": 10}
     try:
         res = await client.get(search_url, headers=headers, params=params)
         if res.status_code == 200:
             items = res.json().get("Items", [])
             if items:
+                if artist:
+                    for it in items:
+                        artists_list = it.get("Artists", [])
+                        album_artist = it.get("AlbumArtist", "")
+                        combined = (" ".join(artists_list) + " " + album_artist).lower()
+                        if artist.lower() in combined or combined in artist.lower():
+                            return it["Id"]
                 return items[0]["Id"]
     except Exception as e:
         print(f"Error buscando track en Jellyfin: {e}")
+
+    # 2. Búsqueda con título limpio (remover '(feat. ...)', '[remaster]', etc.)
+    clean_title = re.sub(r'[\(\[].*?[\)\]]', '', title).strip()
+    if clean_title and clean_title != title:
+        try:
+            params["SearchTerm"] = clean_title
+            res = await client.get(search_url, headers=headers, params=params)
+            if res.status_code == 200:
+                items = res.json().get("Items", [])
+                if items:
+                    if artist:
+                        for it in items:
+                            artists_list = it.get("Artists", [])
+                            album_artist = it.get("AlbumArtist", "")
+                            combined = (" ".join(artists_list) + " " + album_artist).lower()
+                            if artist.lower() in combined or combined in artist.lower():
+                                return it["Id"]
+                    return items[0]["Id"]
+        except Exception:
+            pass
+
+    # 3. Búsqueda combinada artista + título limpio
+    if artist and clean_title:
+        try:
+            params["SearchTerm"] = f"{artist} {clean_title}"
+            res = await client.get(search_url, headers=headers, params=params)
+            if res.status_code == 200:
+                items = res.json().get("Items", [])
+                if items:
+                    return items[0]["Id"]
+        except Exception:
+            pass
+
     return None
 
 
@@ -170,7 +465,11 @@ async def run_migration_task(url: str, user_id: str, jellyfin_url: str, jellyfin
     # 2. Descarga Principal (Motor Primario)
     print(f"[Migrator] Descarga Principal Iniciada ({len(tracks)} tracks)...")
     if "deezer" in url:
-        subprocess.run(["deemix", "--bitrate", "320", "-p", MEDIA_DIR, url])
+        patch_deezer_utils()
+        deemix_bin = get_deemix_binary()
+        print(f"[Migrator] Ejecutando {deemix_bin} --bitrate 320 -p {MEDIA_DIR} {url}")
+        res_deemix = subprocess.run([deemix_bin, "--bitrate", "320", "-p", MEDIA_DIR, url])
+        print(f"[Migrator] Deemix completó con código: {res_deemix.returncode}")
     else:
         subprocess.run(["spotdl", "download", url,
                          "--output", f"{MEDIA_DIR}/{{artist}} - {{title}}.{{output-ext}}",
@@ -182,47 +481,101 @@ async def run_migration_task(url: str, user_id: str, jellyfin_url: str, jellyfin
         headers = {"X-Emby-Token": jellyfin_api_key, "Content-Type": "application/json"}
         base_url = jellyfin_url.rstrip('/')
 
-        # Crear Playlist en Jellyfin
-        res = await client.post(f"{base_url}/Playlists", headers=headers,
-                                params={"Name": title, "UserId": user_id, "MediaType": "Audio"})
-        if res.status_code != 200:
-            print("[Migrator] Fallo crítico al crear la playlist vacía en Jellyfin.")
-            return
+        # Buscar si ya existe una playlist con este nombre para evitar duplicados
+        playlist_id = None
+        existing_track_ids = set()
+        try:
+            pl_search = await client.get(
+                f"{base_url}/Users/{user_id}/Items",
+                headers=headers,
+                params={"IncludeItemTypes": "Playlist", "Recursive": "true"}
+            )
+            if pl_search.status_code == 200:
+                user_playlists = pl_search.json().get("Items", [])
+                for pl in user_playlists:
+                    if pl.get("Name", "").strip().lower() == title.strip().lower():
+                        playlist_id = pl["Id"]
+                        print(f"[Migrator] Playlist existente encontrada en Jellyfin '{title}' (ID: {playlist_id}). Se reutilizará.")
+                        try:
+                            items_res = await client.get(
+                                f"{base_url}/Playlists/{playlist_id}/Items",
+                                headers=headers,
+                                params={"UserId": user_id}
+                            )
+                            if items_res.status_code == 200:
+                                for it in items_res.json().get("Items", []):
+                                    existing_track_ids.add(it["Id"])
+                                print(f"[Migrator] La playlist existente ya cuenta con {len(existing_track_ids)} canciones.")
+                        except Exception:
+                            pass
+                        break
+        except Exception as e:
+            print(f"[Migrator] Error buscando playlists existentes: {e}")
 
-        playlist_id = res.json().get("Id")
+        # Si no existe, crearla
+        if not playlist_id:
+            res = await client.post(f"{base_url}/Playlists", headers=headers,
+                                    params={"Name": title, "UserId": user_id, "MediaType": "Audio"})
+            if res.status_code != 200:
+                print("[Migrator] Fallo crítico al crear la playlist vacía en Jellyfin.")
+                return
+            playlist_id = res.json().get("Id")
+            print(f"[Migrator] Creada nueva playlist en Jellyfin '{title}' (ID: {playlist_id}).")
 
         # 3. Primer Indexado y Mapeo
-        print("[Migrator] Solicitando refresh primario de biblioteca...")
+        print("[Migrator] Solicitando refresh primario de biblioteca a Jellyfin...")
         try:
             await client.post(f"{base_url}/Library/Refresh", headers=headers)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[Migrator] Error solicitando refresh a Jellyfin: {e}")
 
-        print("[Migrator] Esperando 15 segundos para indexación inicial...")
-        await asyncio.sleep(15)
+        # Tiempo prudente para indexar archivos en Jellyfin (mínimo 15s, máx 45s)
+        wait_time = min(45, max(15, len(tracks) // 15))
+        print(f"[Migrator] Esperando {wait_time} segundos para indexación inicial...")
+        await asyncio.sleep(wait_time)
 
         found_ids = []
         missing_tracks_list = []
 
         print(f"[Migrator] Evaluando {len(tracks)} tracks originales descargados...")
         for track in tracks:
-            track_id = await search_jellyfin_for_track(client, base_url, headers, track['title'])
+            track_id = await search_jellyfin_for_track(client, base_url, headers, track['title'], track.get('artist', ''))
             if track_id:
                 found_ids.append(track_id)
             else:
                 missing_tracks_list.append(track)
 
-        # 4. Consolidación Primaria (Meter lo que sí se descargó rápido)
-        if found_ids:
-            ids_str = ",".join(found_ids)
-            try:
-                res = await client.post(f"{base_url}/Playlists/{playlist_id}/Items",
-                                        headers=headers,
-                                        params={"Ids": ids_str, "userId": user_id})
-                res.raise_for_status()
-                print(f"[Migrator] Playlist '{title}' poblada inicialmente con {len(found_ids)}/{len(tracks)} canciones. (Rápido)")
-            except Exception as e:
-                print(f"[Migrator] Error añadiendo tracks iniciales a la playlist: {e}")
+        # Si aún faltan pistas pero Jellyfin pudo haber indexado parcialmente, re-intentar tras 15 segundos
+        if missing_tracks_list and found_ids and len(missing_tracks_list) > 5:
+            print(f"[Migrator] {len(found_ids)} indexadas, {len(missing_tracks_list)} pendientes. Esperando 15s extra para que Jellyfin complete el escaneo...")
+            await asyncio.sleep(15)
+            still_missing = []
+            for track in missing_tracks_list:
+                track_id = await search_jellyfin_for_track(client, base_url, headers, track['title'], track.get('artist', ''))
+                if track_id:
+                    found_ids.append(track_id)
+                else:
+                    still_missing.append(track)
+            missing_tracks_list = still_missing
+
+        # 4. Consolidación Primaria (Añadir en lotes de 100 para evitar URI Too Long)
+        new_ids_to_add = [fid for fid in found_ids if fid not in existing_track_ids]
+        if new_ids_to_add:
+            chunk_size = 100
+            for i in range(0, len(new_ids_to_add), chunk_size):
+                chunk = new_ids_to_add[i:i + chunk_size]
+                ids_str = ",".join(chunk)
+                try:
+                    res = await client.post(f"{base_url}/Playlists/{playlist_id}/Items",
+                                            headers=headers,
+                                            params={"Ids": ids_str, "userId": user_id})
+                    res.raise_for_status()
+                except Exception as e:
+                    print(f"[Migrator] Error añadiendo bloque {i}-{i+len(chunk)} a playlist: {e}")
+            existing_track_ids.update(new_ids_to_add)
+            print(f"[Migrator] Playlist '{title}' poblada con éxito con {len(new_ids_to_add)} canciones nuevas (Total: {len(existing_track_ids)}).")
+        else:
+            print(f"[Migrator] Las canciones encontradas ya estaban en la playlist '{title}'.")
 
         # 5. FASE DE RESCATE (Fallback con verificación física en background virtual)
         if missing_tracks_list:
@@ -230,7 +583,7 @@ async def run_migration_task(url: str, user_id: str, jellyfin_url: str, jellyfin
             await run_rescue_phase(missing_tracks_list)
 
             # Segundo Indexado exclusivo para los rescatados
-            print("[Migrator] Solicitando refresh secundario de rescate...")
+            print("[Migrator] Solicitando refresh secundario de rescate a Jellyfin...")
             try:
                 await client.post(f"{base_url}/Library/Refresh", headers=headers)
             except Exception:
@@ -240,9 +593,8 @@ async def run_migration_task(url: str, user_id: str, jellyfin_url: str, jellyfin
             await asyncio.sleep(15)
 
             rescued_ids = []
-            # Volver a buscar solo los que faltaban
             for track in missing_tracks_list:
-                track_id = await search_jellyfin_for_track(client, base_url, headers, track['title'])
+                track_id = await search_jellyfin_for_track(client, base_url, headers, track['title'], track.get('artist', ''))
                 if track_id:
                     rescued_ids.append(track_id)
                     print(f"[Migrator] ¡Canción integrada tras rescate!: {track['title']}")
@@ -250,15 +602,21 @@ async def run_migration_task(url: str, user_id: str, jellyfin_url: str, jellyfin
                     print(f"[Migrator] Imposible rescatar, ignorando: {track['title']}")
             
             # 6. Consolidación Secundaria (Añadir rescatados a la misma playlist)
-            if rescued_ids:
-                ids_str = ",".join(rescued_ids)
-                try:
-                    res = await client.post(f"{base_url}/Playlists/{playlist_id}/Items",
-                                            headers=headers,
-                                            params={"Ids": ids_str, "userId": user_id})
-                    res.raise_for_status()
-                    print(f"[Migrator] Playlist '{title}' actualizada con {len(rescued_ids)} canciones rescatadas. TOTAL: {len(found_ids) + len(rescued_ids)}/{len(tracks)}")
-                except Exception as e:
-                    print(f"[Migrator] Error añadiendo tracks rescatados a la playlist: {e}")
+            new_rescued_ids = [rid for rid in rescued_ids if rid not in existing_track_ids]
+            if new_rescued_ids:
+                chunk_size = 100
+                for i in range(0, len(new_rescued_ids), chunk_size):
+                    chunk = new_rescued_ids[i:i + chunk_size]
+                    ids_str = ",".join(chunk)
+                    try:
+                        res = await client.post(f"{base_url}/Playlists/{playlist_id}/Items",
+                                                headers=headers,
+                                                params={"Ids": ids_str, "userId": user_id})
+                        res.raise_for_status()
+                    except Exception as e:
+                        print(f"[Migrator] Error añadiendo bloque de rescate a la playlist: {e}")
+                existing_track_ids.update(new_rescued_ids)
+                print(f"[Migrator] Playlist '{title}' actualizada con {len(new_rescued_ids)} canciones rescatadas. TOTAL: {len(existing_track_ids)}/{len(tracks)}")
         else:
             print(f"[Migrator] Migración perfecta sin rescates. 100% de éxito en fase 1.")
+

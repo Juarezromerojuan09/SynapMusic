@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import '../models/synap_search_result.dart';
 
@@ -227,9 +228,11 @@ class SynapApiService {
     try {
       final query = userId != null ? '?user_id=$userId' : '';
       final uri = Uri.parse('$_baseUrl/playlists$query');
-      final request = await HttpClient().getUrl(uri);
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 4);
+      final request = await client.getUrl(uri).timeout(const Duration(seconds: 4));
       request.headers.add('X-API-Key', _apiKey);
-      final response = await request.close();
+      final response = await request.close().timeout(const Duration(seconds: 4));
 
       if (response.statusCode == 200) {
         final responseBody = await response.transform(utf8.decoder).join();
@@ -383,5 +386,105 @@ class SynapApiService {
       print('Error editMetadata: $e');
       return false;
     }
+  }
+
+  Future<bool> updateUserName(String userId, String newName) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/users/$userId/name');
+      final request = await HttpClient().postUrl(uri);
+      request.headers.add('X-API-Key', _apiKey);
+      request.headers.contentType = ContentType.json;
+      request.write(jsonEncode({"name": newName}));
+      final response = await request.close();
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error updateUserName: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateUserAvatar(String userId, List<int> imageBytes, {String mimeType = 'image/jpeg'}) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/users/$userId/avatar');
+      final request = await HttpClient().postUrl(uri);
+      request.headers.add('X-API-Key', _apiKey);
+      request.headers.set('content-type', mimeType);
+      request.add(imageBytes);
+      final response = await request.close();
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error updateUserAvatar: $e');
+      return false;
+    }
+  }
+
+  Future<bool> sendFeedback({
+    required String userId,
+    required String userName,
+    required String title,
+    required String message,
+    List<File>? images,
+  }) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/feedback');
+      final request = http.MultipartRequest('POST', uri);
+      request.headers['X-API-Key'] = _apiKey;
+      request.fields['user_id'] = userId;
+      request.fields['user_name'] = userName;
+      request.fields['title'] = title;
+      request.fields['message'] = message;
+
+      if (images != null) {
+        for (final file in images) {
+          if (await file.exists()) {
+            final multipartFile = await http.MultipartFile.fromPath(
+              'files',
+              file.path,
+            );
+            request.files.add(multipartFile);
+          }
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error al enviar feedback: $e');
+      return false;
+    }
+  }
+
+  Future<List<dynamic>> getFeedbackList() async {
+    try {
+      final uri = Uri.parse('$_baseUrl/feedback');
+      final response = await http.get(uri, headers: {
+        'X-API-Key': _apiKey,
+      });
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as List<dynamic>;
+      }
+      return [];
+    } catch (e) {
+      print('Error al obtener feedback: $e');
+      return [];
+    }
+  }
+
+  Future<bool> deleteFeedback(int feedbackId) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/feedback/$feedbackId');
+      final response = await http.delete(uri, headers: {
+        'X-API-Key': _apiKey,
+      });
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error al eliminar feedback: $e');
+      return false;
+    }
+  }
+
+  String getFeedbackImageUrl(String filename) {
+    return '$_baseUrl/feedback/images/$filename';
   }
 }

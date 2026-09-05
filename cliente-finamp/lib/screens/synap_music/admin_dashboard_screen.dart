@@ -58,7 +58,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFF144477))),
+      builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFF8B93FF))),
     );
 
     try {
@@ -96,23 +96,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
-        title: const Text('Sala de Espera (Admin)'),
-        backgroundColor: const Color(0xFF144477),
+        title: const Text('Sala de Espera (Admin)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF1A1A1A),
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _fetchPendingUsers,
           )
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF144477)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF8B93FF)))
           : _pendingUsers.isEmpty
               ? const Center(
                   child: Text(
                     'No hay usuarios en sala de espera.',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                    style: TextStyle(fontSize: 18, color: Color(0xFFA0A0A0)),
                   ),
                 )
               : ListView.builder(
@@ -121,11 +123,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     final user = _pendingUsers[index];
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      color: Colors.grey[900],
+                      color: const Color(0xFF1A1A1A),
                       child: ListTile(
                         leading: const CircleAvatar(
-                          backgroundColor: Color(0xFF144477),
-                          child: Icon(Icons.person, color: Colors.white),
+                          backgroundColor: Color(0xFF8B93FF),
+                          child: Icon(Icons.person, color: Colors.black),
                         ),
                         title: Text(user['Name'] ?? 'Desconocido', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                         subtitle: const Text('Esperando aprobación', style: TextStyle(color: Colors.white70)),

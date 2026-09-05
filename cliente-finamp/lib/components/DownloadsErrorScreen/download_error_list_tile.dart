@@ -16,29 +16,72 @@ class DownloadErrorListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    DownloadsHelper downloadsHelper = GetIt.instance<DownloadsHelper>();
-    DownloadedSong? downloadedSong =
+    final DownloadsHelper downloadsHelper = GetIt.instance<DownloadsHelper>();
+    final DownloadedSong? downloadedSong =
         downloadsHelper.getJellyfinItemFromDownloadId(downloadTask.taskId);
 
     if (downloadedSong == null) {
+      final downloadedImage =
+          downloadsHelper.getDownloadedImageFromDownloadId(downloadTask.taskId);
       return ListTile(
-        title: Text(downloadTask.taskId),
-        subtitle:
-            Text(AppLocalizations.of(context)!.failedToGetSongFromDownloadId),
+        leading: const Icon(Icons.image, color: Color(0xFF8B93FF), size: 36),
+        title: Text(
+          downloadedImage != null
+              ? "Portada / Imagen adjunta"
+              : "Descarga: ${downloadTask.filename ?? downloadTask.taskId}",
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        subtitle: const Text(
+          "Falló al descargar imagen o archivo multimedia",
+          style: TextStyle(color: Color(0xFFA0A0A0)),
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.refresh, color: Color(0xFF8B93FF)),
+          tooltip: "Reintentar descarga",
+          onPressed: () async {
+            try {
+              await FlutterDownloader.retry(taskId: downloadTask.taskId);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Reintentando descarga...'), duration: Duration(seconds: 1)),
+              );
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error al reintentar: $e')),
+              );
+            }
+          },
+        ),
       );
     }
 
     return ListTile(
       leading: AlbumImage(item: downloadedSong.song),
-      title: Text(downloadedSong.song.name == null
-          ? AppLocalizations.of(context)!.unknownName
-          : downloadedSong.song.name!),
-      subtitle: Text(processArtist(downloadedSong.song.albumArtist, context)),
-      // trailing: IconButton(
-      //   icon: Icon(Icons.refresh),
-      //   onPressed: () {},
-      //   tooltip: "Retry",
-      // ),
+      title: Text(
+        downloadedSong.song.name == null
+            ? AppLocalizations.of(context)!.unknownName
+            : downloadedSong.song.name!,
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
+      subtitle: Text(
+        processArtist(downloadedSong.song.albumArtist, context),
+        style: const TextStyle(color: Color(0xFFA0A0A0)),
+      ),
+      trailing: IconButton(
+        icon: const Icon(Icons.refresh, color: Color(0xFF8B93FF)),
+        tooltip: "Reintentar descarga",
+        onPressed: () async {
+          try {
+            await FlutterDownloader.retry(taskId: downloadTask.taskId);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Reintentando descarga...'), duration: Duration(seconds: 1)),
+            );
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error al reintentar: $e')),
+            );
+          }
+        },
+      ),
     );
   }
 }

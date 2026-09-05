@@ -307,7 +307,7 @@ class Finamp extends StatelessWidget {
                 valueListenable: ThemeModeHelper.themeModeListener,
                 builder: (_, box, __) {
                   return MaterialApp(
-                    title: "Finamp",
+                    title: "SynapMusic",
                     routes: {
                       SplashScreen.routeName: (context) => const SplashScreen(),
                       UserSelector.routeName: (context) => const UserSelector(),
@@ -348,6 +348,7 @@ class Finamp extends StatelessWidget {
                     initialRoute: SplashScreen.routeName,
                     theme: ThemeData(
                       brightness: Brightness.light,
+                      fontFamily: 'Roboto',
                       colorScheme: lightColorScheme,
                       appBarTheme: const AppBarTheme(
                         systemOverlayStyle: SystemUiOverlayStyle(
@@ -358,7 +359,39 @@ class Finamp extends StatelessWidget {
                     ),
                     darkTheme: ThemeData(
                       brightness: Brightness.dark,
+                      fontFamily: 'Roboto',
                       colorScheme: darkColorScheme,
+                      scaffoldBackgroundColor: const Color(0xFF0A0A0A),
+                      canvasColor: const Color(0xFF0A0A0A),
+                      cardColor: const Color(0xFF1A1A1A),
+                      dialogBackgroundColor: const Color(0xFF1A1A1A),
+                      appBarTheme: const AppBarTheme(
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        systemOverlayStyle: SystemUiOverlayStyle(
+                          statusBarBrightness: Brightness.dark,
+                          statusBarIconBrightness: Brightness.light,
+                        ),
+                        titleTextStyle: TextStyle(
+                          color: Color(0xFF8B93FF),
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Roboto',
+                        ),
+                      ),
+                      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+                        backgroundColor: Color(0xFF0A0A0A),
+                        selectedItemColor: Color(0xFF8B93FF),
+                        unselectedItemColor: Color(0xFFA0A0A0),
+                        elevation: 0,
+                      ),
+                      cardTheme: CardThemeData(
+                        color: const Color(0xFF1A1A1A),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
                     themeMode: box.get("ThemeMode"),
                     localizationsDelegates: const [

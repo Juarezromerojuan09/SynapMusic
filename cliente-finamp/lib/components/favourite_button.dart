@@ -5,6 +5,7 @@ import 'package:finamp/services/music_player_background_task.dart';
 import 'package:flutter/material.dart';
 import 'package:finamp/l10n/app_localizations.dart';
 import 'package:get_it/get_it.dart';
+import 'package:finamp/services/likes_playlist_helper.dart';
 
 class FavoriteButton extends StatefulWidget {
   const FavoriteButton(
@@ -47,8 +48,8 @@ class _FavoriteButtonState extends State<FavoriteButton> {
       return IconButton(
         icon: Icon(
           isFav ? Icons.favorite : Icons.favorite_outline,
-          color: isFav ? Colors.red : null,
-          size: 24.0,
+          color: isFav ? Colors.redAccent : Colors.white,
+          size: 26.0,
         ),
         tooltip: AppLocalizations.of(context)!.favourite,
         onPressed: () async {
@@ -57,19 +58,23 @@ class _FavoriteButtonState extends State<FavoriteButton> {
             if (isFav) {
               newUserData =
                   await jellyfinApiHelper.removeFavourite(widget.item!.id);
+              await LikesPlaylistHelper.removeSongFromLikes(widget.item!.id);
             } else {
               newUserData =
                   await jellyfinApiHelper.addFavourite(widget.item!.id);
+              await LikesPlaylistHelper.addSongToLikes(widget.item!.id);
             }
-            setState(() {
-              widget.item!.userData = newUserData;
-              if (widget.inPlayer) {
-                final extras = audioHandler.mediaItem.valueOrNull?.extras;
-                if (extras != null) {
-                  extras['itemJson'] = widget.item!.toJson();
+            if (mounted) {
+              setState(() {
+                widget.item!.userData = newUserData;
+                if (widget.inPlayer) {
+                  final extras = audioHandler.mediaItem.valueOrNull?.extras;
+                  if (extras != null) {
+                    extras['itemJson'] = widget.item!.toJson();
+                  }
                 }
-              }
-            });
+              });
+            }
           } catch (e) {
             errorSnackbar(e, context);
           }

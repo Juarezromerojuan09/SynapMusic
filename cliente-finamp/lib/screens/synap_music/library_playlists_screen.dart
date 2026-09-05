@@ -16,6 +16,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'album_detail_screen.dart';
+import '../../services/likes_playlist_helper.dart';
 
 class LibraryPlaylistsScreen extends StatefulWidget {
   const LibraryPlaylistsScreen({Key? key}) : super(key: key);
@@ -25,13 +26,14 @@ class LibraryPlaylistsScreen extends StatefulWidget {
 }
 
 class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
-  final Color _synapColor = const Color(0xFF144477);
+  final Color _synapColor = const Color(0xFF8B93FF);
   
   List<BaseItemDto>? _playlists;
   bool _isLoading = true;
   String? _errorMessage;
   List<dynamic> _favoriteAlbums = [];
   final SynapApiService _apiService = SynapApiService();
+  final DownloadsHelper _downloadsHelper = GetIt.instance<DownloadsHelper>();
   StreamSubscription? _refreshSub;
 
   // Modo de selección
@@ -55,22 +57,116 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
     super.dispose();
   }
 
+  void _sortPlaylists(List<BaseItemDto> list) {
+    list.sort((a, b) {
+      final aIs = LikesPlaylistHelper.isLikesPlaylist(a);
+      final bIs = LikesPlaylistHelper.isLikesPlaylist(b);
+      if (aIs && !bIs) return -1;
+      if (!aIs && bIs) return 1;
+      return (a.name ?? '').toLowerCase().compareTo((b.name ?? '').toLowerCase());
+    });
+  }
+
   Future<void> _loadPlaylists() async {
+    // 1. CARGA INMEDIATA OFFLINE / CACHÉ (0 ms)
+    try {
+      final downloadedPlaylists = _downloadsHelper.downloadedParents
+          .where((dp) => dp.item.type == 'Playlist' || (dp.item.type != 'MusicAlbum' && dp.downloadedChildren.isNotEmpty))
+          .map((dp) => dp.item)
+          .toList();
+
+      List<BaseItemDto> localCached = [];
+      final directory = await getApplicationDocumentsDirectory();
+      final cacheFile = File('${directory.path}/synap_playlists_cache.json');
+      if (await cacheFile.exists()) {
+        final content = await cacheFile.readAsString();
+        final List<dynamic> jsonList = json.decode(content);
+        localCached = jsonList.map((e) => BaseItemDto.fromJson(e)).toList();
+      }
+
+      final Map<String, BaseItemDto> mergedMap = {};
+      for (final p in localCached) {
+        if (p.id != null) mergedMap[p.id!] = p;
+      }
+      for (final p in downloadedPlaylists) {
+        if (p.id != null) mergedMap[p.id!] = p;
+      }
+
+      if (mergedMap.isNotEmpty) {
+        final initialList = mergedMap.values.toList();
+        _sortPlaylists(initialList);
+        if (mounted) {
+          setState(() {
+            _playlists = initialList;
+            _isLoading = false;
+            _errorMessage = null;
+          });
+        }
+      }
+    } catch (e) {
+      print('Aviso cargando cache offline: $e');
+    }
+
+    // 2. SINCRONIZACIÓN EN RED (con timeout para no bloquearse offline)
     try {
       final userHelper = GetIt.instance<FinampUserHelper>();
       final userId = userHelper.currentUserId;
-      final playlistsData = await _apiService.getUserPlaylists(userId: userId);
-      final playlists = playlistsData.map((e) => BaseItemDto.fromJson(e)).toList();
-      if (mounted) {
-        setState(() {
-          _playlists = playlists;
-          _isLoading = false;
-        });
+      var playlistsData = await _apiService.getUserPlaylists(userId: userId);
+
+      if (playlistsData.isNotEmpty) {
+        var playlists = playlistsData.map((e) => BaseItemDto.fromJson(e)).toList();
+
+        // Asegurar que la playlist fija "My likes" exista
+        final hasLikes = playlists.any((p) => LikesPlaylistHelper.isLikesPlaylist(p));
+        if (!hasLikes) {
+          final created = await LikesPlaylistHelper.getOrCreateLikesPlaylist();
+          if (created != null) {
+            playlistsData = await _apiService.getUserPlaylists(userId: userId);
+            playlists = playlistsData.map((e) => BaseItemDto.fromJson(e)).toList();
+          }
+        }
+
+        // Incorporar playlists descargadas que no estén en el servidor
+        final downloadedPlaylists = _downloadsHelper.downloadedParents
+            .where((dp) => dp.item.type == 'Playlist' || (dp.item.type != 'MusicAlbum' && dp.downloadedChildren.isNotEmpty))
+            .map((dp) => dp.item)
+            .toList();
+        for (final dp in downloadedPlaylists) {
+          if (dp.id != null && !playlists.any((p) => p.id == dp.id)) {
+            playlists.add(dp);
+          }
+        }
+
+        _sortPlaylists(playlists);
+
+        // Guardar en caché local para persistencia offline
+        try {
+          final directory = await getApplicationDocumentsDirectory();
+          final cacheFile = File('${directory.path}/synap_playlists_cache.json');
+          await cacheFile.writeAsString(json.encode(playlists.map((p) => p.toJson()).toList()));
+        } catch (_) {}
+
+        if (mounted) {
+          setState(() {
+            _playlists = playlists;
+            _isLoading = false;
+            _errorMessage = null;
+          });
+        }
+      } else {
+        if (mounted && (_playlists == null || _playlists!.isEmpty)) {
+          setState(() {
+            _playlists = [];
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          if (_playlists == null || _playlists!.isEmpty) {
+            _errorMessage = 'Sin conexión al servidor y sin playlists guardadas.';
+          }
           _isLoading = false;
         });
       }
@@ -96,6 +192,17 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
   }
 
   void _toggleSelection(String id) {
+    final playlist = _playlists?.where((p) => p.id == id).firstOrNull;
+    if (LikesPlaylistHelper.isLikesPlaylist(playlist)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La playlist "My likes" es fija y no se puede eliminar.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       if (_selectedIds.contains(id)) {
         _selectedIds.remove(id);
@@ -106,11 +213,22 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
   }
 
   Future<void> _deleteSelected() async {
+    final idsToDelete = _selectedIds.where((id) {
+      return !_playlists!.any((p) => p.id == id && LikesPlaylistHelper.isLikesPlaylist(p));
+    }).toList();
+
+    if (idsToDelete.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay playlists seleccionadas para eliminar.')),
+      );
+      return;
+    }
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar Playlists'),
-        content: Text('¿Estás seguro de eliminar ${_selectedIds.length} playlist(s)? Esta acción no se puede deshacer.'),
+        content: Text('¿Estás seguro de eliminar ${idsToDelete.length} playlist(s)? Esta acción no se puede deshacer.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -133,7 +251,7 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
       );
 
       bool allSuccess = true;
-      for (final id in _selectedIds) {
+      for (final id in idsToDelete) {
         final success = await _apiService.deletePlaylist(id);
         if (!success) allSuccess = false;
       }
@@ -159,6 +277,7 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       appBar: _isSelectionMode
           ? AppBar(
               title: Text(
@@ -266,7 +385,14 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final playlist = _playlists![index];
+                      final isLikes = LikesPlaylistHelper.isLikesPlaylist(playlist);
                       final isSelected = _selectedIds.contains(playlist.id);
+                      final isDownloaded = playlist.id != null && _downloadsHelper.getDownloadedParent(playlist.id!) != null;
+                      final downloadedParent = isDownloaded ? _downloadsHelper.getDownloadedParent(playlist.id!) : null;
+                      final downloadedImage = isDownloaded ? _downloadsHelper.getDownloadedImage(playlist) : null;
+                      final songCount = (downloadedParent != null && downloadedParent.downloadedChildren.isNotEmpty)
+                          ? downloadedParent.downloadedChildren.length
+                          : (playlist.childCount ?? 0);
                       final imageUrl = 'http://100.81.156.126:8096/Items/${playlist.id}/Images/Primary';
 
                       return GestureDetector(
@@ -304,14 +430,36 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
                                   children: [
                                     ClipRRect(
                                       borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                      child: (playlist.imageTags != null && playlist.imageTags!.isNotEmpty)
-                                          ? Image.network(
-                                              imageUrl,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) => _buildPlaceholder(),
-                                            )
-                                          : _buildPlaceholder(),
+                                      child: isLikes
+                                          ? _buildLikesCover()
+                                          : (downloadedImage != null
+                                              ? Image.file(
+                                                  downloadedImage.file,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                                                )
+                                              : ((playlist.imageTags != null && playlist.imageTags!.isNotEmpty)
+                                                  ? Image.network(
+                                                      imageUrl,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                                                    )
+                                                  : _buildPlaceholder())),
                                     ),
+                                    if (isDownloaded)
+                                      Positioned(
+                                        top: 8,
+                                        right: 8,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF0A0A0A).withOpacity(0.85),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: _synapColor, width: 1.2),
+                                          ),
+                                          child: Icon(Icons.download_done, color: _synapColor, size: 14),
+                                        ),
+                                      ),
                                     if (isSelected)
                                       Container(
                                         decoration: BoxDecoration(
@@ -338,7 +486,7 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '${playlist.childCount ?? 0} canciones',
+                                      '$songCount canciones',
                                       style: const TextStyle(color: Colors.grey, fontSize: 12),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -448,6 +596,33 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
             
             const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLikesCover() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF281C3E), Color(0xFF141414)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: const Color(0xFF8B93FF).withOpacity(0.18),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.favorite,
+            color: Color(0xFF8B93FF),
+            size: 24,
+          ),
         ),
       ),
     );

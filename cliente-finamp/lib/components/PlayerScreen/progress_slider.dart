@@ -36,9 +36,12 @@ class _ProgressSliderState extends State<ProgressSlider> {
     super.didChangeDependencies();
 
     _sliderThemeData = SliderTheme.of(context).copyWith(
-      trackHeight: 4.0,
-      inactiveTrackColor:
-          Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+      trackHeight: 3.5,
+      activeTrackColor: const Color(0xFF8B93FF),
+      inactiveTrackColor: const Color(0xFF222222),
+      secondaryActiveTrackColor: const Color(0xFF333333),
+      thumbShape: SliderComponentShape.noThumb,
+      overlayShape: SliderComponentShape.noOverlay,
     );
   }
 
@@ -65,6 +68,7 @@ class _ProgressSliderState extends State<ProgressSlider> {
                         SliderTheme(
                           data: _sliderThemeData.copyWith(
                             trackShape: CustomTrackShape(),
+                            thumbShape: SliderComponentShape.noThumb,
                           ),
                           child: const Slider(
                             value: 0,
@@ -73,31 +77,17 @@ class _ProgressSliderState extends State<ProgressSlider> {
                           ),
                         ),
                         if (widget.showDuration)
-                          Row(
+                          const Row(
                             mainAxisSize: MainAxisSize.max,
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 "00:00",
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.color),
+                                style: TextStyle(color: Color(0xFFA0A0A0), fontSize: 12),
                               ),
                               Text(
                                 "00:00",
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.color),
+                                style: TextStyle(color: Color(0xFFA0A0A0), fontSize: 12),
                               ),
                             ],
                           ),
@@ -110,18 +100,10 @@ class _ProgressSliderState extends State<ProgressSlider> {
                 children: [
                   // Slider displaying playback and buffering progress.
                   SliderTheme(
-                    data: widget.allowSeeking
-                        ? _sliderThemeData.copyWith(
-                            trackShape: CustomTrackShape(),
-                          )
-                        : _sliderThemeData.copyWith(
-                            thumbShape: const RoundSliderThumbShape(
-                                enabledThumbRadius: 0),
-                            // gets rid of both horizontal and vertical padding
-                            overlayShape:
-                                const RoundSliderOverlayShape(overlayRadius: 0),
-                            trackShape: const RectangularSliderTrackShape(),
-                          ),
+                    data: _sliderThemeData.copyWith(
+                      trackShape: CustomTrackShape(),
+                      thumbShape: SliderComponentShape.noThumb,
+                    ),
                     child: Slider(
                       min: 0.0,
                       max: snapshot.data!.mediaItem?.duration == null
@@ -195,25 +177,11 @@ class _ProgressSliderState extends State<ProgressSlider> {
                                 microseconds: _dragValue?.toInt() ??
                                     snapshot.data!.position.inMicroseconds),
                           ),
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.color),
+                          style: const TextStyle(color: Color(0xFFA0A0A0), fontSize: 12),
                         ),
                         Text(
                           printDuration(snapshot.data!.mediaItem?.duration),
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.color),
+                          style: const TextStyle(color: Color(0xFFA0A0A0), fontSize: 12),
                         ),
                       ],
                     ),

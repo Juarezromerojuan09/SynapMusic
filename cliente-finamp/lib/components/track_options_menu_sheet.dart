@@ -75,12 +75,12 @@ class _TrackOptionsMenuSheetState extends State<TrackOptionsMenuSheet> {
 
   @override
   Widget build(BuildContext context) {
-    const Color synapColor = Color(0xFF144477);
+    const Color synapColor = Color(0xFF8B93FF);
     final bool isInsidePlaylist = widget.playlistId != null && widget.playlistItemId != null;
 
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF1E1E1E), // Tema oscuro para el modal
+        color: Color(0xFF1A1A1A), // Tema oscuro para el modal
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(

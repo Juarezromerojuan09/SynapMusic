@@ -105,7 +105,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+            colors: [Color(0xFF0A0A0A), Color(0xFF141414), Color(0xFF1A1A1A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -119,8 +119,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   const CircleAvatar(
                     radius: 40,
-                    backgroundColor: Colors.white24,
-                    child: Icon(Icons.person_add_alt_1, size: 40, color: Colors.white),
+                    backgroundColor: Color(0xFF1A1A1A),
+                    child: Icon(Icons.person_add_alt_1, size: 40, color: Color(0xFF8B93FF)),
                   ),
                   const SizedBox(height: 24),
                   const Text(
@@ -130,7 +130,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 32),
                   Card(
-                    color: Colors.white.withOpacity(0.9),
+                    color: const Color(0xFF1A1A1A),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 8,
                     child: Padding(
@@ -139,23 +139,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           TextField(
-                            style: const TextStyle(color: Colors.black),
+                            style: const TextStyle(color: Colors.white),
                             controller: _usernameController,
                             decoration: InputDecoration(
                               labelText: 'Usuario',
+                              labelStyle: const TextStyle(color: Color(0xFFA0A0A0)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.white24)),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                              prefixIcon: const Icon(Icons.person),
+                              prefixIcon: const Icon(Icons.person, color: Color(0xFFA0A0A0)),
                             ),
                           ),
                           const SizedBox(height: 16),
                           TextField(
-                            style: const TextStyle(color: Colors.black),
+                            style: const TextStyle(color: Colors.white),
                             controller: _passwordController,
                             obscureText: true,
                             decoration: InputDecoration(
                               labelText: 'Contraseña',
+                              labelStyle: const TextStyle(color: Color(0xFFA0A0A0)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.white24)),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                              prefixIcon: const Icon(Icons.lock),
+                              prefixIcon: const Icon(Icons.lock, color: Color(0xFFA0A0A0)),
                             ),
                           ),
                           const SizedBox(height: 32),
@@ -163,13 +167,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             height: 50,
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF144477),
+                                backgroundColor: const Color(0xFF8B93FF),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
                               onPressed: _isLoading ? null : _register,
                               child: _isLoading
-                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                  : const Text('Crear Cuenta', style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                                  : const Text('Crear Cuenta', style: TextStyle(fontSize: 18, color: Colors.black, fontWeight: FontWeight.bold)),
                             ),
                           ),
                         ],

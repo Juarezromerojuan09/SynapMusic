@@ -203,22 +203,30 @@ class DownloadsHelper {
             downloadedImage.requiredBy.add(item.id);
 
             _addDownloadImageToDownloadedImages(downloadedImage);
-          } else if (item.hasOwnImage) {
+          } else if (item.hasOwnImage && item.imageId != null) {
             _downloadsLogger.info(
                 "Downloading image for ${item.name} (${item.id}) as it has its own image");
-            await _downloadImage(
-              item: item,
-              downloadDir: downloadDir,
-              downloadLocation: downloadLocation,
-            );
-          } else if (parent.type != "MusicAlbum") {
+            try {
+              await _downloadImage(
+                item: item,
+                downloadDir: downloadDir,
+                downloadLocation: downloadLocation,
+              );
+            } catch (e) {
+              _downloadsLogger.warning("Skipping image download for ${item.id}: $e");
+            }
+          } else if (parent.type != "MusicAlbum" && parent.hasOwnImage && parent.imageId != null) {
             _downloadsLogger.info(
-                "Downloading parent image for ${item.name} (${item.id}) as the parent is not an album but the parent image is not downloaded");
-            await _downloadImage(
-              item: item,
-              downloadDir: downloadDir,
-              downloadLocation: downloadLocation,
-            );
+                "Downloading parent image for playlist ${parent.name} (${parent.id})");
+            try {
+              await _downloadImage(
+                item: parent,
+                downloadDir: downloadDir,
+                downloadLocation: downloadLocation,
+              );
+            } catch (e) {
+              _downloadsLogger.warning("Skipping parent image download for ${parent.id}: $e");
+            }
           }
         }
       }
@@ -1107,8 +1115,7 @@ class DownloadsHelper {
     required Directory downloadDir,
     required DownloadLocation downloadLocation,
   }) async {
-    assert(item.blurHash != null);
-
+    if (item.blurHash == null || item.imageId == null) return;
     if (_downloadedImagesBox.containsKey(item.blurHash)) return;
 
     final imageUrl = _jellyfinApiData.getImageUrl(
@@ -1117,6 +1124,7 @@ class DownloadsHelper {
       quality: null,
       format: null,
     );
+    if (imageUrl == null) return;
     final authHeader = await getAuthHeader();
     final relativePath =
         path_helper.relative(downloadDir.path, from: downloadLocation.path);
@@ -1179,5 +1187,13 @@ class DownloadsHelper {
     }
 
     return directory;
+  }
+
+  Future<void> retryDownload(String taskId) async {
+    try {
+      await FlutterDownloader.retry(taskId: taskId);
+    } catch (e) {
+      _downloadsLogger.severe("Error retrying download $taskId: $e");
+    }
   }
 }

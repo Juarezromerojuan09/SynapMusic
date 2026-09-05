@@ -22,8 +22,7 @@ class SongName extends StatelessWidget {
     final JellyfinApiHelper jellyfinApiHelper =
         GetIt.instance<JellyfinApiHelper>();
 
-    final textColour =
-        Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6);
+    const textColour = Color(0xFFA0A0A0);
 
     return StreamBuilder<MediaItem?>(
       stream: audioHandler.mediaItem,
@@ -104,57 +103,36 @@ class SongNameContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final jellyfinApiHelper = GetIt.instance<JellyfinApiHelper>();
-
-    final textColour =
-        Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6);
-
-    return Padding(
-      // I don't know why but 12 is the magic number that lines up with the
-      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            onTap: songBaseItemDto == null
-                ? null
-                : () => jellyfinApiHelper
-                    .getItemById(songBaseItemDto!.albumId as String)
-                    .then((album) => Navigator.of(context).popAndPushNamed(
-                        AlbumScreen.routeName,
-                        arguments: album)),
-            child: Text(
-              mediaItem == null
-                  ? AppLocalizations.of(context)!.noAlbum
-                  : mediaItem!.album ?? AppLocalizations.of(context)!.noAlbum,
-              style: TextStyle(color: textColour),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          mediaItem == null
+              ? AppLocalizations.of(context)!.noItem
+              : mediaItem!.title,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+          overflow: TextOverflow.fade,
+          softWrap: false,
+          maxLines: 1,
+        ),
+        const SizedBox(height: 4),
+        RichText(
+          text: TextSpan(
+            children: mediaItem == null || mediaItem!.artist == null
+                ? [
+                    TextSpan(
+                      text: AppLocalizations.of(context)!.noArtist,
+                      style: const TextStyle(color: Color(0xFFA0A0A0), fontSize: 16),
+                    )
+                  ]
+                : separatedArtistTextSpans,
+            style: const TextStyle(color: Color(0xFFA0A0A0), fontSize: 16),
           ),
-          const Padding(padding: EdgeInsets.symmetric(vertical: 2)),
-          Text(
-            mediaItem == null
-                ? AppLocalizations.of(context)!.noItem
-                : mediaItem!.title,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
-            overflow: TextOverflow.fade,
-            softWrap: false,
-            maxLines: 1,
-          ),
-          const Padding(padding: EdgeInsets.symmetric(vertical: 2)),
-          RichText(
-            text: TextSpan(
-              children: mediaItem == null || mediaItem!.artist == null
-                  ? [
-                      TextSpan(
-                        text: AppLocalizations.of(context)!.noArtist,
-                        style: TextStyle(color: textColour),
-                      )
-                    ]
-                  : separatedArtistTextSpans,
-            ),
-          ),
-        ],
-      ),
+          overflow: TextOverflow.fade,
+          softWrap: false,
+          maxLines: 1,
+        ),
+      ],
     );
   }
 }
