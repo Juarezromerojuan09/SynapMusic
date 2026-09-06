@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'dart:math';
 import 'package:path_provider/path_provider.dart';
 import '../../services/jellyfin_api_helper.dart';
 import '../../services/synap_api_service.dart';
@@ -581,7 +582,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                                 onPressed: () async {
                                   await GetIt.instance<AudioServiceHelper>().replaceQueueWithItem(
                                     itemList: displayedTracks,
-                                    initialIndex: 0,
+                                    initialIndex: Random().nextInt(displayedTracks.length),
                                     shuffle: true,
                                   );
                                   if (mounted) {
@@ -750,7 +751,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                                     if (_tracks == null || _tracks!.isEmpty) return;
                                     await GetIt.instance<AudioServiceHelper>().replaceQueueWithItem(
                                       itemList: _tracks!,
-                                      initialIndex: 0,
+                                      initialIndex: Random().nextInt(_tracks!.length),
                                       shuffle: true,
                                     );
                                     if (mounted) {

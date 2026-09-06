@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:audio_service/audio_service.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logging/logging.dart';
@@ -29,6 +30,10 @@ class AudioServiceHelper {
       if (initialIndex > itemList.length) {
         return Future.error(
             "startAtIndex is bigger than the itemList! ($initialIndex > ${itemList.length})");
+      }
+
+      if (shuffle && itemList.isNotEmpty) {
+        initialIndex = Random().nextInt(itemList.length);
       }
 
       List<MediaItem> queue = [];

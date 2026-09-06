@@ -7,8 +7,10 @@ import '../../services/audio_service_helper.dart';
 import '../../models/jellyfin_models.dart';
 import '../player_screen.dart';
 import '../../components/track_list_item.dart';
+import '../../components/track_options_menu_sheet.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'dart:math';
 import 'package:path_provider/path_provider.dart';
 
 class AlbumDetailScreen extends StatefulWidget {
@@ -225,7 +227,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                                     if (availableTracks.isEmpty) return;
                                     await GetIt.instance<AudioServiceHelper>().replaceQueueWithItem(
                                       itemList: availableTracks,
-                                      initialIndex: 0,
+                                      initialIndex: Random().nextInt(availableTracks.length),
                                       shuffle: true,
                                     );
                                     if (mounted) Navigator.of(context, rootNavigator: true).pushNamed(PlayerScreen.routeName);
@@ -274,11 +276,21 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                           final localMatch = track['local_match'];
                           final bool existsLocal = localMatch != null && localMatch['exists'] == true;
 
+                          final String? trackId = (existsLocal && localMatch['jellyfin_data'] != null)
+                              ? localMatch['jellyfin_data']['Id']?.toString()
+                              : null;
+
                           Widget actionButton;
-                          if (existsLocal) {
+                          if (existsLocal && trackId != null) {
                             actionButton = IconButton(
                               icon: const Icon(Icons.more_vert, color: Colors.white),
-                              onPressed: () {},
+                              onPressed: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (_) => TrackOptionsMenuSheet(itemId: trackId),
+                                );
+                              },
                             );
                           } else {
                             actionButton = IconButton(
@@ -292,8 +304,6 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                             );
                           }
 
-                          final trackId = existsLocal ? track['local_match']['jellyfin_data']['Id'] : null;
-
                           return TrackListItem(
                             trackId: trackId,
                             title: track['title'] ?? 'Unknown Track',
@@ -301,6 +311,15 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                             duration: durationStr,
                             isAvailableInServer: existsLocal,
                             trackNumber: (track['track_number'] != null && track['track_number'] != 0) ? track['track_number'] : index + 1,
+                            onMenuPressed: (existsLocal && trackId != null)
+                                ? () {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      backgroundColor: Colors.transparent,
+                                      builder: (_) => TrackOptionsMenuSheet(itemId: trackId),
+                                    );
+                                  }
+                                : null,
                             trailingWidget: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
