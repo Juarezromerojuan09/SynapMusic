@@ -11,6 +11,7 @@ class UserSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -18,11 +19,11 @@ class UserSelector extends StatelessWidget {
           IconButton(
             onPressed: () => Navigator.of(context)
                 .pushNamed(LanguageSelectionScreen.routeName),
-            icon: const Icon(Icons.language),
+            icon: const Icon(Icons.language, color: Colors.white),
           )
         ],
       ),
-      body: const Center(child: PrivateUserSignIn()),
+      body: const PrivateUserSignIn(),
     );
   }
 }

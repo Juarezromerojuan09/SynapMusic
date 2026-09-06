@@ -33,7 +33,11 @@ class _PrivateUserSignInState extends State<PrivateUserSignIn> {
       height: double.infinity,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+          colors: [
+            Color(0xFF8C93FD),
+            Color(0xFF7574E4),
+            Color(0xFF5F57CD),
+          ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -46,11 +50,26 @@ class _PrivateUserSignInState extends State<PrivateUserSignIn> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo or Icon
-                  const CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.white24,
-                    child: Icon(Icons.music_note, size: 50, color: Colors.white),
+                  // Logo
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.25),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'images/finamp.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   const Text(
@@ -60,6 +79,13 @@ class _PrivateUserSignInState extends State<PrivateUserSignIn> {
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                       letterSpacing: 1.2,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black26,
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -142,13 +168,23 @@ class _PrivateUserSignInState extends State<PrivateUserSignIn> {
                     children: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pushNamed('/register'),
-                        style: TextButton.styleFrom(foregroundColor: Colors.white),
-                        child: const Text("REGISTRARSE"),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text(
+                          "REGISTRARSE",
+                          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                        ),
                       ),
                       TextButton(
                         onPressed: () => Navigator.of(context).pushNamed(LogsScreen.routeName),
-                        style: TextButton.styleFrom(foregroundColor: Colors.white54),
-                        child: Text(AppLocalizations.of(context)!.logs.toUpperCase()),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white70,
+                        ),
+                        child: Text(
+                          AppLocalizations.of(context)!.logs.toUpperCase(),
+                          style: const TextStyle(letterSpacing: 0.8),
+                        ),
                       ),
                     ],
                   ),

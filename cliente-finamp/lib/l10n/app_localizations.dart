@@ -311,7 +311,7 @@ abstract class AppLocalizations {
   /// No description provided for @finamp.
   ///
   /// In en, this message translates to:
-  /// **'Finamp'**
+  /// **'SynapMusic'**
   String get finamp;
 
   /// No description provided for @downloads.

@@ -89,7 +89,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shuffleAll => 'Shuffle all';
 
   @override
-  String get finamp => 'Finamp';
+  String get finamp => 'SynapMusic';
 
   @override
   String get downloads => 'Downloads';

@@ -90,7 +90,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get shuffleAll => 'Reproducir aleatoriamente todas las canciones';
 
   @override
-  String get finamp => 'Finamp';
+  String get finamp => 'SynapMusic';
 
   @override
   String get downloads => 'Descargas';
