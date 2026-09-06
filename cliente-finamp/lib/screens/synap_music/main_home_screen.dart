@@ -234,7 +234,17 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
     );
   }
 
-  Widget _buildCard(String imageUrl, String title, String subtitle, {bool isCircular = false, VoidCallback? onTap, int? rank, String? extraSubtitle}) {
+  Widget _buildCard(
+    String imageUrl,
+    String title,
+    String subtitle, {
+    bool isCircular = false,
+    VoidCallback? onTap,
+    int? rank,
+    String? indicator,
+    int? variation,
+    String? extraSubtitle,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -287,22 +297,68 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                     top: 6,
                     left: 6,
                     child: Container(
-                      width: 28,
-                      height: 28,
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A1A1A), // Círculo oscuro
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2), // Borde blanco delgado de 2px
-                      ),
-                      child: Center(
-                        child: Text(
-                          '$rank',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                        color: const Color(0xFF141414).withOpacity(0.92),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withOpacity(0.7), width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.6),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
                           ),
-                        ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            '$rank',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                          if (indicator != null) ...[
+                            const SizedBox(width: 3),
+                            if (indicator == 'up') ...[
+                              const Icon(Icons.arrow_drop_up, color: Color(0xFF00E676), size: 16),
+                              if (variation != null && variation > 0)
+                                Text(
+                                  '$variation',
+                                  style: const TextStyle(
+                                    color: Color(0xFF00E676),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                            ] else if (indicator == 'down') ...[
+                              const Icon(Icons.arrow_drop_down, color: Color(0xFFFF5252), size: 16),
+                              if (variation != null && variation < 0)
+                                Text(
+                                  '${variation.abs()}',
+                                  style: const TextStyle(
+                                    color: Color(0xFFFF5252),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                            ] else ...[
+                              const Text(
+                                '=',
+                                style: TextStyle(
+                                  color: Color(0xFFA0A0A0),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  height: 1.0,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ],
                       ),
                     ),
                   ),
@@ -462,7 +518,14 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
 
             _buildSectionTitle('Top 10 México'),
             _buildHorizontalList(_topMexicoStream, (item, index) {
-              return _buildCard(item['cover_url'] ?? '', item['title'] ?? '', item['artist'] ?? '', rank: index + 1, onTap: () {
+              return _buildCard(
+                item['cover_url'] ?? '',
+                item['title'] ?? '',
+                item['artist'] ?? '',
+                rank: index + 1,
+                indicator: item['indicator'],
+                variation: item['variation'],
+                onTap: () {
                 if (item['local_id'] != null) {
                   // Reproducir localmente
                   BaseItemDto track;

@@ -13,6 +13,7 @@ from typing import List, Optional
 import sqlite3
 import uuid
 import json
+import re
 from zoneinfo import ZoneInfo
 from datetime import datetime
 
@@ -1590,15 +1591,54 @@ async def get_global_albums():
 @app.get("/home/top-mexico", dependencies=[Depends(get_api_key)])
 async def get_top_mexico():
     try:
-        url = "https://api.deezer.com/chart/132/tracks"
-        async with httpx.AsyncClient() as client:
-            res = await client.get(url, params={"limit": 10})
-            res.raise_for_status()
-            data = res.json().get("data", [])
+        playlist_id = "1111142361"  # Playlist oficial Deezer Charts: Top Mexico
+        tracks = []
+        
+        async with httpx.AsyncClient(headers={"User-Agent": "Mozilla/5.0"}) as client:
+            # 1. Intentar obtener canciones y VARIATION desde la página web de Deezer
+            try:
+                web_res = await client.get(f"https://www.deezer.com/es/playlist/{playlist_id}", timeout=5.0)
+                if web_res.status_code == 200:
+                    matches = re.findall(r"<script[^>]*>(.*?)</script>", web_res.text, re.DOTALL)
+                    for s in matches:
+                        if "SONGS" in s and "SNG_TITLE" in s:
+                            m = re.search(r"({.*\"SONGS\".*})", s)
+                            if m:
+                                dz_state = json.loads(m.group(1))
+                                raw_songs = dz_state.get("SONGS", {}).get("data", [])
+                                for sng in raw_songs[:10]:
+                                    alb_pic = sng.get("ALB_PICTURE")
+                                    cover = f"https://cdn-images.dzcdn.net/images/cover/{alb_pic}/500x500.jpg" if alb_pic else None
+                                    tracks.append({
+                                        "id": str(sng.get("SNG_ID")),
+                                        "title": sng.get("SNG_TITLE"),
+                                        "artist": sng.get("ART_NAME", "Unknown"),
+                                        "cover_url": cover,
+                                        "query_string": f"https://www.deezer.com/track/{sng.get('SNG_ID')}",
+                                        "variation": int(sng.get("VARIATION", 0))
+                                    })
+                                break
+            except Exception as ex:
+                print("Fallback de scrape Deezer:", ex)
+
+            # 2. Fallback a la API REST de Deezer si la extracción web no trajo datos
+            if not tracks:
+                api_res = await client.get(f"https://api.deezer.com/playlist/{playlist_id}", timeout=5.0)
+                api_data = api_res.json().get("tracks", {}).get("data", [])
+                for item in api_data[:10]:
+                    tracks.append({
+                        "id": str(item.get("id")),
+                        "title": item.get("title"),
+                        "artist": item.get("artist", {}).get("name", "Unknown"),
+                        "cover_url": item.get("album", {}).get("cover_medium"),
+                        "query_string": item.get("link"),
+                        "variation": 0
+                    })
+
             results = []
-            for item in data:
-                title = item.get("title")
-                artist = item.get("artist", {}).get("name", "Unknown")
+            for item in tracks:
+                title = item["title"]
+                artist = item["artist"]
                 
                 # Check local Jellyfin
                 local_data = await check_jellyfin_local(title, client)
@@ -1609,19 +1649,27 @@ async def get_top_mexico():
                 if local_data.get("exists") and "data" in local_data:
                     local_id = local_data["data"].get("Id")
                     jellyfin_item = local_data["data"]
-                    
-                    # Ensure full image URL for jellyfin item in Top 10 Mexico
                     if jellyfin_item.get("ImageTags", {}).get("Primary"):
                         jellyfin_item["ImageTags"]["Primary"] = jellyfin_item["ImageTags"]["Primary"]
                 
+                var_val = item.get("variation", 0)
+                if var_val > 0:
+                    indicator = "up"
+                elif var_val < 0:
+                    indicator = "down"
+                else:
+                    indicator = "same"
+
                 results.append({
-                    "id": str(item.get("id")),
+                    "id": item["id"],
                     "title": title,
                     "artist": artist,
-                    "cover_url": item.get("album", {}).get("cover_medium"),
-                    "query_string": item.get("link"),
+                    "cover_url": item["cover_url"],
+                    "query_string": item["query_string"],
                     "local_id": local_id,
-                    "jellyfin_item": jellyfin_item
+                    "jellyfin_item": jellyfin_item,
+                    "variation": var_val,
+                    "indicator": indicator
                 })
             return results
     except Exception as e:
