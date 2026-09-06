@@ -4,7 +4,9 @@ import 'package:get_it/get_it.dart';
 
 import '../../screens/logs_screen.dart';
 import '../../screens/view_selector.dart';
+import '../../screens/synap_music/main_home_screen.dart';
 import '../../services/jellyfin_api_helper.dart';
+import '../../services/finamp_user_helper.dart';
 import '../error_snackbar.dart';
 import '../../screens/synap_music/register_screen.dart';
 
@@ -220,9 +222,35 @@ class _PrivateUserSignInState extends State<PrivateUserSignIn> {
         );
       }
 
+      // Auto-configure music views to seamlessly transition directly to SynapMusic
+      try {
+        final finampUserHelper = GetIt.instance<FinampUserHelper>();
+        final views = await jellyfinApiHelper.getViews();
+        final musicViews = views
+            .where((element) => element.collectionType == "music")
+            .toList();
+        final selectedViews = musicViews.isNotEmpty
+            ? musicViews
+            : views.where((element) => element.collectionType != "playlists").toList();
+
+        if (selectedViews.isNotEmpty) {
+          finampUserHelper.setCurrentUserViews(selectedViews);
+        }
+      } catch (e) {
+        debugPrint("Auto-configuring views error: $e");
+      }
+
       if (!mounted) return;
 
-      Navigator.of(context).pushNamed(ViewSelector.routeName);
+      final finampUserHelper = GetIt.instance<FinampUserHelper>();
+      if (finampUserHelper.currentUser?.currentView != null) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          MainHomeScreen.routeName,
+          (route) => false,
+        );
+      } else {
+        Navigator.of(context).pushNamed(ViewSelector.routeName);
+      }
     } catch (e) {
       errorSnackbar(e, context);
 

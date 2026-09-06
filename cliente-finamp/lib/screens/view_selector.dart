@@ -64,6 +64,11 @@ class _ViewSelectorState extends State<ViewSelector> {
             if (_views.values.where((element) => element == true).length == 1 &&
                 _finampUserHelper.currentUser!.currentView == null) {
               _submitChoice();
+              return const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator.adaptive(),
+                ),
+              );
             } else {
               if (mounted) {
                 isSubmitButtonEnabled = _views.values.contains(true);
