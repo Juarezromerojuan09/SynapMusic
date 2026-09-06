@@ -134,5 +134,5 @@ flutter_icons:
   ios: true
   image_path: "assets/icon/icon_combined.png"
   adaptive_icon_foreground: "assets/icon/icon_foreground.png"
-  adaptive_icon_background: "#000B25"
+  adaptive_icon_background: "#5F57CD"
   remove_alpha_ios: true
