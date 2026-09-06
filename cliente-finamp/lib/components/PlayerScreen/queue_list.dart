@@ -10,6 +10,7 @@ import '../../models/jellyfin_models.dart';
 import '../../services/process_artist.dart';
 import '../../services/media_state_stream.dart';
 import '../../services/music_player_background_task.dart';
+import '../strict_dismissible.dart';
 
 class _QueueListStreamState {
   _QueueListStreamState(
@@ -47,6 +48,7 @@ class _QueueListState extends State<QueueList> {
           return PrimaryScrollController(
             controller: widget.scrollController,
             child: ReorderableListView.builder(
+              scrollController: widget.scrollController,
               itemCount: snapshot.data!.queue?.length ?? 0,
               onReorder: (oldIndex, newIndex) async {
                 setState(() {
@@ -70,11 +72,26 @@ class _QueueListState extends State<QueueList> {
                             AudioServiceShuffleMode.all
                         ? _audioHandler.shuffleIndices![index]
                         : index;
-                return Dismissible(
+                return StrictDismissible(
                   key: ValueKey(snapshot.data!.queue![actualIndex].id),
                   direction: FinampSettingsHelper.finampSettings.disableGesture
                       ? DismissDirection.none
                       : DismissDirection.horizontal,
+                  dismissThresholds: const {
+                    DismissDirection.horizontal: 0.5,
+                  },
+                  background: Container(
+                    color: Colors.red.shade900.withOpacity(0.7),
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: const Icon(Icons.delete_outline, color: Colors.white, size: 26),
+                  ),
+                  secondaryBackground: Container(
+                    color: Colors.red.shade900.withOpacity(0.7),
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: const Icon(Icons.delete_outline, color: Colors.white, size: 26),
+                  ),
                   onDismissed: (direction) async {
                     await _audioHandler.removeQueueItemAt(actualIndex);
                   },
