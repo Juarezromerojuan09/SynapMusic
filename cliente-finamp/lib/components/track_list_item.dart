@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:get_it/get_it.dart';
 import '../services/music_player_background_task.dart';
+import '../services/likes_playlist_helper.dart';
 
 class TrackListItem extends StatelessWidget {
   final String title;
@@ -16,6 +17,7 @@ class TrackListItem extends StatelessWidget {
   final File? coverFile;
   final int? trackNumber;
   final String? trackId;
+  final String? queryString;
   final Widget? trailingWidget;
 
   const TrackListItem({
@@ -31,6 +33,7 @@ class TrackListItem extends StatelessWidget {
     this.coverFile,
     this.trackNumber,
     this.trackId,
+    this.queryString,
     this.trailingWidget,
   }) : super(key: key);
 
@@ -50,15 +53,58 @@ class TrackListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     const Color synapAccent = Color(0xFF8B93FF);
 
-    Widget actualTrailingWidget = trailingWidget ?? (isAvailableInServer 
-      ? IconButton(
+    final Widget heartButton = ValueListenableBuilder<Set<String>>(
+      valueListenable: LikesPlaylistHelper.likedSongKeys,
+      builder: (context, likedKeys, _) {
+        return ValueListenableBuilder<Set<String>>(
+          valueListenable: LikesPlaylistHelper.likedSongIds,
+          builder: (context, likedIds, _) {
+            final isLiked = LikesPlaylistHelper.isSongLiked(
+              trackId: trackId,
+              title: title,
+              artist: artist,
+            );
+
+            return IconButton(
+              icon: Icon(
+                isLiked ? Icons.favorite : Icons.favorite_border,
+                color: isLiked ? synapAccent : const Color(0xFFA0A0A0),
+                size: 22,
+              ),
+              padding: const EdgeInsets.all(8),
+              constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+              tooltip: isLiked ? 'Eliminar de My likes' : 'Agregar a My likes',
+              onPressed: () {
+                LikesPlaylistHelper.toggleLike(
+                  trackId: isAvailableInServer ? trackId : null,
+                  title: title,
+                  artist: artist,
+                  queryString: queryString,
+                  coverUrl: coverUrl,
+                  context: context,
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+
+    final Widget actionOrTrailing = trailingWidget ??
+        IconButton(
           icon: const Icon(Icons.more_vert, color: Color(0xFFA0A0A0)),
+          padding: const EdgeInsets.all(8),
+          constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
           onPressed: onMenuPressed,
-        ) 
-      : IconButton(
-          icon: const Icon(Icons.download, color: synapAccent),
-          onPressed: onDownloadPressed,
-        ));
+        );
+
+    Widget actualTrailingWidget = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        heartButton,
+        actionOrTrailing,
+      ],
+    );
 
     List<Widget> leadingChildren = [];
 
@@ -124,7 +170,7 @@ class TrackListItem extends StatelessWidget {
 
     final tile = ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 2.0),
-      onTap: isAvailableInServer ? onPlayPressed : null,
+      onTap: onPlayPressed,
       leading: leadingWidget,
       title: Text(
         title,

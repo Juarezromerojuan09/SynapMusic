@@ -20,6 +20,9 @@ class AlbumImageProvider {
   }) async {
     assert(itemsToPrecache == null ? true : context != null);
     if (item.imageId == null) {
+      if (item.overview != null && (item.overview!.startsWith('http://') || item.overview!.startsWith('https://'))) {
+        return NetworkImage(item.overview!);
+      }
       return null;
     }
 
@@ -51,6 +54,9 @@ class AlbumImageProvider {
       );
 
       if (imageUrl == null) {
+        if (item.overview != null && (item.overview!.startsWith('http://') || item.overview!.startsWith('https://'))) {
+          return NetworkImage(item.overview!);
+        }
         return null;
       }
 

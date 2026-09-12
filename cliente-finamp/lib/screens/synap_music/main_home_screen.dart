@@ -1,13 +1,12 @@
+import 'dart:async';
 import 'admin_dashboard_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:get_it/get_it.dart';
 
 import '../../screens/settings_screen.dart';
-import '../../screens/downloads_screen.dart';
 import '../../screens/splash_screen.dart';
 import '../album_screen.dart';
 
@@ -25,6 +24,9 @@ import 'album_detail_screen.dart';
 import 'artist_profile_screen.dart';
 import 'user_profile_screen.dart';
 import 'help_feedback_screen.dart';
+import '../../services/playback_download_coordinator.dart';
+import '../../services/likes_playlist_helper.dart';
+import '../../services/synap_events.dart';
 
 import '../../models/jellyfin_models.dart';
 
@@ -52,13 +54,20 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     TabNavigator(navigatorKey: _navigatorKeys[2], child: const LibraryPlaylistsScreen()),
   ];
 
+  StreamSubscription? _refreshSub;
+
   @override
   void initState() {
     super.initState();
+    LikesPlaylistHelper.init();
+    _refreshSub = SynapEvents.onLibraryRefresh.listen((_) {
+      LikesPlaylistHelper.loadLikes();
+    });
   }
 
   @override
   void dispose() {
+    _refreshSub?.cancel();
     super.dispose();
   }
 
@@ -149,6 +158,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
   Stream<List<dynamic>>? _topAlbumsStream;
   Stream<List<dynamic>>? _newReleasesStream;
   Stream<List<dynamic>>? _topMexicoStream;
+  StreamSubscription<LocalTrackReadyEvent>? _trackReadySub;
 
   @override
   void initState() {
@@ -162,6 +172,68 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
     _newReleasesStream = _apiService.getNewReleasesStream(_userId);
     _topMexicoStream = _apiService.getTopMexicoStream();
     _checkAdminStatus();
+
+    _trackReadySub = PlaybackDownloadCoordinator().onTrackReady.listen((event) {
+      if (mounted) {
+        setState(() {
+          _topMexicoStream = _apiService.getTopMexicoStream(forceRefresh: true);
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _trackReadySub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refreshHomeData() async {
+    setState(() {
+      _topSongsStream = _apiService.getTopSongsStream(_userId, forceRefresh: true);
+      _topArtistsStream = _apiService.getTopArtistsStream(_userId, forceRefresh: true);
+      _topAlbumsStream = _apiService.getTopAlbumsStream(_userId, forceRefresh: true);
+      _newReleasesStream = _apiService.getNewReleasesStream(_userId, forceRefresh: true);
+      _topMexicoStream = _apiService.getTopMexicoStream(forceRefresh: true);
+    });
+    await Future.delayed(const Duration(milliseconds: 600));
+  }
+
+  Future<void> _playTrack(Map<String, dynamic> item) async {
+    BaseItemDto? track;
+    if (item['jellyfin_item'] != null) {
+      try {
+        final dto = BaseItemDto.fromJson(item['jellyfin_item']);
+        if (dto.artists != null && dto.artists!.isNotEmpty) {
+          track = dto;
+        }
+      } catch (_) {}
+    }
+    if (track == null && item['local_id'] != null) {
+      try {
+        final jellyfinHelper = GetIt.instance<JellyfinApiHelper>();
+        track = await jellyfinHelper.getItemById(item['local_id']);
+      } catch (e) {
+        track = BaseItemDto(
+          id: item['local_id'],
+          name: item['title'] ?? '',
+          type: 'Audio',
+          artists: item['artist'] != null ? [item['artist']] : [],
+        );
+      }
+    }
+    if (track != null) {
+      final audioHandler = GetIt.instance<AudioServiceHelper>();
+      await audioHandler.replaceQueueWithItem(itemList: [track]);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reproduciendo canción...'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _checkAdminStatus() async {
@@ -199,7 +271,11 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
     );
   }
 
-  Widget _buildHorizontalList(Stream<List<dynamic>>? stream, Widget Function(dynamic, int) itemBuilder) {
+  Widget _buildHorizontalList(
+    Stream<List<dynamic>>? stream,
+    Widget Function(dynamic, int) itemBuilder, {
+    bool Function(dynamic)? itemFilter,
+  }) {
     return StreamBuilder<List<dynamic>>(
       stream: stream,
       builder: (context, snapshot) {
@@ -215,7 +291,17 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
           );
         }
 
-        final items = snapshot.data!;
+        var items = snapshot.data!;
+        if (itemFilter != null) {
+          items = items.where(itemFilter).toList();
+          if (items.isEmpty) {
+            return const SizedBox(
+              height: 150,
+              child: Center(child: Text("No hay datos disponibles.")),
+            );
+          }
+        }
+
         return SizedBox(
           height: 220,
           child: ListView.builder(
@@ -413,9 +499,8 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final userHelper = GetIt.instance<FinampUserHelper>();
     final serverUrl = 'http://100.81.156.126:8096'; // We can just use the VPN IP for now
-    final userImageUrl = '${serverUrl}/Users/${_userId}/Images/Primary';
+    final userImageUrl = '$serverUrl/Users/$_userId/Images/Primary';
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
@@ -511,45 +596,38 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: RefreshIndicator(
+        onRefresh: _refreshHomeData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
 
-            _buildSectionTitle('Top 10 México'),
-            _buildHorizontalList(_topMexicoStream, (item, index) {
-              return _buildCard(
-                item['cover_url'] ?? '',
-                item['title'] ?? '',
-                item['artist'] ?? '',
-                rank: index + 1,
-                indicator: item['indicator'],
-                variation: item['variation'],
-                onTap: () {
-                if (item['local_id'] != null) {
-                  // Reproducir localmente
-                  BaseItemDto track;
-                  if (item['jellyfin_item'] != null) {
-                    track = BaseItemDto.fromJson(item['jellyfin_item']);
-                  } else {
-                    track = BaseItemDto(
-                      id: item['local_id'],
-                      name: item['title'],
-                      type: 'Audio',
-                    );
-                  }
-                  final audioHandler = GetIt.instance<AudioServiceHelper>();
-                  audioHandler.replaceQueueWithItem(itemList: [track]).then((_) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reproduciendo canción...')));
-                  });
-                } else {
-                  // Poner a descargar
-                  _apiService.downloadMedia(item['query_string'] ?? '${item['title']} ${item['artist']}').then((_) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Canción enviada a descargar')));
-                  });
-                }
-              });
-            }),
+              _buildSectionTitle('Top 10 México'),
+              _buildHorizontalList(_topMexicoStream, (item, index) {
+                return _buildCard(
+                  item['cover_url'] ?? '',
+                  item['title'] ?? '',
+                  item['artist'] ?? '',
+                  rank: index + 1,
+                  indicator: item['indicator'],
+                  variation: item['variation'],
+                  onTap: () async {
+                    if (item['local_id'] != null) {
+                      _playTrack(item);
+                    } else {
+                      PlaybackDownloadCoordinator().downloadAndAutoPlay(
+                        context: context,
+                        title: item['title'] ?? '',
+                        artist: item['artist'] ?? '',
+                        queryString: item['query_string'] ?? '${item['title']} ${item['artist']}',
+                        coverUrl: item['cover_url'],
+                      );
+                    }
+                  },
+                );
+              }),
 
             _buildSectionTitle('Tus Canciones Más Escuchadas'),
             _buildHorizontalList(_topSongsStream, (item, index) {
@@ -569,13 +647,20 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
             }),
 
             _buildSectionTitle('Tus Artistas Favoritos'),
-            _buildHorizontalList(_topArtistsStream, (item, index) {
-              return _buildCard(item['cover_url'] ?? '', item['name'] ?? '', '', isCircular: true, onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => ArtistProfileScreen(artistName: item['name']),
-                ));
-              });
-            }),
+            _buildHorizontalList(
+              _topArtistsStream,
+              (item, index) {
+                return _buildCard(item['cover_url'] ?? '', item['name'] ?? '', '', isCircular: true, onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => ArtistProfileScreen(artistName: item['name']),
+                  ));
+                });
+              },
+              itemFilter: (item) {
+                final cover = item['cover_url'];
+                return cover != null && cover.toString().trim().isNotEmpty;
+              },
+            ),
 
             _buildSectionTitle('Álbumes Recomendados'),
             _buildHorizontalList(_topAlbumsStream, (item, index) {
@@ -619,6 +704,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
           ],
         ),
       ),
+    ),
     );
   }
 }

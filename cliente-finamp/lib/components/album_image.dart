@@ -31,7 +31,13 @@ class AlbumImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (item == null || item!.imageId == null) {
+    final hasValidImage = item != null &&
+        (item!.imageId != null ||
+            (item!.overview != null &&
+                (item!.overview!.startsWith('http://') ||
+                    item!.overview!.startsWith('https://'))));
+
+    if (!hasValidImage) {
       if (imageProviderCallback != null) {
         imageProviderCallback!(null);
       }
@@ -62,6 +68,7 @@ class AlbumImage extends StatelessWidget {
               (constraints.maxHeight * mediaQuery.devicePixelRatio).toInt();
 
           return BareAlbumImage(
+            key: ValueKey('${item!.id}_${item!.imageId}_${item!.overview}'),
             item: item!,
             maxWidth: physicalWidth,
             maxHeight: physicalHeight,
@@ -129,17 +136,21 @@ class _BareAlbumImageState extends State<BareAlbumImage> {
   @override
   void didUpdateWidget(BareAlbumImage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.item.imageId != oldWidget.item.imageId ||
+    if (widget.item.id != oldWidget.item.id ||
+        widget.item.imageId != oldWidget.item.imageId ||
+        widget.item.overview != oldWidget.item.overview ||
         widget.maxWidth != oldWidget.maxWidth ||
         widget.maxHeight != oldWidget.maxHeight ||
         widget.itemsToPrecache != oldWidget.itemsToPrecache) {
-      _albumImageContentFuture = AlbumImageProvider.init(
-        widget.item,
-        maxWidth: widget.maxWidth,
-        maxHeight: widget.maxHeight,
-        itemsToPrecache: widget.itemsToPrecache,
-        context: context,
-      );
+      setState(() {
+        _albumImageContentFuture = AlbumImageProvider.init(
+          widget.item,
+          maxWidth: widget.maxWidth,
+          maxHeight: widget.maxHeight,
+          itemsToPrecache: widget.itemsToPrecache,
+          context: context,
+        );
+      });
     }
     _placeholderBuilder = widget.placeholderBuilder ??
         (context) => Container(
@@ -163,11 +174,31 @@ class _BareAlbumImageState extends State<BareAlbumImage> {
             image: snapshot.data!,
             fit: BoxFit.cover,
             placeholderBuilder: _placeholderBuilder,
-            errorBuilder: _errorBuilder,
+            errorBuilder: (context, error, stackTrace) {
+              if (widget.item.overview != null &&
+                  (widget.item.overview!.startsWith('http://') ||
+                      widget.item.overview!.startsWith('https://'))) {
+                return Image.network(
+                  widget.item.overview!,
+                  fit: BoxFit.cover,
+                  errorBuilder: _errorBuilder,
+                );
+              }
+              return _errorBuilder(context, error, stackTrace);
+            },
           );
         }
 
         if (snapshot.hasError) {
+          if (widget.item.overview != null &&
+              (widget.item.overview!.startsWith('http://') ||
+                  widget.item.overview!.startsWith('https://'))) {
+            return Image.network(
+              widget.item.overview!,
+              fit: BoxFit.cover,
+              errorBuilder: _errorBuilder,
+            );
+          }
           if (widget.imageProviderCallback != null) {
             widget.imageProviderCallback!(null);
           }

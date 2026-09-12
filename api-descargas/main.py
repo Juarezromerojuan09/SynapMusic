@@ -4,7 +4,8 @@ import httpx
 import requests
 import subprocess
 from fastapi import FastAPI, Depends, HTTPException, Security, BackgroundTasks, Request, File, UploadFile, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from playlist_migrator import run_migration_task
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
@@ -15,7 +16,8 @@ import uuid
 import json
 import re
 from zoneinfo import ZoneInfo
-from datetime import datetime
+import datetime
+import time
 
 # Cargar variables de entorno desde .env
 load_dotenv()
@@ -86,6 +88,8 @@ def patch_deemix_libraries():
         pass
 
     fixed_deezer_paths = [
+        "/opt/synapmusic/api-descargas/venv/lib64/python3.13/site-packages/deezer/utils.py",
+        "/opt/synapmusic/api-descargas/venv/lib/python3.13/site-packages/deezer/utils.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib64/python3.13/site-packages/deezer/utils.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib/python3.13/site-packages/deezer/utils.py",
     ]
@@ -145,6 +149,8 @@ def patch_deemix_libraries():
         pass
 
     fixed_deemix_paths = [
+        "/opt/synapmusic/api-descargas/venv/lib64/python3.13/site-packages/deemix/itemgen.py",
+        "/opt/synapmusic/api-descargas/venv/lib/python3.13/site-packages/deemix/itemgen.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib64/python3.13/site-packages/deemix/itemgen.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib/python3.13/site-packages/deemix/itemgen.py",
     ]
@@ -206,6 +212,8 @@ def patch_deemix_libraries():
         pass
 
     fixed_pathtemplates = [
+        "/opt/synapmusic/api-descargas/venv/lib64/python3.13/site-packages/deemix/utils/pathtemplates.py",
+        "/opt/synapmusic/api-descargas/venv/lib/python3.13/site-packages/deemix/utils/pathtemplates.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib64/python3.13/site-packages/deemix/utils/pathtemplates.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib/python3.13/site-packages/deemix/utils/pathtemplates.py",
     ]
@@ -254,7 +262,7 @@ def get_deemix_binary():
     which_path = shutil.which("deemix")
     if which_path:
         return which_path
-    server_path = "/home/juarezromerojuan09/api-descargas/venv/bin/deemix"
+    server_path = "/opt/synapmusic/api-descargas/venv/bin/deemix"
     if os.path.isfile(server_path) and os.access(server_path, os.X_OK):
         return server_path
     return "deemix"
@@ -301,6 +309,10 @@ app = FastAPI(
     description="API puente para descargar música usando spotDL y actualizar Jellyfin.",
     version="1.0.0"
 )
+
+PORTAL_DIR = os.path.join(os.path.dirname(__file__), "portal")
+if os.path.exists(PORTAL_DIR):
+    app.mount("/portal-static", StaticFiles(directory=PORTAL_DIR), name="portal-static")
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=True)
 
@@ -369,23 +381,68 @@ def clean_title(title):
     return cleaned.strip()
 
 def enrich_metadata_for_ytdlp(file_path, original_query):
-    print(f"  [Metadatos] Iniciando enriquecimiento para: {os.path.basename(file_path)}")
-    clean = clean_title(original_query)
+    filename = os.path.basename(file_path)
+    name_without_ext = os.path.splitext(filename)[0]
+    print(f"  [Metadatos] Iniciando enriquecimiento para: {filename}")
+    
+    # Determinar texto base para buscar portada y letras si la consulta original era un URL
+    search_seed = name_without_ext if (original_query.startswith("http://") or original_query.startswith("https://")) else original_query
+    clean = clean_title(search_seed)
+    
+    norm_name = name_without_ext.replace('｜', '|').replace('／', '/').replace('—', '-').replace('–', '-')
+    parts = norm_name.split(" - ", 1)
+    if len(parts) == 2:
+        artist_text = parts[0].strip()
+        title_text = parts[1].strip()
+    else:
+        artist_text = "Unknown Artist"
+        title_text = norm_name.strip()
+
+    clean_title_text = clean_title(title_text)
+    if not clean_title_text:
+        clean_title_text = title_text
     
     cover_bytes = None
+    latin_artist = re.sub(r'[\uac00-\ud7af\u1100-\u11ff\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]', '', artist_text).strip()
+
+    # 1. Portada: Estrategia en Cascada (Deezer con validación -> Miniatura YouTube)
     try:
         import requests
-        dz_res = requests.get("https://api.deezer.com/search/track", params={"q": clean, "limit": 1}, timeout=5)
-        if dz_res.status_code == 200:
-            dz_data = dz_res.json().get("data", [])
-            if dz_data:
-                cover_url = dz_data[0].get("album", {}).get("cover_xl")
-                if cover_url:
-                    cover_bytes = requests.get(cover_url, timeout=5).content
-                    print("  ✓ Portada obtenida desde Deezer")
+        dz_queries = [
+            f"{artist_text} {clean_title_text}",
+            f"{latin_artist} {clean_title_text}" if latin_artist else None,
+            clean
+        ]
+        dz_queries = [q for q in dz_queries if q]
+
+        for dq in dz_queries:
+            dz_res = requests.get("https://api.deezer.com/search/track", params={"q": dq, "limit": 5}, timeout=5)
+            if dz_res.status_code == 200:
+                dz_data = dz_res.json().get("data", [])
+                for it in dz_data:
+                    it_t = it.get('title', '').lower()
+                    it_a = it.get('artist', {}).get('name', '').lower()
+                    target_t = clean_title_text.lower()
+
+                    title_match = (target_t in it_t or it_t in target_t)
+                    artist_match = True
+                    if latin_artist:
+                        artist_match = (latin_artist.lower() in it_a or it_a in latin_artist.lower())
+                    elif artist_text != "Unknown Artist":
+                        artist_match = (artist_text.lower() in it_a or it_a in artist_text.lower())
+
+                    if title_match and artist_match:
+                        cover_url = it.get("album", {}).get("cover_xl")
+                        if cover_url:
+                            cover_bytes = requests.get(cover_url, timeout=5).content
+                            print(f"  ✓ Portada obtenida desde Deezer: {it.get('artist', {}).get('name')} - {it.get('title')}")
+                            break
+            if cover_bytes:
+                break
     except Exception as e:
         print(f"  [!] Error buscando portada en deezer: {e}")
 
+    # Si Deezer no tiene la canción exacta (ej. bonus track exclusivo o remix), usar miniatura de YouTube
     if not cover_bytes:
         import glob
         base_name = os.path.splitext(file_path)[0]
@@ -419,27 +476,16 @@ def enrich_metadata_for_ytdlp(file_path, original_query):
 
     try:
         from mutagen.mp3 import MP3
-        from mutagen.id3 import ID3, APIC, TXXX, error
+        from mutagen.id3 import ID3, APIC, TXXX, TIT2, TPE1, TALB, error
         audio = MP3(file_path, ID3=ID3)
         try:
             audio.add_tags()
         except error:
             pass
             
-        filename = os.path.basename(file_path)
-        name_without_ext = os.path.splitext(filename)[0]
-        parts = name_without_ext.split(" - ", 1)
-        if len(parts) == 2:
-            artist_text = parts[0].strip()
-            title_text = parts[1].strip()
-        else:
-            artist_text = "Unknown Artist"
-            title_text = name_without_ext.strip()
-            
-        from mutagen.id3 import TIT2, TPE1, TALB
-        audio.tags.add(TIT2(encoding=3, text=[title_text]))
+        audio.tags.add(TIT2(encoding=3, text=[clean_title_text]))
         audio.tags.add(TPE1(encoding=3, text=[artist_text]))
-        audio.tags.add(TALB(encoding=3, text=[title_text]))
+        audio.tags.add(TALB(encoding=3, text=[clean_title_text]))
             
         if cover_bytes:
             audio.tags.add(
@@ -463,32 +509,59 @@ def enrich_metadata_for_ytdlp(file_path, original_query):
     except Exception as e:
         print(f"  [!] Error inyectando metadatos MP3: {e}")
 
-    # Letras (Estrategia Dual)
-    def fetch_lyrics(q):
+    # 2. Letras: Estrategia en Cascada LRCLIB (Exacta -> Con Artista Latino -> Por Título)
+    def fetch_lyrics(q, target_artist=None):
         try:
             import requests
             res = requests.get("https://lrclib.net/api/search", params={"q": q}, timeout=5)
             if res.status_code == 200:
                 data = res.json()
                 if data and isinstance(data, list) and len(data) > 0:
-                    best = data[0]
-                    return best.get("syncedLyrics") or best.get("plainLyrics")
+                    for item in data:
+                        if target_artist and target_artist.lower() not in item.get('artistName', '').lower():
+                            continue
+                        if item.get("syncedLyrics"):
+                            return item["syncedLyrics"]
+                    for item in data:
+                        if target_artist and target_artist.lower() not in item.get('artistName', '').lower():
+                            continue
+                        if item.get("plainLyrics"):
+                            return item["plainLyrics"]
         except:
             pass
         return None
 
-    lyrics = fetch_lyrics(original_query)
+    lyrics = fetch_lyrics(f"{artist_text} {clean_title_text}")
     if lyrics:
         print("  ✓ Letra exacta encontrada (LRCLIB)")
-    elif clean != original_query:
+    elif latin_artist:
+        lyrics = fetch_lyrics(f"{latin_artist} {clean_title_text}", target_artist=latin_artist)
+        if lyrics:
+            print("  ✓ Letra por artista latino + título encontrada (LRCLIB)")
+            
+    if not lyrics:
+        lyrics = fetch_lyrics(clean_title_text, target_artist=latin_artist or (artist_text if artist_text != "Unknown Artist" else None))
+        if lyrics:
+            print("  ✓ Letra por título encontrada (LRCLIB)")
+            
+    if not lyrics and clean != search_seed:
         lyrics = fetch_lyrics(clean)
         if lyrics:
-            print("  ✓ Letra limpia de estudio encontrada (LRCLIB)")
+            print("  ✓ Letra por búsqueda limpia encontrada (LRCLIB)")
             
     if lyrics:
         lrc_path = os.path.splitext(file_path)[0] + ".lrc"
         with open(lrc_path, "w", encoding="utf-8") as f:
             f.write(lyrics)
+            
+        alt_lrc_name = f"{artist_text} - {clean_title_text}.lrc"
+        alt_lrc_path = os.path.join(os.path.dirname(file_path), alt_lrc_name)
+        if alt_lrc_path != lrc_path:
+            try:
+                with open(alt_lrc_path, "w", encoding="utf-8") as f:
+                    f.write(lyrics)
+            except Exception:
+                pass
 
 def run_dual_download(queries: List[str]):
     import glob
@@ -505,6 +578,7 @@ def run_dual_download(queries: List[str]):
     query_map = {}
     deezer_urls = []
     spotdl_queries = []
+    ytdlp_queries = []
 
     print(f"[{task_id}] Fase 1: Clasificando consultas...")
     import requests
@@ -526,7 +600,11 @@ def run_dual_download(queries: List[str]):
             except Exception as e:
                 print(f"[{task_id}] Error consultando Deezer para '{query}': {e}")
                 spotdl_queries.append(query)
-        elif "spotify.com/track" in query or "youtube.com/watch" in query or "youtu.be/" in query:
+        elif "youtube.com" in query.lower() or "youtu.be" in query.lower() or query.lower().startswith("ytsearch"):
+            print(f"[{task_id}] Enlace de YouTube detectado, enrutando directo a yt-dlp: {query}")
+            ytdlp_queries.append(query)
+            query_map[query] = {"original_query": query}
+        elif "spotify.com/track" in query:
             spotdl_queries.append(query)
             query_map[query] = {"original_query": query}
         elif "deezer.com" in query:
@@ -614,14 +692,15 @@ def run_dual_download(queries: List[str]):
                 
             shutil.rmtree(spotdl_tmp, ignore_errors=True)
 
-    if failed_spotdl:
-        print(f"[{task_id}] Fase 4: Ejecutando yt-dlp para {len(failed_spotdl)} pistas...")
+    all_ytdlp = ytdlp_queries + failed_spotdl
+    if all_ytdlp:
+        print(f"[{task_id}] Fase 4: Ejecutando yt-dlp para {len(all_ytdlp)} pistas...")
         env = os.environ.copy()
         deno_path = os.path.expanduser("~/.deno/bin")
         if deno_path not in env.get("PATH", ""):
             env["PATH"] = deno_path + ":" + env.get("PATH", "")
         
-        for query in failed_spotdl:
+        for query in all_ytdlp:
             clean_q = query.replace('"', '').replace("'", "")
             search_query = query if query.startswith("http") else f"ytsearch1:{clean_q} audio"
             
@@ -648,8 +727,7 @@ def run_dual_download(queries: List[str]):
                 except Exception as e:
                     print(f"[{task_id}]   [!] Error global en enrich_metadata: {e}")
                     
-                base_name = os.path.splitext(os.path.basename(file_path))[0]
-                for tmp_f in glob.glob(f"{ytdlp_tmp}/{base_name}.*"):
+                for tmp_f in glob.glob(f"{ytdlp_tmp}/*"):
                     if tmp_f.endswith('.mp3') or tmp_f.endswith('.lrc'):
                         dest = os.path.join(MEDIA_DIR, os.path.basename(tmp_f))
                         if os.path.exists(dest):
@@ -715,6 +793,22 @@ async def create_playlist(request: PlaylistCreateRequest):
                 print(f"Error obteniendo usuarios de Jellyfin: {e}")
                 raise HTTPException(status_code=500, detail=f"Error obteniendo usuarios de Jellyfin: {e}")
 
+        # 1.5 Si ya existe una playlist con ese nombre, reutilizarla para evitar duplicados
+        try:
+            get_url = f"{JELLYFIN_URL.rstrip('/')}/Users/{user_id}/Items" if user_id else f"{JELLYFIN_URL.rstrip('/')}/Items"
+            get_params = {
+                "IncludeItemTypes": "Playlist",
+                "Recursive": "true",
+            }
+            check_res = await client.get(get_url, headers=headers, params=get_params)
+            if check_res.status_code == 200:
+                for existing in check_res.json().get("Items", []):
+                    if existing.get("Name", "").strip().lower() == request.name.strip().lower():
+                        print(f"Playlist '{request.name}' ya existe en Jellyfin (ID: {existing.get('Id')}). Evitando duplicado.")
+                        return {"status": "success", "message": "Playlist ya existe", "playlist_id": existing.get("Id")}
+        except Exception as e:
+            print(f"Aviso al verificar existencia de playlist: {e}")
+
         # 2. Crear la playlist
         create_url = f"{JELLYFIN_URL.rstrip('/')}/Playlists"
         params = {
@@ -751,7 +845,7 @@ async def delete_playlist(playlist_id: str):
 
 @app.get("/playlists", dependencies=[Depends(get_api_key)])
 async def get_playlists(user_id: Optional[str] = None):
-    """Obtiene las playlists del usuario (o todas) desde Jellyfin."""
+    """Obtiene las playlists del usuario (o todas) desde Jellyfin, deduplicando 'My likes' si existieran duplicados."""
     try:
         headers = {"X-Emby-Token": JELLYFIN_API_KEY}
         url = f"{JELLYFIN_URL.rstrip('/')}/Users/{user_id}/Items" if user_id else f"{JELLYFIN_URL.rstrip('/')}/Items"
@@ -765,44 +859,189 @@ async def get_playlists(user_id: Optional[str] = None):
             res = await client.get(url, headers=headers, params=params)
             res.raise_for_status()
             data = res.json()
-            return data.get("Items", [])
+            items = data.get("Items", [])
+            
+            # Deduplicar 'My likes' si Jellyfin tiene múltiples playlists con ese nombre
+            likes_items = [it for it in items if it.get("Name", "").strip().lower() == "my likes"]
+            if len(likes_items) > 1:
+                # Ordenar: preferir la que tiene más canciones
+                likes_items.sort(key=lambda x: x.get("ChildCount", 0), reverse=True)
+                keeper = likes_items[0]
+                duplicates = likes_items[1:]
+                
+                # Eliminar duplicados vacíos en Jellyfin
+                for dup in duplicates:
+                    dup_id = dup.get("Id")
+                    if dup_id and dup.get("ChildCount", 0) == 0:
+                        try:
+                            await client.delete(f"{JELLYFIN_URL.rstrip('/')}/Items/{dup_id}", headers=headers)
+                            print(f"Eliminado duplicado vacío de 'My likes': {dup_id}")
+                        except Exception as err:
+                            print(f"Aviso eliminando duplicado de playlist {dup_id}: {err}")
+                
+                # Filtrar la lista devuelta para que solo contenga un 'My likes'
+                dup_ids = {d.get("Id") for d in duplicates}
+                items = [it for it in items if it.get("Id") not in dup_ids]
+
+            return items
     except Exception as e:
         print(f"Error obteniendo playlists: {e}")
         raise HTTPException(status_code=500, detail=f"Error obteniendo playlists de Jellyfin: {e}")
 
-async def check_jellyfin_local(query: str, client: httpx.AsyncClient = None):
+def get_search_variations(query: str, artist: str = None) -> List[str]:
+    """Genera múltiples variaciones de búsqueda para asegurar coincidencias en Jellyfin."""
+    if not query:
+        return []
+    variations = []
+    
+    def add_var(v):
+        if not v:
+            return
+        v = v.strip()
+        if len(v) < 2:
+            return
+        if artist and v.lower() == artist.lower():
+            return
+        if v.lower() not in [x.lower() for x in variations]:
+            variations.append(v)
+            
+    add_var(query)
+    
+    # 1. Normalizar barras y caracteres especiales
+    norm = query.replace('｜', ' ').replace('|', ' ').replace('／', ' ').replace('/', ' ').replace('—', '-').replace('–', '-')
+    norm = re.sub(r'\s+', ' ', norm).strip()
+    add_var(norm)
+    
+    # 2. Quitar etiquetas típicas de YouTube/Deezer entre paréntesis o corchetes
+    no_yt = re.sub(r'[\(\[][^\)\]]*(official|video|audio|lyric|visualizer|live|cover|remix|hd|hq|4k|mv|clip|version|explicit|prod|directed|visual)[^\)\]]*[\)\]]', '', norm, flags=re.IGNORECASE)
+    no_yt = re.sub(r'[\(\[][fF]eat\.?.*?[\]\)]', '', no_yt)
+    no_yt = re.sub(r'[\(\[][wW]ith\.?.*?[\]\)]', '', no_yt)
+    no_yt = re.sub(r'[\(\[][rR]emastered.*?[\]\)]', '', no_yt, flags=re.IGNORECASE)
+    no_yt = re.sub(r' - [rR]emastered.*', '', no_yt, flags=re.IGNORECASE)
+    no_yt = re.sub(r'\s+', ' ', no_yt).strip()
+    add_var(no_yt)
+    
+    # 3. Formato Artista - Título de YouTube
+    for base in [norm, no_yt, query]:
+        if ' - ' in base:
+            parts = base.split(' - ', 1)
+            title_part = parts[1].strip()
+            add_var(title_part)
+            clean_part = re.sub(r'[\(\[][^\)\]]*[\)\]]', '', title_part).strip()
+            add_var(clean_part)
+            
+    # 4. Si se especificó artista y empieza con el artista
+    if artist:
+        art_clean = artist.strip().lower()
+        for base in list(variations):
+            if base.lower().startswith(f"{art_clean} "):
+                add_var(base[len(art_clean):].strip(' -:_'))
+            elif base.lower().startswith(f"{art_clean}-"):
+                add_var(base[len(art_clean)+1:].strip(' -:_'))
+                
+    # 5. Cortar en delimitadores (subtítulos, barras, etc.)
+    for base in list(variations):
+        for delim in [' : ', ' - ', ' | ']:
+            if delim in base:
+                first_chunk = base.split(delim, 1)[0].strip()
+                add_var(first_chunk)
+                
+    return variations
+
+def clean_title_for_search(title: str) -> str:
+    """Limpia el título de colaboraciones, remasterizaciones y caracteres superfluos para buscar en Jellyfin."""
+    vars = get_search_variations(title)
+    return vars[1] if len(vars) > 1 else (title or "")
+
+async def check_jellyfin_local(query: str, client: httpx.AsyncClient = None, artist: str = None, album: str = None):
     """Verifica si la canción ya existe en la biblioteca local de Jellyfin."""
     if not JELLYFIN_API_KEY:
         return {"exists": False}
-        
+
+    if isinstance(client, str):
+        artist = client
+        client = None
+
     url = f"{JELLYFIN_URL.rstrip('/')}/Items"
-    params = {
-        "SearchTerm": query,
-        "Recursive": "true",
-        "IncludeItemTypes": "Audio",
-        "Limit": 1
-    }
     headers = {
         "X-Emby-Token": JELLYFIN_API_KEY
     }
-    
-    async def do_req(c):
+
+    async def do_req(c, search_term):
         try:
-            params["Limit"] = 15  # Traer más coincidencias para el buscador
+            params = {
+                "SearchTerm": search_term,
+                "Recursive": "true",
+                "IncludeItemTypes": "Audio",
+                "Limit": 20,
+                "Fields": "PrimaryImageAspectRatio,CanDelete,BasicSyncInfo,MediaSourceCount,Artists,AlbumArtist,AlbumId,ImageTags,ParentId,AlbumPrimaryImageTag,Overview"
+            }
             response = await c.get(url, params=params, headers=headers)
             response.raise_for_status()
             data = response.json()
-            if data.get("TotalRecordCount", 0) > 0:
-                return {"exists": True, "data": data["Items"][0], "data_list": data["Items"]}
+            items = data.get("Items", [])
+            if items:
+                # 1. Si se especificó álbum, priorizar coincidencia de álbum
+                if album:
+                    album_clean = album.lower().strip()
+                    for item in items:
+                        item_album = item.get("Album", "").lower().strip()
+                        if item_album == album_clean or album_clean in item_album or item_album in album_clean:
+                            if artist:
+                                artist_clean = artist.lower().strip()
+                                item_artists = [a.lower().strip() for a in item.get("Artists", [])]
+                                album_artist = item.get("AlbumArtist", "").lower().strip()
+                                if (artist_clean in item_artists or 
+                                    any(artist_clean in a or a in artist_clean for a in item_artists) or 
+                                    artist_clean in album_artist or 
+                                    album_artist in artist_clean):
+                                    return {"exists": True, "data": item, "data_list": items, "same_album": True}
+                            else:
+                                return {"exists": True, "data": item, "data_list": items, "same_album": True}
+
+                if artist:
+                    artist_clean = artist.lower().strip()
+                    for item in items:
+                        item_artists = [a.lower().strip() for a in item.get("Artists", [])]
+                        album_artist = item.get("AlbumArtist", "").lower().strip()
+                        if (artist_clean in item_artists or 
+                            any(artist_clean in a or a in artist_clean for a in item_artists) or 
+                            artist_clean in album_artist or 
+                            album_artist in artist_clean):
+                            return {"exists": True, "data": item, "data_list": items, "same_album": False}
+
+                    # Coincidencia por título limpio (resuelve artistas de canal YouTube vs artista real)
+                    clean_q = clean_title_for_search(search_term).lower().strip()
+                    for item in items:
+                        item_name = item.get("Name", "").lower().strip()
+                        clean_item = clean_title(item_name).lower().strip()
+                        if (item_name == clean_q or 
+                            clean_q in item_name or 
+                            item_name in clean_q or
+                            clean_item == clean_q or
+                            clean_item in clean_q or
+                            clean_q in clean_item or
+                            any(v.lower() == item_name or v.lower() in item_name or item_name in v.lower() for v in get_search_variations(search_term))):
+                            return {"exists": True, "data": item, "data_list": items, "same_album": False}
+                else:
+                    return {"exists": True, "data": items[0], "data_list": items, "same_album": False}
         except Exception as e:
-            print(f"Error consultando caché local de Jellyfin para '{query}': {e}")
+            print(f"Error consultando caché local de Jellyfin para '{search_term}': {e}")
+        return {"exists": False}
+
+    async def execute(c):
+        variations = get_search_variations(query, artist=artist)
+        for var in variations:
+            res = await do_req(c, var)
+            if res.get("exists"):
+                return res
         return {"exists": False}
 
     if client:
-        return await do_req(client)
+        return await execute(client)
     else:
         async with httpx.AsyncClient() as c:
-            return await do_req(c)
+            return await execute(c)
 
 @app.get("/search", dependencies=[Depends(get_api_key)])
 async def search_music(q: str, source: str = "deezer", limit: int = 15, offset: int = 0):
@@ -870,12 +1109,27 @@ async def search_music(q: str, source: str = "deezer", limit: int = 15, offset: 
                 data = json.loads(stdout.decode('utf-8'))
                 entries = data.get("entries", [])
                 for entry in entries:
+                    raw_title = entry.get("title", "Unknown Title")
+                    uploader = entry.get("uploader", "Unknown Artist")
+                    
+                    parsed_artist = uploader
+                    parsed_title = raw_title
+                    norm_raw = raw_title.replace('｜', '|').replace('／', '/').replace('—', '-').replace('–', '-')
+                    if " - " in norm_raw:
+                        t_parts = norm_raw.split(" - ", 1)
+                        parsed_artist = t_parts[0].strip()
+                        parsed_title = t_parts[1].strip()
+                        
+                    video_url = entry.get("webpage_url") or entry.get("url") or ""
                     results.append({
-                        "title": entry.get("title", "Unknown Title"),
-                        "artist": entry.get("uploader", "Unknown Artist"),
+                        "title": parsed_title,
+                        "artist": parsed_artist,
+                        "raw_title": raw_title,
                         "duration": entry.get("duration_string", ""),
-                        "url": entry.get("webpage_url") or entry.get("url") or "",
-                        "cover_url": entry.get("thumbnail", "")
+                        "url": video_url,
+                        "query_string": video_url,
+                        "cover_url": entry.get("thumbnail", ""),
+                        "source": "youtube"
                     })
             except Exception as e:
                 print(f"Error parseando resultados de yt-dlp: {e}")
@@ -951,10 +1205,12 @@ async def get_album_details(album_id: str):
                 artist = track.get('artist', {}).get('name', 'Unknown Artist')
                 
                 # 1. Verificar si la canción ya existe en tu Jellyfin local
-                # Se busca solo por título, y si no por título + artista. Usamos conexión persistente.
-                local_check = await check_jellyfin_local(title, jf_client)
+                # Se prioriza coincidencia exacta con el álbum y artista actual.
+                album_title = album_data.get('title')
+                album_artist = album_data.get('artist', artist)
+                local_check = await check_jellyfin_local(title, client=jf_client, artist=album_artist, album=album_title)
                 if not local_check.get("exists"):
-                    local_check = await check_jellyfin_local(f"{title} {artist}", jf_client)
+                    local_check = await check_jellyfin_local(f"{title} {artist}", client=jf_client, artist=album_artist, album=album_title)
             
                 # 2. Empaquetar la pista con la información de caché y el query de descarga
                 # Si pasamos el link directo a Deemix será instantáneo
@@ -967,6 +1223,7 @@ async def get_album_details(album_id: str):
                     "query_string": track.get('link', f"{artist} - {title}"), 
                     "local_match": {
                         "exists": local_check["exists"],
+                        "same_album": local_check.get("same_album", False),
                         "jellyfin_data": local_check.get("data") if local_check["exists"] else None
                     }
                 })
@@ -988,12 +1245,27 @@ async def health_check():
 async def get_lyrics(artist: str, title: str):
     """Obtiene las letras de una canción desde el archivo local o desde la API pública LRCLIB."""
     import urllib.parse
+    import glob
     
-    # 1. Intento local
+    clean_t = clean_title(title)
+    if not clean_t:
+        clean_t = title
+        
+    clean_a = artist.strip()
+    norm_a = clean_a.replace('｜', '|').replace('／', '/').replace('—', '-').replace('–', '-')
+    if " - " in norm_a:
+        clean_a = norm_a.split(" - ", 1)[0].strip()
+    
+    # 1. Intento local exacto
     possible_filenames = [
+        f"{clean_a} - {title}.lrc",
+        f"{clean_a} - {clean_t}.lrc",
         f"{artist} - {title}.lrc",
-        f"{artist} - {title}.txt",
-        f"{title}.lrc"
+        f"{artist} - {clean_t}.lrc",
+        f"{clean_t}.lrc",
+        f"{title}.lrc",
+        f"{clean_a} - {title}.txt",
+        f"{clean_a} - {clean_t}.txt",
     ]
     
     for filename in possible_filenames:
@@ -1006,30 +1278,63 @@ async def get_lyrics(artist: str, title: str):
             except Exception as e:
                 print(f"Error leyendo archivo de letras: {e}")
                 
-    # 2. Fallback a LRCLIB (API Pública y Gratuita)
-    print(f"Letras locales no encontradas. Buscando en LRCLIB para: {artist} - {title}")
+    # 2. Búsqueda local por coincidencia de nombre de pista
     try:
-        url = f"https://lrclib.net/api/get?artist_name={urllib.parse.quote(artist)}&track_name={urllib.parse.quote(title)}"
-        async with httpx.AsyncClient() as client:
-            # LRCLIB requiere un User-Agent
-            headers = {"User-Agent": "SynapMusic (https://github.com/tu-usuario/SynapMusic)"}
-            response = await client.get(url, headers=headers, timeout=5.0)
-            
-            if response.status_code == 200:
-                data = response.json()
-                lyrics = data.get("syncedLyrics") or data.get("plainLyrics")
-                if lyrics:
-                    # Opcionalmente, podríamos guardar el archivo .lrc aquí para el futuro
-                    filepath = os.path.join(MEDIA_DIR, f"{artist} - {title}.lrc")
-                    try:
-                        with open(filepath, 'w', encoding='utf-8') as f:
-                            f.write(lyrics)
-                    except:
-                        pass
-                        
-                    return {"status": "success", "lyrics": lyrics, "source": "lrclib"}
+        t_low = clean_t.lower()
+        if len(t_low) >= 3:
+            for lrc_file in glob.glob(os.path.join(MEDIA_DIR, "*.lrc")):
+                lrc_name = os.path.basename(lrc_file).lower()
+                if t_low in lrc_name:
+                    with open(lrc_file, 'r', encoding='utf-8') as f:
+                        return {"status": "success", "lyrics": f.read(), "source": "local"}
     except Exception as e:
-        print(f"Error buscando en LRCLIB: {e}")
+        print(f"Error en búsqueda flexible de letras locales: {e}")
+                
+    # 3. Fallback a LRCLIB (API Pública y Gratuita)
+    print(f"Letras locales no encontradas. Buscando en LRCLIB para: {clean_a} - {clean_t}")
+    headers = {"User-Agent": "SynapMusic (https://github.com/tu-usuario/SynapMusic)"}
+    
+    # 3.1 Intento get exacto
+    for art, tit in [(clean_a, clean_t), (artist, title)]:
+        try:
+            url = f"https://lrclib.net/api/get?artist_name={urllib.parse.quote(art)}&track_name={urllib.parse.quote(tit)}"
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers, timeout=4.0)
+                if response.status_code == 200:
+                    data = response.json()
+                    lyrics = data.get("syncedLyrics") or data.get("plainLyrics")
+                    if lyrics:
+                        filepath = os.path.join(MEDIA_DIR, f"{clean_a} - {clean_t}.lrc")
+                        try:
+                            with open(filepath, 'w', encoding='utf-8') as f:
+                                f.write(lyrics)
+                        except:
+                            pass
+                        return {"status": "success", "lyrics": lyrics, "source": "lrclib"}
+        except Exception:
+            pass
+
+    # 3.2 Intento search en LRCLIB
+    try:
+        search_q = f"{clean_a} {clean_t}".strip()
+        url = f"https://lrclib.net/api/search?q={urllib.parse.quote(search_q)}"
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers, timeout=4.0)
+            if response.status_code == 200:
+                items = response.json()
+                if items and isinstance(items, list):
+                    for it in items:
+                        lyrics = it.get("syncedLyrics") or it.get("plainLyrics")
+                        if lyrics:
+                            filepath = os.path.join(MEDIA_DIR, f"{clean_a} - {clean_t}.lrc")
+                            try:
+                                with open(filepath, 'w', encoding='utf-8') as f:
+                                    f.write(lyrics)
+                            except:
+                                pass
+                            return {"status": "success", "lyrics": lyrics, "source": "lrclib"}
+    except Exception as e:
+        print(f"Error en búsqueda general LRCLIB: {e}")
         
     return {"status": "error", "message": "Letras no encontradas en el servidor ni en LRCLIB"}
 
@@ -1170,7 +1475,7 @@ async def submit_feedback(
     files: Optional[List[UploadFile]] = File(None)
 ):
     """Guarda un nuevo comentario de retroalimentación con fecha y hora CDMX."""
-    now_cdmx = datetime.now(ZoneInfo("America/Mexico_City")).strftime("%d/%m/%Y %I:%M %p")
+    now_cdmx = datetime.datetime.now(ZoneInfo("America/Mexico_City")).strftime("%d/%m/%Y %I:%M %p")
     image_filenames = []
     
     if files:
@@ -1296,39 +1601,148 @@ async def migrate_external_playlist(request: MigrationRequest, background_tasks:
         "message": "Migración inteligente de playlist iniciada en segundo plano."
     }
 
-import datetime
-import random
-import asyncio
+# ==========================================
+# GESTIÓN Y SINCRONIZACIÓN DE TOP 10 MÉXICO
+# ==========================================
+
+_active_top_mexico_downloads = set()
+_top_mexico_download_lock = asyncio.Lock()
+
+async def get_curated_top_mexico_tracks(client: httpx.AsyncClient) -> list:
+    """Obtiene las 10 canciones oficiales del Top México desde Deezer con variación y ranking."""
+    playlist_id = "1111142361"
+    tracks = []
+    
+    # 1. Scraping web para extraer indicadores de variación (subió / bajó)
+    try:
+        web_res = await client.get(f"https://www.deezer.com/es/playlist/{playlist_id}", timeout=6.0)
+        if web_res.status_code == 200:
+            matches = re.findall(r"<script[^>]*>(.*?)</script>", web_res.text, re.DOTALL)
+            for s in matches:
+                if "SONGS" in s and "SNG_TITLE" in s:
+                    m = re.search(r"({.*\"SONGS\".*})", s)
+                    if m:
+                        dz_state = json.loads(m.group(1))
+                        raw_songs = dz_state.get("SONGS", {}).get("data", [])
+                        for sng in raw_songs[:10]:
+                            alb_pic = sng.get("ALB_PICTURE")
+                            cover = f"https://cdn-images.dzcdn.net/images/cover/{alb_pic}/500x500.jpg" if alb_pic else None
+                            tracks.append({
+                                "id": str(sng.get("SNG_ID")),
+                                "title": sng.get("SNG_TITLE"),
+                                "artist": sng.get("ART_NAME", "Unknown"),
+                                "cover_url": cover,
+                                "query_string": f"https://www.deezer.com/track/{sng.get('SNG_ID')}",
+                                "variation": int(sng.get("VARIATION", 0))
+                            })
+                        break
+    except Exception as ex:
+        print("[Top10] Scraping web Deezer no disponible, usando fallback API:", ex)
+
+    # 2. Fallback a la API de Deezer
+    if not tracks:
+        try:
+            api_res = await client.get(f"https://api.deezer.com/playlist/{playlist_id}", timeout=6.0)
+            if api_res.status_code == 200:
+                api_data = api_res.json().get("tracks", {}).get("data", [])
+                for item in api_data[:10]:
+                    tracks.append({
+                        "id": str(item.get("id")),
+                        "title": item.get("title"),
+                        "artist": item.get("artist", {}).get("name", "Unknown"),
+                        "cover_url": item.get("album", {}).get("cover_medium"),
+                        "query_string": item.get("link") or f"https://www.deezer.com/track/{item.get('id')}",
+                        "variation": 0
+                    })
+        except Exception as ex:
+            print("[Top10] Error en fallback API Deezer:", ex)
+            
+    return tracks
+
+def _download_missing_top_background(queries: List[str]):
+    try:
+        print(f"[Top10] Iniciando descarga automática de {len(queries)} pistas faltantes...")
+        run_dual_download(queries)
+        print(f"[Top10] Descarga de canciones del Top 10 completada con éxito.")
+    except Exception as e:
+        print(f"[Top10] Error en descarga automática en segundo plano: {e}")
+    finally:
+        for q in queries:
+            _active_top_mexico_downloads.discard(q)
+
+async def sync_top_mexico(auto_download: bool = True) -> list:
+    """
+    Sincroniza la lista de Top 10 México con Deezer y Jellyfin.
+    Si faltan pistas en la biblioteca local, las encola automáticamente para su descarga.
+    """
+    try:
+        async with httpx.AsyncClient(headers={"User-Agent": "Mozilla/5.0"}) as client:
+            tracks = await get_curated_top_mexico_tracks(client)
+            if not tracks:
+                return []
+
+            results = []
+            missing_queries = []
+
+            for item in tracks:
+                title = item["title"]
+                artist = item["artist"]
+                query_str = item.get("query_string") or f"https://www.deezer.com/track/{item['id']}"
+
+                # Comprobar si ya existe en Jellyfin
+                local_data = await check_jellyfin_local(title, client=client, artist=artist)
+                if not local_data.get("exists"):
+                    local_data = await check_jellyfin_local(f"{title} {artist}", client=client, artist=artist)
+
+                jellyfin_item = None
+                local_id = None
+                if local_data.get("exists") and "data" in local_data:
+                    local_id = local_data["data"].get("Id")
+                    jellyfin_item = local_data["data"]
+                    if jellyfin_item.get("ImageTags", {}).get("Primary"):
+                        jellyfin_item["ImageTags"]["Primary"] = jellyfin_item["ImageTags"]["Primary"]
+                else:
+                    # Falta en la biblioteca local
+                    if query_str not in _active_top_mexico_downloads:
+                        missing_queries.append(query_str)
+
+                var_val = item.get("variation", 0)
+                if var_val > 0:
+                    indicator = "up"
+                elif var_val < 0:
+                    indicator = "down"
+                else:
+                    indicator = "same"
+
+                results.append({
+                    "id": item["id"],
+                    "title": title,
+                    "artist": artist,
+                    "cover_url": item["cover_url"],
+                    "query_string": query_str,
+                    "local_id": local_id,
+                    "jellyfin_item": jellyfin_item,
+                    "variation": var_val,
+                    "indicator": indicator
+                })
+
+            if auto_download and missing_queries:
+                async with _top_mexico_download_lock:
+                    to_download = [q for q in missing_queries if q not in _active_top_mexico_downloads]
+                    for q in to_download:
+                        _active_top_mexico_downloads.add(q)
+                    if to_download:
+                        print(f"[Top10] Encolando descarga automática de {len(to_download)} canciones no presentes en el servidor...")
+                        asyncio.create_task(asyncio.to_thread(_download_missing_top_background, to_download))
+
+            return results
+    except Exception as e:
+        print("[Top10] Error sincronizando Top 10 México:", e)
+        return []
 
 async def fetch_top_mexico_and_download():
-    # 1. Traer Top 10 de Mexico desde Deezer
-    url = "https://api.deezer.com/chart/132/tracks"
-    try:
-        async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.get(url, params={"limit": 10})
-            response.raise_for_status()
-            data = response.json()
-            
-            tracks = data.get("data", [])
-            for track in tracks:
-                query = track.get("link", "")
-                title = track.get("title", "")
-                artist = track.get("artist", {}).get("name", "")
-                if query:
-                    # check local first
-                    local_check = await check_jellyfin_local(title, client)
-                    if not local_check.get("exists"):
-                        local_check = await check_jellyfin_local(f"{title} {artist}", client)
-                        
-                    if local_check.get("exists"):
-                        print(f"Saltando {title} de Top 10 Mexico, ya existe en Jellyfin.")
-                        continue
-
-                    # Enviar a la cola de descarga (simulate call to orchestrator)
-                    print(f"Descargando desde Top 10 Mexico: {query}")
-                    asyncio.create_task(asyncio.to_thread(run_dual_download, [query]))
-    except Exception as e:
-        print(f"Error en top mexico task: {e}")
+    """Ejecutado por startup y cron para descargar automáticamente canciones del Top 10."""
+    await sync_top_mexico(auto_download=True)
 
 async def daily_top_mexico_task():
     while True:
@@ -1346,21 +1760,8 @@ async def daily_top_mexico_task():
 
 @app.on_event("startup")
 async def startup_event():
-    # Check if we should run it now
-    today = datetime.datetime.now().strftime("%Y-%m-%d")
-    run_now = True
-    if os.path.exists("last_top_run.txt"):
-        with open("last_top_run.txt", "r") as f:
-            last_run = f.read().strip()
-            if last_run == today:
-                run_now = False
-                
-    if run_now:
-        print("Ejecutando tarea de Top 10 Mexico en startup...")
-        with open("last_top_run.txt", "w") as f:
-            f.write(today)
-        asyncio.create_task(fetch_top_mexico_and_download())
-        
+    print("Iniciando verificación de Top 10 México en startup...")
+    asyncio.create_task(fetch_top_mexico_and_download())
     asyncio.create_task(daily_top_mexico_task())
 
 
@@ -1386,49 +1787,125 @@ async def get_top_songs(user_id: str):
     except:
         return []
 
+def split_artist_names(artist_str: str) -> list[str]:
+    if not artist_str:
+        return []
+    text = artist_str.strip()
+    if text.upper() == "AC/DC":
+        return ["AC/DC"]
+    text = re.sub(r'(?i)\bac/dc\b', '__AC_DC__', text)
+    pattern = r'(?:\s*[/;]\s*|\s+feat\.?\s+|\s+ft\.?\s+|\s+featuring\s+|\s+with\s+|\s+&\s+|\s*,\s*|\s+[xX]\s+)'
+    parts = re.split(pattern, text, flags=re.IGNORECASE)
+    cleaned = []
+    for p in parts:
+        p = p.replace('__AC_DC__', 'AC/DC').strip()
+        if p and p not in cleaned:
+            cleaned.append(p)
+    return cleaned if cleaned else [artist_str]
+
+_top_artists_cache = {}  # {user_id: {"timestamp": float, "data": list}}
+
 @app.get("/home/top-artists", dependencies=[Depends(get_api_key)])
 async def get_top_artists(user_id: str):
     if not JELLYFIN_API_KEY: return []
+
+    now = time.time()
+    if user_id in _top_artists_cache:
+        cached = _top_artists_cache[user_id]
+        if now - cached.get("timestamp", 0) < 300:
+            return cached.get("data", [])
+
     url = f"{JELLYFIN_URL.rstrip('/')}/Users/{user_id}/Items"
     params = {
         "IncludeItemTypes": "Audio",
-        "SortBy": "PlayCount,Random",
+        "SortBy": "PlayCount",
         "SortOrder": "Descending",
-        "Limit": 100,
+        "Limit": 150,
         "Recursive": "true"
     }
     headers = {"X-Emby-Token": JELLYFIN_API_KEY}
-    results = []
-    seen = set()
     try:
         async with httpx.AsyncClient() as client:
             res = await client.get(url, params=params, headers=headers)
             res.raise_for_status()
             items = res.json().get("Items", [])
             
+            # Aggregate play counts per individual artist (splitting collaborations)
+            artist_scores = {}
             for item in items:
+                user_data = item.get("UserData") or {}
+                play_count = (user_data.get("PlayCount") or 0) + 1
+                
+                artist_names = []
                 artist_items = item.get("ArtistItems", [])
-                for a in artist_items:
-                    name = a.get("Name")
-                    if name and name not in seen:
-                        seen.add(name)
-                        artist_info = {
-                            "id": a.get("Id"),
-                            "name": name,
-                            "cover_url": None
-                        }
-                        try:
-                            dz_res = await client.get("https://api.deezer.com/search/artist", params={"q": name, "limit": 1})
-                            if dz_res.status_code == 200:
-                                dz_data = dz_res.json().get("data", [])
-                                if dz_data:
-                                    artist_info["cover_url"] = dz_data[0].get("picture_medium")
-                        except:
-                            pass
-                        results.append(artist_info)
-                        if len(results) >= 10:
-                            return results
-            return results
+                if artist_items:
+                    for a in artist_items:
+                        raw_name = a.get("Name")
+                        if raw_name:
+                            artist_names.extend(split_artist_names(raw_name))
+                else:
+                    for raw_name in item.get("Artists", []):
+                        artist_names.extend(split_artist_names(raw_name))
+                
+                seen_in_track = set()
+                for name in artist_names:
+                    clean = name.strip()
+                    if not clean:
+                        continue
+                    key = clean.lower()
+                    if key in seen_in_track:
+                        continue
+                    seen_in_track.add(key)
+                    
+                    if key not in artist_scores:
+                        artist_scores[key] = {"name": clean, "score": 0}
+                    artist_scores[key]["score"] += play_count
+                    if clean != clean.lower():
+                        artist_scores[key]["name"] = clean
+
+            sorted_artists = sorted(artist_scores.values(), key=lambda x: x["score"], reverse=True)
+            top_candidates = [a["name"] for a in sorted_artists[:15]]
+
+            sem = asyncio.Semaphore(3)
+
+            async def fetch_dz_artist(artist_name: str):
+                async with sem:
+                    try:
+                        await asyncio.sleep(0.04)
+                        dz_res = await client.get(
+                            "https://api.deezer.com/search/artist",
+                            params={"q": artist_name, "limit": 1},
+                            timeout=5.0
+                        )
+                        if dz_res.status_code == 200:
+                            dz_data = dz_res.json().get("data", [])
+                            if dz_data:
+                                dz_artist = dz_data[0]
+                                pic = dz_artist.get("picture_medium") or dz_artist.get("picture_big")
+                                if pic and "artist//" not in pic and "//250x250" not in pic:
+                                    return {
+                                        "id": str(dz_artist.get("id")),
+                                        "name": dz_artist.get("name") or artist_name,
+                                        "cover_url": pic
+                                    }
+                    except Exception:
+                        pass
+                    return None
+
+            tasks = [fetch_dz_artist(cand) for cand in top_candidates]
+            dz_results = await asyncio.gather(*tasks)
+
+            unique_artists = []
+            seen_ids = set()
+            for a in dz_results:
+                if a and a["id"] not in seen_ids:
+                    seen_ids.add(a["id"])
+                    unique_artists.append(a)
+                    if len(unique_artists) >= 10:
+                        break
+
+            _top_artists_cache[user_id] = {"timestamp": now, "data": unique_artists}
+            return unique_artists
     except Exception as e:
         print("Error top artists:", e)
         return []
@@ -1491,7 +1968,6 @@ async def get_top_albums(user_id: str):
 
 @app.get("/home/new-releases", dependencies=[Depends(get_api_key)])
 async def get_new_releases(user_id: str):
-    import datetime
     artists = await get_top_artists(user_id)
     top_3 = artists[:3]
     results = []
@@ -1590,91 +2066,7 @@ async def get_global_albums():
 
 @app.get("/home/top-mexico", dependencies=[Depends(get_api_key)])
 async def get_top_mexico():
-    try:
-        playlist_id = "1111142361"  # Playlist oficial Deezer Charts: Top Mexico
-        tracks = []
-        
-        async with httpx.AsyncClient(headers={"User-Agent": "Mozilla/5.0"}) as client:
-            # 1. Intentar obtener canciones y VARIATION desde la página web de Deezer
-            try:
-                web_res = await client.get(f"https://www.deezer.com/es/playlist/{playlist_id}", timeout=5.0)
-                if web_res.status_code == 200:
-                    matches = re.findall(r"<script[^>]*>(.*?)</script>", web_res.text, re.DOTALL)
-                    for s in matches:
-                        if "SONGS" in s and "SNG_TITLE" in s:
-                            m = re.search(r"({.*\"SONGS\".*})", s)
-                            if m:
-                                dz_state = json.loads(m.group(1))
-                                raw_songs = dz_state.get("SONGS", {}).get("data", [])
-                                for sng in raw_songs[:10]:
-                                    alb_pic = sng.get("ALB_PICTURE")
-                                    cover = f"https://cdn-images.dzcdn.net/images/cover/{alb_pic}/500x500.jpg" if alb_pic else None
-                                    tracks.append({
-                                        "id": str(sng.get("SNG_ID")),
-                                        "title": sng.get("SNG_TITLE"),
-                                        "artist": sng.get("ART_NAME", "Unknown"),
-                                        "cover_url": cover,
-                                        "query_string": f"https://www.deezer.com/track/{sng.get('SNG_ID')}",
-                                        "variation": int(sng.get("VARIATION", 0))
-                                    })
-                                break
-            except Exception as ex:
-                print("Fallback de scrape Deezer:", ex)
-
-            # 2. Fallback a la API REST de Deezer si la extracción web no trajo datos
-            if not tracks:
-                api_res = await client.get(f"https://api.deezer.com/playlist/{playlist_id}", timeout=5.0)
-                api_data = api_res.json().get("tracks", {}).get("data", [])
-                for item in api_data[:10]:
-                    tracks.append({
-                        "id": str(item.get("id")),
-                        "title": item.get("title"),
-                        "artist": item.get("artist", {}).get("name", "Unknown"),
-                        "cover_url": item.get("album", {}).get("cover_medium"),
-                        "query_string": item.get("link"),
-                        "variation": 0
-                    })
-
-            results = []
-            for item in tracks:
-                title = item["title"]
-                artist = item["artist"]
-                
-                # Check local Jellyfin
-                local_data = await check_jellyfin_local(title, client)
-                if not local_data.get("exists"):
-                    local_data = await check_jellyfin_local(f"{title} {artist}", client)
-                jellyfin_item = None
-                local_id = None
-                if local_data.get("exists") and "data" in local_data:
-                    local_id = local_data["data"].get("Id")
-                    jellyfin_item = local_data["data"]
-                    if jellyfin_item.get("ImageTags", {}).get("Primary"):
-                        jellyfin_item["ImageTags"]["Primary"] = jellyfin_item["ImageTags"]["Primary"]
-                
-                var_val = item.get("variation", 0)
-                if var_val > 0:
-                    indicator = "up"
-                elif var_val < 0:
-                    indicator = "down"
-                else:
-                    indicator = "same"
-
-                results.append({
-                    "id": item["id"],
-                    "title": title,
-                    "artist": artist,
-                    "cover_url": item["cover_url"],
-                    "query_string": item["query_string"],
-                    "local_id": local_id,
-                    "jellyfin_item": jellyfin_item,
-                    "variation": var_val,
-                    "indicator": indicator
-                })
-            return results
-    except Exception as e:
-        print("Error top mexico:", e)
-        return []
+    return await sync_top_mexico(auto_download=True)
 @app.get("/artist/{artist_name}/profile", dependencies=[Depends(get_api_key)])
 async def get_artist_profile(artist_name: str):
     import asyncio
@@ -1684,6 +2076,20 @@ async def get_artist_profile(artist_name: str):
             dz_res = await client.get("https://api.deezer.com/search/artist", params={"q": artist_name, "limit": 1})
             dz_res.raise_for_status()
             dz_data = dz_res.json().get("data", [])
+            if not dz_data:
+                # Fallback: if collaboration or delimiter present, try individual candidates
+                candidates = split_artist_names(artist_name)
+                for cand in candidates:
+                    if cand.lower() != artist_name.lower():
+                        try:
+                            cand_res = await client.get("https://api.deezer.com/search/artist", params={"q": cand, "limit": 1})
+                            if cand_res.status_code == 200:
+                                cand_data = cand_res.json().get("data", [])
+                                if cand_data:
+                                    dz_data = cand_data
+                                    break
+                        except Exception:
+                            pass
             if not dz_data:
                 return {"error": "Artista no encontrado en Deezer"}
             
@@ -1739,13 +2145,15 @@ async def get_artist_profile(artist_name: str):
                     local_data = await check_jellyfin_local(f"{title} {artist.get('name')}", client)
                     
                 local_id = local_data["data"].get("Id") if local_data.get("exists") and "data" in local_data else None
+                jellyfin_item = local_data.get("data") if local_data.get("exists") else None
                 
                 formatted_tracks.append({
                     "id": str(t.get("id")),
                     "title": title,
                     "cover_url": t.get("album", {}).get("cover_medium") if t.get("album") else artist.get("picture_medium"),
                     "query_string": t.get("link"),
-                    "local_id": local_id
+                    "local_id": local_id,
+                    "jellyfin_item": jellyfin_item
                 })
                 
             return {
@@ -1885,6 +2293,13 @@ async def edit_metadata(item_id: str, request: MetadataEditRequest):
                 post_url = f"{JELLYFIN_URL}/Items/{item_id}/Images/Primary"
                 async with httpx.AsyncClient() as c2:
                     await c2.post(post_url, headers=headers_post, content=cover_bytes)
+                    album_id = items[0].get("AlbumId") or items[0].get("ParentPrimaryImageItemId")
+                    if album_id and album_id != item_id:
+                        try:
+                            post_url_album = f"{JELLYFIN_URL}/Items/{album_id}/Images/Primary"
+                            await c2.post(post_url_album, headers=headers_post, content=cover_bytes)
+                        except Exception as e_alb:
+                            print(f"No se pudo sincronizar portada en el álbum Jellyfin: {e_alb}")
                     
             items[0]["Name"] = request.query
             update_url = f"{JELLYFIN_URL}/Items/{item_id}"
@@ -1898,8 +2313,72 @@ async def edit_metadata(item_id: str, request: MetadataEditRequest):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-@app.get("/debug/local-check")
+@app.get("/music/check-local", dependencies=[Depends(get_api_key)])
+async def check_track_local(title: str, artist: str = None):
+    """Permite al cliente móvil comprobar en tiempo real si una pista ya está disponible en Jellyfin."""
+    local_data = await check_jellyfin_local(title, artist=artist)
+    
+    item = local_data.get("data") if local_data.get("exists") else None
+    is_ready = False
+    if item:
+        has_artist = bool(item.get("Artists") or item.get("AlbumArtist"))
+        has_image = bool(item.get("ImageTags", {}).get("Primary") or item.get("AlbumPrimaryImageTag") or item.get("ParentId") or item.get("AlbumId"))
+        is_ready = has_artist or bool(item.get("Name"))
 
-async def debug_local_check(q: str):
-    local_data = await check_jellyfin_local(q)
-    return {"query": q, "result": local_data}
+    return {
+        "exists": local_data.get("exists", False),
+        "is_ready": is_ready,
+        "local_id": item.get("Id") if item else None,
+        "jellyfin_item": item
+    }
+
+@app.get("/debug/local-check")
+async def debug_local_check(q: str, artist: str = None):
+    local_data = await check_jellyfin_local(q, artist=artist)
+    return {"query": q, "artist": artist, "result": local_data}
+
+# ==========================================
+# RUTAS PÚBLICAS: PORTAL Y DESCARGA DE APK
+# ==========================================
+
+@app.get("/", response_class=HTMLResponse)
+async def portal_index():
+    index_path = os.path.join(PORTAL_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return HTMLResponse("<h1>SynapHub</h1><p>Portal no configurado.</p>")
+
+@app.get("/synapmusic", response_class=HTMLResponse)
+async def portal_synapmusic():
+    synapmusic_path = os.path.join(PORTAL_DIR, "synapmusic.html")
+    if os.path.exists(synapmusic_path):
+        return FileResponse(synapmusic_path)
+    return HTMLResponse("<h1>SynapMusic</h1><p>Página en construcción.</p>")
+
+@app.get("/synapmusic/download")
+@app.get("/descargar")
+async def download_apk():
+    apk_path = os.path.join(PORTAL_DIR, "downloads", "synapmusic.apk")
+    if not os.path.exists(apk_path):
+        fallback = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "cliente-finamp", "build", "app", "outputs", "flutter-apk", "app-release.apk"))
+        if os.path.exists(fallback):
+            apk_path = fallback
+        else:
+            raise HTTPException(status_code=404, detail="El archivo APK de SynapMusic aún no está disponible.")
+    return FileResponse(
+        path=apk_path,
+        filename="SynapMusic.apk",
+        media_type="application/vnd.android.package-archive"
+    )
+
+@app.get("/api/v1/version")
+async def get_app_version():
+    return {
+        "app_name": "SynapMusic",
+        "version": "0.6.28",
+        "version_code": 53,
+        "download_url": "/synapmusic/download",
+        "release_date": "2026-09-06",
+        "min_android_version": "Android 8.0+",
+        "changelog": "Sincronización unificada de Top 10 México con auto-descarga en segundo plano, soporte de Pull-to-Refresh y correcciones de estabilidad."
+    }

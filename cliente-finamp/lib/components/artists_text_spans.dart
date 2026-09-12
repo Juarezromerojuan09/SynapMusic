@@ -22,9 +22,15 @@ List<TextSpan> ArtistsTextSpans(
     : item.artistItems;
 
   if (artists?.isEmpty ?? true) {
+    String fallbackArtist = "Unknown Artist";
+    if (item.artists != null && item.artists!.isNotEmpty) {
+      fallbackArtist = item.artists!.join(", ");
+    } else if (item.albumArtist != null && item.albumArtist!.isNotEmpty) {
+      fallbackArtist = item.albumArtist!;
+    }
     separatedArtistTextSpans = [
       TextSpan(
-        text: "Unknown Artist",
+        text: fallbackArtist,
         style: TextStyle(color: textColour),
       )
     ];

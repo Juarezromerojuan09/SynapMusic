@@ -4,6 +4,7 @@ import 'create_playlist_dialog.dart';
 import '../services/jellyfin_api_helper.dart';
 import '../services/likes_playlist_helper.dart';
 import '../services/synap_events.dart';
+import '../services/playback_download_coordinator.dart';
 import '../models/jellyfin_models.dart';
 
 class PlaylistStatus {
@@ -15,9 +16,20 @@ class PlaylistStatus {
 }
 
 class AddToPlaylistSheet extends StatefulWidget {
-  final String itemId;
+  final String? itemId;
+  final String? title;
+  final String? artist;
+  final String? queryString;
+  final String? coverUrl;
 
-  const AddToPlaylistSheet({Key? key, required this.itemId}) : super(key: key);
+  const AddToPlaylistSheet({
+    Key? key,
+    this.itemId,
+    this.title,
+    this.artist,
+    this.queryString,
+    this.coverUrl,
+  }) : super(key: key);
 
   @override
   _AddToPlaylistSheetState createState() => _AddToPlaylistSheetState();
@@ -51,20 +63,31 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
     for (final pl in playlists) {
       if (pl.id == null) continue;
       
-      // Fetch items for this playlist
-      final items = await jellyfin.getItems(parentItem: pl, isGenres: false) ?? [];
-      
       bool contains = false;
       String? entryId;
       
-      for (final item in items) {
-        if (item.id == widget.itemId) {
-          contains = true;
-          entryId = item.playlistItemId; // El ID necesario para eliminarlo de la playlist
-          break;
+      if (widget.itemId != null) {
+        // Fetch items for this playlist
+        final items = await jellyfin.getItems(parentItem: pl, isGenres: false) ?? [];
+        for (final item in items) {
+          if (item.id == widget.itemId) {
+            contains = true;
+            entryId = item.playlistItemId; // El ID necesario para eliminarlo de la playlist
+            break;
+          }
         }
       }
       statuses.add(PlaylistStatus(pl, contains, entryId));
+    }
+
+    // Deduplicar si Jellyfin tuviera duplicados de "My likes"
+    final likesStatuses = statuses.where((s) => LikesPlaylistHelper.isLikesPlaylist(s.playlist)).toList();
+    if (likesStatuses.length > 1) {
+      likesStatuses.sort((a, b) => (b.playlist.childCount ?? 0).compareTo(a.playlist.childCount ?? 0));
+      final duplicates = likesStatuses.sublist(1);
+      for (final dup in duplicates) {
+        statuses.removeWhere((s) => s.playlist.id == dup.playlist.id);
+      }
     }
 
     // Ordenar para que "My likes" siempre aparezca de primero
@@ -80,9 +103,36 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
   }
 
   Future<void> _togglePlaylist(PlaylistStatus status) async {
-    final jellyfin = GetIt.instance<JellyfinApiHelper>();
     final playlistName = status.playlist.name ?? 'Playlist';
     final isLikes = LikesPlaylistHelper.isLikesPlaylist(status.playlist);
+
+    // Flujo para canciones remotas (aún no en el servidor):
+    if (widget.itemId == null) {
+      Navigator.pop(context);
+      if (isLikes) {
+        await LikesPlaylistHelper.toggleLike(
+          trackId: null,
+          title: widget.title ?? '',
+          artist: widget.artist ?? '',
+          queryString: widget.queryString,
+          coverUrl: widget.coverUrl,
+          context: context,
+        );
+      } else {
+        await PlaybackDownloadCoordinator().downloadAndAddToPlaylist(
+          playlistId: status.playlist.id!,
+          playlistName: playlistName,
+          title: widget.title ?? '',
+          artist: widget.artist ?? '',
+          queryString: widget.queryString,
+          coverUrl: widget.coverUrl,
+          context: context,
+        );
+      }
+      return;
+    }
+
+    final jellyfin = GetIt.instance<JellyfinApiHelper>();
 
     try {
       if (status.containsItem) {
@@ -94,7 +144,7 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
           );
           if (isLikes) {
             try {
-              await jellyfin.removeFavourite(widget.itemId);
+              await jellyfin.removeFavourite(widget.itemId!);
             } catch (_) {}
           }
           SynapEvents.fireLibraryRefresh();
@@ -108,11 +158,11 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
         // Agregar a la playlist
         await jellyfin.addItemstoPlaylist(
           playlistId: status.playlist.id,
-          ids: [widget.itemId],
+          ids: [widget.itemId!],
         );
         if (isLikes) {
           try {
-            await jellyfin.addFavourite(widget.itemId);
+            await jellyfin.addFavourite(widget.itemId!);
           } catch (_) {}
         }
         SynapEvents.fireLibraryRefresh();

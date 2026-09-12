@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../services/synap_api_service.dart';
 import 'album_detail_screen.dart';
 import '../../models/jellyfin_models.dart';
 import 'package:get_it/get_it.dart';
 import '../../services/audio_service_helper.dart';
+import '../../services/jellyfin_api_helper.dart';
+import '../../services/playback_download_coordinator.dart';
 
 
 class ArtistProfileScreen extends StatefulWidget {
@@ -19,11 +22,36 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
   final SynapApiService _apiService = SynapApiService();
   bool _isLoading = true;
   Map<String, dynamic>? _profileData;
+  StreamSubscription<LocalTrackReadyEvent>? _trackReadySubscription;
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    _trackReadySubscription = PlaybackDownloadCoordinator().onTrackReady.listen((event) {
+      if (mounted && _profileData != null && _profileData!['top_tracks'] != null) {
+        bool updated = false;
+        final topTracks = _profileData!['top_tracks'] as List<dynamic>;
+        for (var t in topTracks) {
+          final title = t['title']?.toString().toLowerCase().trim() ?? '';
+          final eventTitle = event.title.toLowerCase().trim();
+          if (title == eventTitle || title.contains(eventTitle) || eventTitle.contains(title)) {
+            t['local_id'] = event.localId;
+            t['jellyfin_item'] = event.jellyfinItem;
+            updated = true;
+          }
+        }
+        if (updated) {
+          setState(() {});
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _trackReadySubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {
@@ -64,26 +92,54 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
         itemBuilder: (context, index) {
           final item = items[index];
           return GestureDetector(
-            onTap: () {
+            onTap: () async {
               if (isAlbum) {
                 Navigator.of(context).push(MaterialPageRoute(
                   builder: (context) => AlbumDetailScreen(albumId: item['id']),
                 ));
               } else {
                 if (item['local_id'] != null) {
-                  final track = BaseItemDto(
-                    id: item['local_id'],
-                    name: item['title'],
-                    type: 'Audio',
-                  );
+                  BaseItemDto? track;
+                  if (item['jellyfin_item'] != null) {
+                    try {
+                      final dto = BaseItemDto.fromJson(Map<String, dynamic>.from(item['jellyfin_item']));
+                      if (dto.artists != null && dto.artists!.isNotEmpty) {
+                        track = dto;
+                      }
+                    } catch (e) {
+                      print('Error parseando jellyfin_item: $e');
+                    }
+                  }
+
+                  if (track == null) {
+                    try {
+                      final jellyfinHelper = GetIt.instance<JellyfinApiHelper>();
+                      track = await jellyfinHelper.getItemById(item['local_id']);
+                    } catch (e) {
+                      print('Error obteniendo item por ID: $e');
+                      track = BaseItemDto(
+                        id: item['local_id'],
+                        name: item['title'],
+                        type: 'Audio',
+                        artists: [widget.artistName],
+                        albumArtist: widget.artistName,
+                      );
+                    }
+                  }
+
                   final audioHandler = GetIt.instance<AudioServiceHelper>();
-                  audioHandler.replaceQueueWithItem(itemList: [track]).then((_) {
+                  await audioHandler.replaceQueueWithItem(itemList: [track]);
+                  if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reproduciendo canción...')));
-                  });
+                  }
                 } else {
-                  _apiService.downloadMedia(item['query_string'] ?? '${item['title']} ${widget.artistName}').then((_) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Descargando ${item['title']}...')));
-                  });
+                  PlaybackDownloadCoordinator().downloadAndAutoPlay(
+                    context: context,
+                    title: item['title'] ?? '',
+                    artist: widget.artistName,
+                    queryString: item['query_string'] ?? '${item['title']} ${widget.artistName}',
+                    coverUrl: item['cover_url'],
+                  );
                 }
               }
             },
@@ -139,7 +195,34 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
     if (_profileData == null || _profileData!.containsKey('error')) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.artistName)),
-        body: const Center(child: Text('Error cargando el perfil del artista.')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.person_off_outlined, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(
+                  _profileData?['error'] ?? 'No se pudo cargar la información del artista.',
+                  style: const TextStyle(color: Colors.grey, fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _isLoading = true;
+                    });
+                    _loadProfile();
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Reintentar'),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 

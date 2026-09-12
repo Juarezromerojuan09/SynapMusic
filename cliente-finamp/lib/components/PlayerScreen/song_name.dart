@@ -35,9 +35,17 @@ class SongName extends StatelessWidget {
           List<TextSpan> separatedArtistTextSpans = [];
 
           if (songBaseItemDto.artistItems?.isEmpty ?? true) {
+            String fallbackArtist = AppLocalizations.of(context)!.unknownArtist;
+            if (songBaseItemDto.artists != null && songBaseItemDto.artists!.isNotEmpty) {
+              fallbackArtist = songBaseItemDto.artists!.join(", ");
+            } else if (songBaseItemDto.albumArtist != null && songBaseItemDto.albumArtist!.isNotEmpty) {
+              fallbackArtist = songBaseItemDto.albumArtist!;
+            } else if (mediaItem.artist != null && mediaItem.artist!.isNotEmpty) {
+              fallbackArtist = mediaItem.artist!;
+            }
             separatedArtistTextSpans = [
               TextSpan(
-                text: AppLocalizations.of(context)!.unknownArtist,
+                text: fallbackArtist,
                 style: TextStyle(color: textColour),
               )
             ];

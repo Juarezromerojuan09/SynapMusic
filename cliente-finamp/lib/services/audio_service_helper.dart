@@ -32,12 +32,14 @@ class AudioServiceHelper {
             "startAtIndex is bigger than the itemList! ($initialIndex > ${itemList.length})");
       }
 
-      if (shuffle && itemList.isNotEmpty) {
-        initialIndex = Random().nextInt(itemList.length);
+      List<BaseItemDto> itemsToLoad = List<BaseItemDto>.from(itemList);
+      if (shuffle && itemsToLoad.isNotEmpty) {
+        itemsToLoad.shuffle(Random());
+        initialIndex = 0;
       }
 
       List<MediaItem> queue = [];
-      for (BaseItemDto item in itemList) {
+      for (BaseItemDto item in itemsToLoad) {
         try {
           queue.add(await _generateMediaItem(item));
         } catch (e) {
@@ -45,22 +47,13 @@ class AudioServiceHelper {
         }
       }
 
-      // if (!shuffle) {
-      //   // Give the audio service our next initial index so that playback starts
-      //   // at that index. We don't do this if shuffling because it causes the
-      //   // queue to always start at the start (although you could argue that we
-      //   // still should if initialIndex is not 0, but that doesn't happen
-      //   // anywhere in this app so oh well).
+      // Give the audio service our next initial index so that playback starts
+      // at that index.
       _audioHandler.setNextInitialIndex(initialIndex);
-      // }
 
       await _audioHandler.updateQueue(queue);
 
-      if (shuffle) {
-        await _audioHandler.setShuffleMode(AudioServiceShuffleMode.all);
-      } else {
-        await _audioHandler.setShuffleMode(AudioServiceShuffleMode.none);
-      }
+      await _audioHandler.setShuffleMode(AudioServiceShuffleMode.none);
 
       _audioHandler.play();
     } catch (e) {
@@ -199,12 +192,25 @@ class AudioServiceHelper {
         ? false
         : await _downloadsHelper.verifyDownloadedSong(downloadedSong);
 
+    Uri? artUri = _downloadsHelper.getDownloadedImage(item)?.file.uri ??
+        _jellyfinApiHelper.getImageUrl(item: item);
+    if (artUri == null && item.overview != null && (item.overview!.startsWith('http://') || item.overview!.startsWith('https://'))) {
+      artUri = Uri.tryParse(item.overview!);
+    }
+
+    final albumName = (item.album != null && item.album!.isNotEmpty)
+        ? item.album!
+        : "SynapMusic";
+
+    final artistName = (item.artists != null && item.artists!.isNotEmpty)
+        ? item.artists!.join(", ")
+        : (item.albumArtist ?? "Unknown Artist");
+
     return MediaItem(
       id: uuid.v4(),
-      album: item.album ?? "Unknown Album",
-      artist: item.artists?.join(", ") ?? item.albumArtist,
-      artUri: _downloadsHelper.getDownloadedImage(item)?.file.uri ??
-          _jellyfinApiHelper.getImageUrl(item: item),
+      album: albumName,
+      artist: artistName,
+      artUri: artUri,
       title: item.name ?? "Unknown Name",
       extras: {
         // "parentId": item.parentId,

@@ -14,14 +14,10 @@ enum _FlingGestureKind { none, forward, reverse }
 /// This prevents accidental dismissal while scrolling vertically through lists.
 class StrictHorizontalDragGestureRecognizer extends HorizontalDragGestureRecognizer {
   StrictHorizontalDragGestureRecognizer({
-    Object? debugOwner,
-    Set<PointerDeviceKind>? supportedDevices,
-    AllowedButtonsFilter? allowedButtonsFilter,
-  }) : super(
-          debugOwner: debugOwner,
-          supportedDevices: supportedDevices,
-          allowedButtonsFilter: allowedButtonsFilter,
-        );
+    super.debugOwner,
+    super.supportedDevices,
+    super.allowedButtonsFilter,
+  });
 
   final Map<int, Offset> _pointerStarts = <int, Offset>{};
 

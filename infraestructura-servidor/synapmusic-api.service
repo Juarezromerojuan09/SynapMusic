@@ -1,0 +1,30 @@
+[Unit]
+Description=SynapMusic - API de Descargas y Portal Web
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+# Usuario que ejecutará el servicio (ajustar si en openSUSE tu usuario es diferente)
+User=juarezromerojuan09
+WorkingDirectory=/opt/synapmusic/api-descargas
+
+# Cargar variables de entorno si existen y configurar PATH con venv
+EnvironmentFile=-/opt/synapmusic/api-descargas/.env
+Environment="PATH=/opt/synapmusic/api-descargas/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin"
+Environment="PYTHONUNBUFFERED=1"
+
+# Comando de arranque utilizando el entorno virtual directamente con python
+ExecStart=/opt/synapmusic/api-descargas/venv/bin/python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --workers 1
+
+# Reinicio automático en caso de fallo o reinicio del sistema
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+
+# Registro en journald (ver con: journalctl -u synapmusic-api -f)
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

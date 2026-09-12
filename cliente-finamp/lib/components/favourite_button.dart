@@ -37,7 +37,7 @@ class _FavoriteButtonState extends State<FavoriteButton> {
       if (isFav) {
         return Icon(
           Icons.favorite,
-          color: Colors.red,
+          color: const Color(0xFF8B93FF),
           size: 24.0,
           semanticLabel: AppLocalizations.of(context)!.favourite,
         );
@@ -48,21 +48,32 @@ class _FavoriteButtonState extends State<FavoriteButton> {
       return IconButton(
         icon: Icon(
           isFav ? Icons.favorite : Icons.favorite_outline,
-          color: isFav ? Colors.redAccent : Colors.white,
+          color: isFav ? const Color(0xFF8B93FF) : const Color(0xFFA0A0A0),
           size: 26.0,
         ),
         tooltip: AppLocalizations.of(context)!.favourite,
         onPressed: () async {
           try {
+            final artist = (widget.item!.artists?.isNotEmpty == true)
+                ? widget.item!.artists!.first
+                : (widget.item!.albumArtist ?? '');
             UserItemDataDto? newUserData;
             if (isFav) {
               newUserData =
                   await jellyfinApiHelper.removeFavourite(widget.item!.id);
-              await LikesPlaylistHelper.removeSongFromLikes(widget.item!.id);
+              await LikesPlaylistHelper.removeSongFromLikes(
+                widget.item!.id,
+                title: widget.item!.name,
+                artist: artist,
+              );
             } else {
               newUserData =
                   await jellyfinApiHelper.addFavourite(widget.item!.id);
-              await LikesPlaylistHelper.addSongToLikes(widget.item!.id);
+              await LikesPlaylistHelper.addSongToLikes(
+                widget.item!.id,
+                title: widget.item!.name,
+                artist: artist,
+              );
             }
             if (mounted) {
               setState(() {

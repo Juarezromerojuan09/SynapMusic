@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Descargar SynapMusic • APK Oficial Android</title>
+  <link rel="icon" type="image/png" href="/portal-static/assets/logo.png">
+  <link rel="stylesheet" href="/portal-static/css/styles.css">
+  <script src="/portal-static/js/qrcode.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <nav class="nav-bar">
+        <a href="/" class="brand">
+          <img src="/portal-static/assets/logo.png" alt="Synap Logo" class="brand-logo">
+          <span class="brand-name">SynapHub</span>
+        </a>
+        <div class="server-badge">
+          <span class="pulse-dot"></span>
+          <span>openSUSE • En Línea</span>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <a href="/" class="back-link">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        <span>Volver a SynapHub</span>
+      </a>
+
+      <!-- Layout de Descarga -->
+      <section class="download-layout">
+        <div class="glass-card download-main">
+          <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+            <img src="/portal-static/assets/logo.png" alt="SynapMusic Logo" style="width: 58px; height: 58px; border-radius: 14px;">
+            <div>
+              <h1>SynapMusic para Android</h1>
+              <div class="app-meta">
+                <span>Versión: <strong>0.6.27 (Build 52)</strong></span>
+                <span>•</span>
+                <span>Tamaño: <strong>~85 MB</strong></span>
+                <span>•</span>
+                <span>Android 8.0 o superior</span>
+              </div>
+            </div>
+          </div>
+
+          <p style="color: var(--text-secondary); margin-bottom: 24px;">
+            Cliente nativo de streaming de música en alta fidelidad y descargas automáticas para tu biblioteca personal.
+          </p>
+
+          <a href="/synapmusic/download" class="btn-primary js-download-link">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Descargar SynapMusic (.apk)</span>
+          </a>
+
+          <div style="margin-top: 18px; display: flex; gap: 16px; font-size: 0.82rem; color: var(--text-muted); flex-wrap: wrap;">
+            <span>🛡️ Firma digital oficial verificada</span>
+            <span>⚡ Instalación directa</span>
+            <span>🔄 Compatible con actualizaciones</span>
+          </div>
+        </div>
+
+        <!-- Código QR -->
+        <div class="glass-card qr-card">
+          <h3 style="font-size: 1.1rem; font-weight: 700;">Descargar con Celular</h3>
+          <p class="qr-caption" style="margin-top: 4px;">Apunta tu cámara a este código</p>
+          <div class="qr-box">
+            <div id="qrcode"></div>
+          </div>
+          <p class="qr-caption">Inicia la descarga directa al escanear</p>
+        </div>
+      </section>
+
+      <!-- Guía Paso a Paso -->
+      <section class="guide-section">
+        <h2 class="section-title">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 16 16 12 12 8"></polyline>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+          </svg>
+          <span>Guía de Conexión e Instalación</span>
+        </h2>
+
+        <!-- Paso 1: Tailscale -->
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Conéctate a la Red Privada (Tailscale VPN)</h3>
+            <p>
+              <strong>¿Por qué se necesita?</strong> Tailscale es la red privada virtual que te permite conectar tu teléfono a este servidor de música de forma 100% segura y encriptada, <strong>incluso cuando estés fuera de casa con datos móviles</strong>.
+            </p>
+            <div class="store-buttons" style="margin-top: 14px; display: flex; flex-wrap: wrap; gap: 12px;">
+              <a href="https://play.google.com/store/apps/details?id=com.tailscale.ipn" target="_blank" rel="noopener" class="store-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3.609 1.814L13.792 12 3.61 22.186a2.41 2.41 0 0 1-.61-.319V2.133c.188-.13.398-.24.61-.319zM15.207 13.414l2.457 2.457-11.89 6.86 9.433-9.317zm0-2.828l-9.433-9.317 11.89 6.86-2.457 2.457zm1.414 1.414l3.197-1.846c1.077-.622 1.077-1.633 0-2.255l-3.197-1.846-2.121 2.121 2.121 2.121z"/>
+                </svg>
+                <span>1. Descargar Tailscale (Play Store)</span>
+              </a>
+
+              <a href="https://login.tailscale.com/admin/invite/CnFD3Z8iHeCVwbNWUJFC2" target="_blank" rel="noopener" class="store-btn" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.45); color: #34d399; font-weight: 700;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="8.5" cy="7.5" r="4"></circle>
+                  <line x1="20" y1="8" x2="20" y2="14"></line>
+                  <line x1="23" y1="11" x2="17" y2="11"></line>
+                </svg>
+                <span>2. Unirse a la Red (Aceptar Invitación)</span>
+              </a>
+            </div>
+            <p style="margin-top: 14px; font-size: 0.9rem; color: var(--text-secondary);">
+              <strong>Pasos:</strong> Instala la app de Tailscale, inicia sesión con tu correo personal de Google y luego pulsa en <em>"2. Unirse a la Red"</em> para aceptar el acceso.
+            </p>
+
+            <div style="margin-top: 12px;">
+              <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">DIRECCIÓN DEL SERVIDOR PARA LA APP:</span>
+              <div class="copy-box">
+                <input type="text" id="server-address-input" readonly class="copy-input" value="http://localhost:8096">
+                <button type="button" class="btn-copy js-btn-copy" data-target="server-address-input">Copiar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 2: Instalación de APK -->
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>Instalar el archivo APK en Android</h3>
+            <p>
+              Como SynapMusic es una aplicación privada y no está en la Play Store pública, Android te solicitará permiso para instalarla:
+            </p>
+            <div class="alert-box">
+              <strong>⚠️ Aviso normal de seguridad en Android:</strong> Al presionar <em>Descargar</em>, tu navegador puede mostrar el mensaje <em>"Es posible que el archivo sea dañino"</em>. Selecciona <strong>"Descargar de todos modos"</strong>.
+            </div>
+            <p style="margin-top: 12px; font-size: 0.9rem; color: var(--text-secondary);">
+              Al abrir el archivo <strong>SynapMusic.apk</strong>, si el sistema te lo pide, activa la opción <strong>"Permitir la instalación de apps de esta fuente"</strong> y presiona <strong>"Instalar"</strong>.
+            </p>
+          </div>
+        </div>
+
+        <!-- Paso 3: Iniciar Sesión -->
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>Abrir e Iniciar Sesión</h3>
+            <p>
+              Abre la aplicación <strong>SynapMusic</strong> en tu teléfono:
+            </p>
+            <ol style="margin-left: 20px; color: var(--text-secondary); font-size: 0.92rem; display: flex; flex-direction: column; gap: 8px;">
+              <li>En el campo de servidor, pega la dirección copiada en el <strong>Paso 1</strong>.</li>
+              <li>Ingresa tu nombre de usuario y contraseña asignados de Jellyfin.</li>
+              <li>¡Listo! Tu biblioteca de música comenzará a sincronizarse y podrás buscar canciones para reproducir y descargar automáticamente.</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>SynapMusic &copy; 2026 • Servidor openSUSE • Hecho para streaming privado</p>
+    </footer>
+  </div>
+
+  <script src="/portal-static/js/main.js"></script>
+</body>
+</html>

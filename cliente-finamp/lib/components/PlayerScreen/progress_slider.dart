@@ -36,12 +36,18 @@ class _ProgressSliderState extends State<ProgressSlider> {
     super.didChangeDependencies();
 
     _sliderThemeData = SliderTheme.of(context).copyWith(
-      trackHeight: 3.5,
+      trackHeight: 4.5,
       activeTrackColor: const Color(0xFF8B93FF),
-      inactiveTrackColor: const Color(0xFF222222),
-      secondaryActiveTrackColor: const Color(0xFF333333),
-      thumbShape: SliderComponentShape.noThumb,
-      overlayShape: SliderComponentShape.noOverlay,
+      inactiveTrackColor: const Color(0xFF2A2A2A),
+      secondaryActiveTrackColor: const Color(0xFF3E3E3E),
+      thumbColor: Colors.white,
+      thumbShape: const RoundSliderThumbShape(
+        enabledThumbRadius: 6.0,
+        elevation: 2.0,
+        pressedElevation: 4.0,
+      ),
+      overlayColor: const Color(0xFF8B93FF).withOpacity(0.18),
+      overlayShape: const RoundSliderOverlayShape(overlayRadius: 18.0),
     );
   }
 
@@ -68,7 +74,6 @@ class _ProgressSliderState extends State<ProgressSlider> {
                         SliderTheme(
                           data: _sliderThemeData.copyWith(
                             trackShape: CustomTrackShape(),
-                            thumbShape: SliderComponentShape.noThumb,
                           ),
                           child: const Slider(
                             value: 0,
@@ -102,7 +107,6 @@ class _ProgressSliderState extends State<ProgressSlider> {
                   SliderTheme(
                     data: _sliderThemeData.copyWith(
                       trackShape: CustomTrackShape(),
-                      thumbShape: SliderComponentShape.noThumb,
                     ),
                     child: Slider(
                       min: 0.0,
@@ -137,8 +141,6 @@ class _ProgressSliderState extends State<ProgressSlider> {
                           : 0,
                       onChanged: widget.allowSeeking
                           ? (newValue) async {
-                              // We don't actually tell audio_service to seek here
-                              // because it would get flooded with seek requests
                               setState(() {
                                 _dragValue = newValue;
                               });
@@ -153,15 +155,19 @@ class _ProgressSliderState extends State<ProgressSlider> {
                           : (_) {},
                       onChangeEnd: widget.allowSeeking
                           ? (newValue) async {
-                              // Seek to the new position
-                              await _audioHandler.seek(
-                                  Duration(microseconds: newValue.toInt()));
-
-                              // Clear drag value so that the slider uses the play
-                              // duration again.
+                              final seekPos =
+                                  Duration(microseconds: newValue.toInt());
                               setState(() {
-                                _dragValue = null;
+                                _dragValue = newValue;
                               });
+                              await _audioHandler.seek(seekPos);
+                              await Future.delayed(
+                                  const Duration(milliseconds: 250));
+                              if (mounted && _dragValue == newValue) {
+                                setState(() {
+                                  _dragValue = null;
+                                });
+                              }
                             }
                           : (_) {},
                     ),
@@ -217,10 +223,11 @@ class CustomTrackShape extends RoundedRectSliderTrackShape {
     bool isDiscrete = false,
   }) {
     final double trackHeight = sliderTheme.trackHeight!;
-    final double trackLeft = offset.dx;
+    const double thumbRadius = 6.0;
+    final double trackLeft = offset.dx + thumbRadius;
     final double trackTop =
         offset.dy + (parentBox.size.height - trackHeight) / 2;
-    final double trackWidth = parentBox.size.width;
+    final double trackWidth = parentBox.size.width - (thumbRadius * 2);
     return Rect.fromLTWH(trackLeft, trackTop, trackWidth, trackHeight);
   }
 

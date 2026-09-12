@@ -94,6 +94,14 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
 
       if (mergedMap.isNotEmpty) {
         final initialList = mergedMap.values.toList();
+        // Deduplicar My likes en cache local
+        final likesCached = initialList.where((p) => LikesPlaylistHelper.isLikesPlaylist(p)).toList();
+        if (likesCached.length > 1) {
+          likesCached.sort((a, b) => (b.childCount ?? 0).compareTo(a.childCount ?? 0));
+          for (final dup in likesCached.sublist(1)) {
+            initialList.removeWhere((p) => p.id == dup.id);
+          }
+        }
         _sortPlaylists(initialList);
         if (mounted) {
           setState(() {
@@ -116,6 +124,20 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
       if (playlistsData.isNotEmpty) {
         var playlists = playlistsData.map((e) => BaseItemDto.fromJson(e)).toList();
 
+        // Deduplicar: Si existen múltiples playlists "My likes", conservar únicamente la que tenga más canciones y eliminar la vacía en Jellyfin
+        final likesPlaylists = playlists.where((p) => LikesPlaylistHelper.isLikesPlaylist(p)).toList();
+        if (likesPlaylists.length > 1) {
+          likesPlaylists.sort((a, b) => (b.childCount ?? 0).compareTo(a.childCount ?? 0));
+          final duplicates = likesPlaylists.sublist(1);
+
+          for (final dup in duplicates) {
+            playlists.removeWhere((p) => p.id == dup.id);
+            if (dup.id != null) {
+              _apiService.deletePlaylist(dup.id!);
+            }
+          }
+        }
+
         // Asegurar que la playlist fija "My likes" exista
         final hasLikes = playlists.any((p) => LikesPlaylistHelper.isLikesPlaylist(p));
         if (!hasLikes) {
@@ -133,6 +155,9 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
             .toList();
         for (final dp in downloadedPlaylists) {
           if (dp.id != null && !playlists.any((p) => p.id == dp.id)) {
+            if (LikesPlaylistHelper.isLikesPlaylist(dp) && playlists.any((p) => LikesPlaylistHelper.isLikesPlaylist(p))) {
+              continue;
+            }
             playlists.add(dp);
           }
         }

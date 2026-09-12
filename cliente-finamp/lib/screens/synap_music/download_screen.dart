@@ -11,6 +11,8 @@ import '../player_screen.dart';
 import 'album_detail_screen.dart';
 import '../../services/finamp_user_helper.dart';
 import '../../services/jellyfin_api_helper.dart';
+import '../../services/playback_download_coordinator.dart';
+import '../../services/likes_playlist_helper.dart';
 
 class DownloadScreen extends StatefulWidget {
   const DownloadScreen({Key? key}) : super(key: key);
@@ -45,6 +47,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
   List<BaseItemDto>? _discoveries;
   bool _isInitialLoading = true;
   Future<List<dynamic>>? _globalAlbumsFuture;
+  StreamSubscription<LocalTrackReadyEvent>? _trackReadySub;
 
   final Color _synapColor = const Color(0xFF8B93FF); 
 
@@ -52,6 +55,16 @@ class _DownloadScreenState extends State<DownloadScreen> {
   void initState() {
     super.initState();
     _loadInitialData();
+    _trackReadySub = PlaybackDownloadCoordinator().onTrackReady.listen((event) {
+      if (mounted && event.jellyfinItem != null) {
+        setState(() {
+          if (!_localJellyfinDataList.any((e) => e['Id'] == event.localId)) {
+            _localJellyfinDataList.insert(0, event.jellyfinItem);
+            _localJellyfinData = event.jellyfinItem;
+          }
+        });
+      }
+    });
   }
 
   Future<void> _loadInitialData() async {
@@ -95,9 +108,26 @@ class _DownloadScreenState extends State<DownloadScreen> {
 
   @override
   void dispose() {
+    _trackReadySub?.cancel();
     _searchController.dispose();
     _debounce?.cancel();
     super.dispose();
+  }
+
+  void _startAutoPlay(SynapSearchResult result) {
+    final isYoutube = result.source == 'youtube';
+    final query = result.url.isNotEmpty 
+        ? result.url 
+        : (result.queryString ?? (isYoutube ? result.title : '${result.artist} ${result.title}'));
+
+    PlaybackDownloadCoordinator().downloadAndAutoPlay(
+      context: context,
+      title: result.title,
+      artist: result.artist,
+      queryString: query,
+      coverUrl: result.coverUrl,
+    );
+    setState(() {});
   }
 
   void _onSearchChanged(String query) {
@@ -211,7 +241,11 @@ class _DownloadScreenState extends State<DownloadScreen> {
       if (responseMap != null) {
         final List<dynamic> remoteResults = responseMap['remote_results'] ?? [];
         setState(() {
-          _youtubeResults = remoteResults.map((json) => SynapSearchResult.fromJson(json)).toList();
+          _youtubeResults = remoteResults.map((json) {
+            final map = Map<String, dynamic>.from(json);
+            map['source'] ??= 'youtube';
+            return SynapSearchResult.fromJson(map);
+          }).toList();
         });
       }
     } catch (e) {
@@ -355,10 +389,6 @@ class _DownloadScreenState extends State<DownloadScreen> {
     return ListView(
       children: [
         if (_localJellyfinDataList.isNotEmpty) ...[
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12.0),
-            child: Text('En tu biblioteca', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
-          ),
           ..._buildLocalFileList(),
           if (_deezerResults.isNotEmpty) ...[
             const Padding(
@@ -592,6 +622,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
     final coverUrl = 'http://100.81.156.126:8096/Items/${track.id}/Images/Primary';
     
     return TrackListItem(
+      trackId: track.id,
       title: track.name ?? 'Canción',
       artist: artist,
       isAvailableInServer: true,
@@ -615,7 +646,12 @@ class _DownloadScreenState extends State<DownloadScreen> {
         showModalBottomSheet(
           context: context,
           backgroundColor: Colors.transparent,
-          builder: (_) => TrackOptionsMenuSheet(itemId: track.id!),
+          builder: (_) => TrackOptionsMenuSheet(
+            itemId: track.id!,
+            title: track.name ?? 'Canción',
+            artist: artist,
+            coverUrl: coverUrl,
+          ),
         );
       },
     );
@@ -624,6 +660,9 @@ class _DownloadScreenState extends State<DownloadScreen> {
   Widget _buildExternalResultTile(SynapSearchResult result) {
     final isYoutube = result.source == 'youtube';
     final durationText = result.duration ?? '';
+    final query = result.url.isNotEmpty 
+        ? result.url 
+        : (result.queryString ?? (isYoutube ? result.title : '${result.artist} ${result.title}'));
     
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 0),
@@ -688,56 +727,84 @@ class _DownloadScreenState extends State<DownloadScreen> {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                icon: const Icon(Icons.download, color: Color(0xFF8B93FF)),
-                onPressed: () {
-                  final query = result.url.isNotEmpty ? result.url : (result.queryString ?? (isYoutube ? result.title : '${result.artist} ${result.title}'));
-                  _handleDownload(query);
+              ValueListenableBuilder<Set<String>>(
+                valueListenable: LikesPlaylistHelper.likedSongKeys,
+                builder: (context, likedKeys, _) {
+                  return ValueListenableBuilder<Set<String>>(
+                    valueListenable: LikesPlaylistHelper.likedSongIds,
+                    builder: (context, likedIds, _) {
+                      final isLiked = LikesPlaylistHelper.isSongLiked(
+                        title: result.title,
+                        artist: result.artist,
+                      );
+
+                      return IconButton(
+                        icon: Icon(
+                          isLiked ? Icons.favorite : Icons.favorite_border,
+                          color: isLiked ? const Color(0xFF8B93FF) : const Color(0xFFA0A0A0),
+                          size: 22,
+                        ),
+                        padding: const EdgeInsets.all(6),
+                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        tooltip: isLiked ? 'Eliminar de My likes' : 'Guardar en My likes',
+                        onPressed: () {
+                          LikesPlaylistHelper.toggleLike(
+                            trackId: null,
+                            title: result.title,
+                            artist: result.artist,
+                            queryString: query,
+                            coverUrl: result.coverUrl,
+                            context: context,
+                          );
+                        },
+                      );
+                    },
+                  );
                 },
               ),
-              IconButton(
-                icon: const Icon(Icons.more_vert, color: Color(0xFFA0A0A0)),
-                onPressed: () {
-                  _showExternalOptionsMenu(result);
+              ValueListenableBuilder<Set<String>>(
+                valueListenable: PlaybackDownloadCoordinator().activeDownloadsNotifier,
+                builder: (context, activeDownloads, _) {
+                  final isDownloading = activeDownloads.contains(
+                    PlaybackDownloadCoordinator().normalize(result.title),
+                  );
+                  if (isDownloading) {
+                    return const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B93FF)),
+                        ),
+                      ),
+                    );
+                  }
+                  return IconButton(
+                    icon: const Icon(Icons.more_vert, color: Color(0xFFA0A0A0)),
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => TrackOptionsMenuSheet(
+                          title: result.title,
+                          artist: result.artist,
+                          queryString: query,
+                          coverUrl: result.coverUrl,
+                        ),
+                      );
+                    },
+                  );
                 },
               ),
             ],
           ),
           onTap: () {
-            final query = result.url.isNotEmpty ? result.url : (result.queryString ?? (isYoutube ? result.title : '${result.artist} ${result.title}'));
-            _handleDownload(query);
+            _startAutoPlay(result);
           },
         ),
       ),
-    );
-  }
-
-  void _showExternalOptionsMenu(SynapSearchResult result) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.download),
-                title: const Text('Descargar a Biblioteca'),
-                onTap: () {
-                  Navigator.pop(context);
-                  final query = result.url.isNotEmpty ? result.url : (result.queryString ?? (result.source == 'youtube' ? result.title : '${result.artist} ${result.title}'));
-                  _handleDownload(query);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.info_outline),
-                title: Text('Fuente: ${result.source?.toUpperCase() ?? "Desconocida"}'),
-                onTap: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

@@ -41,6 +41,8 @@ def patch_deemix_libraries():
         pass
 
     fixed_deezer_paths = [
+        "/opt/synapmusic/api-descargas/venv/lib64/python3.13/site-packages/deezer/utils.py",
+        "/opt/synapmusic/api-descargas/venv/lib/python3.13/site-packages/deezer/utils.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib64/python3.13/site-packages/deezer/utils.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib/python3.13/site-packages/deezer/utils.py",
     ]
@@ -100,6 +102,8 @@ def patch_deemix_libraries():
         pass
 
     fixed_deemix_paths = [
+        "/opt/synapmusic/api-descargas/venv/lib64/python3.13/site-packages/deemix/itemgen.py",
+        "/opt/synapmusic/api-descargas/venv/lib/python3.13/site-packages/deemix/itemgen.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib64/python3.13/site-packages/deemix/itemgen.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib/python3.13/site-packages/deemix/itemgen.py",
     ]
@@ -132,9 +136,9 @@ def patch_deemix_libraries():
             if changed:
                 with open(path, "w", encoding="utf-8") as f:
                     f.write(code)
-                print(f"[Auto-Patch Deemix] Corregido satisfactoriamente en: {path}")
-            elif ".get('explicit_lyrics', False)" in code:
-                print(f"[Auto-Patch Deemix] Verificado: {path} ya cuenta con el parche.")
+                print(f"[Auto-Patch Deemix] Corregido KeyError: explicit_lyrics en: {path}")
+            else:
+                print(f"[Auto-Patch Deemix] Verificado: {path} ya cuenta con el parche de explicit_lyrics.")
         except Exception as e:
             print(f"[Auto-Patch Deemix] Error al inspeccionar/parchear {path}: {e}")
 
@@ -161,6 +165,8 @@ def patch_deemix_libraries():
         pass
 
     fixed_pathtemplates = [
+        "/opt/synapmusic/api-descargas/venv/lib64/python3.13/site-packages/deemix/utils/pathtemplates.py",
+        "/opt/synapmusic/api-descargas/venv/lib/python3.13/site-packages/deemix/utils/pathtemplates.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib64/python3.13/site-packages/deemix/utils/pathtemplates.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib/python3.13/site-packages/deemix/utils/pathtemplates.py",
     ]
@@ -213,7 +219,7 @@ def get_deemix_binary():
     which_path = shutil.which("deemix")
     if which_path:
         return which_path
-    server_path = "/home/juarezromerojuan09/api-descargas/venv/bin/deemix"
+    server_path = "/opt/synapmusic/api-descargas/venv/bin/deemix"
     if os.path.isfile(server_path) and os.access(server_path, os.X_OK):
         return server_path
     return "deemix"

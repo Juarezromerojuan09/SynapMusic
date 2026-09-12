@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -113,7 +114,7 @@ class NowPlayingBar extends StatelessWidget {
                                   child: SizedBox(
                                     width: 44,
                                     height: 44,
-                                    child: AlbumImage(item: item),
+                                    child: _buildCover(snapshot.data!.mediaItem, item),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -208,5 +209,35 @@ class NowPlayingBar extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Widget _buildCover(MediaItem? mediaItem, BaseItemDto item) {
+    final artUri = mediaItem?.artUri;
+    final fallbackWidget = AlbumImage(
+      key: ValueKey('${item.id}_${item.imageId}_${item.overview}'),
+      item: item,
+    );
+
+    if (artUri != null) {
+      if (artUri.scheme == 'file') {
+        return Image.file(
+          File(artUri.toFilePath()),
+          width: 44,
+          height: 44,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => fallbackWidget,
+        );
+      } else if (artUri.scheme == 'http' || artUri.scheme == 'https') {
+        return Image.network(
+          artUri.toString(),
+          width: 44,
+          height: 44,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => fallbackWidget,
+        );
+      }
+    }
+
+    return fallbackWidget;
   }
 }

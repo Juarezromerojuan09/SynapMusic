@@ -19,6 +19,10 @@ cliente-finamp/.flutter-plugins-dependencies
 cliente-finamp/.packages
 cliente-finamp/.pub-cache/
 cliente-finamp/.pub/
+*.jks
+*.keystore
+**/key.properties
+*.apk
 
 # Scratch & Temporary test files
 patch_*.py

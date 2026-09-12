@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'dart:io';
@@ -21,6 +22,7 @@ import '../../components/track_options_menu_sheet.dart';
 import '../../services/audio_service_helper.dart';
 import '../player_screen.dart';
 import '../../services/synap_events.dart';
+import '../../components/synap_fast_scroller.dart';
 import '../../services/likes_playlist_helper.dart';
 
 enum PlaylistSortMode { artist, dateAdded, duration, title }
@@ -79,6 +81,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
 
   @override
   void dispose() {
+    _refreshSub?.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();
     _scrollController.dispose();
@@ -138,6 +141,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     }
   }
 
+  StreamSubscription? _refreshSub;
+
   @override
   void initState() {
     super.initState();
@@ -145,6 +150,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     _loadItems();
     
     _isDownloadedNotifier = ValueNotifier(_downloadsHelper.getDownloadedParent(widget.playlist.id) != null);
+    _refreshSub = SynapEvents.onLibraryRefresh.listen((_) {
+      if (mounted) {
+        _loadItems();
+      }
+    });
   }
 
   Future<void> _loadItems() async {
@@ -357,6 +367,24 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     final displayedTracks = _displayedTracks;
     final topPadding = MediaQuery.of(context).padding.top;
 
+    final bool isAlphabeticalSort = !_isSearchOpen &&
+        (_sortMode == PlaylistSortMode.title || _sortMode == PlaylistSortMode.artist);
+
+    final String Function(int)? letterExtractor = isAlphabeticalSort
+        ? (int index) {
+            if (index < 0 || index >= displayedTracks.length) return '#';
+            final track = displayedTracks[index];
+            if (_sortMode == PlaylistSortMode.title) {
+              return extractAlphabetLetter(track.name);
+            } else {
+              final artist = (track.artists?.isNotEmpty == true)
+                  ? track.artists![0]
+                  : (track.albumArtist ?? '');
+              return extractAlphabetLetter(artist);
+            }
+          }
+        : null;
+
     return WillPopScope(
       onWillPop: () async {
         if (_isSearchOpen) {
@@ -367,8 +395,12 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF0A0A0A),
-        body: CustomScrollView(
+        body: SynapFastScroller(
           controller: _scrollController,
+          itemCount: displayedTracks.length,
+          letterExtractor: letterExtractor,
+          child: CustomScrollView(
+            controller: _scrollController,
           slivers: [
             SliverAppBar(
               expandedHeight: _isSearchOpen ? (topPadding + kToolbarHeight) : 300,
@@ -851,7 +883,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   childCount: _tracks!.length + 1,
                 ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -249,9 +249,11 @@ class SynapApiService {
   Future<String?> getLyrics(String artist, String title) async {
     try {
       final uri = Uri.parse('$_baseUrl/lyrics?artist=${Uri.encodeComponent(artist)}&title=${Uri.encodeComponent(title)}');
-      final request = await HttpClient().getUrl(uri);
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 4);
+      final request = await client.getUrl(uri).timeout(const Duration(seconds: 4));
       request.headers.add('X-API-Key', _apiKey);
-      final response = await request.close();
+      final response = await request.close().timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final responseBody = await response.transform(utf8.decoder).join();
@@ -267,12 +269,12 @@ class SynapApiService {
     }
   }
 
-  Stream<List<dynamic>> _fetchAndCacheStream(String endpoint, String cacheKey) async* {
+  Stream<List<dynamic>> _fetchAndCacheStream(String endpoint, String cacheKey, {bool forceRefresh = false}) async* {
     final cacheDir = await getTemporaryDirectory();
     final cacheFile = File('${cacheDir.path}/$cacheKey.json');
     
-    // 1. Mostrar caché primero si existe
-    if (await cacheFile.exists()) {
+    // 1. Mostrar caché primero si existe y no se forzó el refresco
+    if (!forceRefresh && await cacheFile.exists()) {
       try {
         final cachedData = await cacheFile.readAsString();
         yield json.decode(cachedData) as List<dynamic>;
@@ -281,12 +283,12 @@ class SynapApiService {
       }
     }
 
-    // 2. Intentar red con timeout corto
+    // 2. Intentar red con timeout
     try {
       final uri = Uri.parse('$_baseUrl$endpoint');
-      final request = await HttpClient().getUrl(uri).timeout(const Duration(seconds: 5));
+      final request = await HttpClient().getUrl(uri).timeout(const Duration(seconds: 8));
       request.headers.add('X-API-Key', _apiKey);
-      final response = await request.close().timeout(const Duration(seconds: 5));
+      final response = await request.close().timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final responseBody = await response.transform(utf8.decoder).join();
         
@@ -300,24 +302,44 @@ class SynapApiService {
     }
   }
 
-  Stream<List<dynamic>> getTopSongsStream(String userId) {
-    return _fetchAndCacheStream('/home/top-songs?user_id=$userId', 'top_songs_$userId');
+  Stream<List<dynamic>> getTopSongsStream(String userId, {bool forceRefresh = false}) {
+    return _fetchAndCacheStream('/home/top-songs?user_id=$userId', 'top_songs_$userId', forceRefresh: forceRefresh);
   }
 
-  Stream<List<dynamic>> getTopArtistsStream(String userId) {
-    return _fetchAndCacheStream('/home/top-artists?user_id=$userId', 'top_artists_$userId');
+  Stream<List<dynamic>> getTopArtistsStream(String userId, {bool forceRefresh = false}) {
+    return _fetchAndCacheStream('/home/top-artists?user_id=$userId', 'top_artists_$userId', forceRefresh: forceRefresh);
   }
 
-  Stream<List<dynamic>> getTopAlbumsStream(String userId) {
-    return _fetchAndCacheStream('/home/top-albums?user_id=$userId', 'top_albums_$userId');
+  Stream<List<dynamic>> getTopAlbumsStream(String userId, {bool forceRefresh = false}) {
+    return _fetchAndCacheStream('/home/top-albums?user_id=$userId', 'top_albums_$userId', forceRefresh: forceRefresh);
   }
 
-  Stream<List<dynamic>> getNewReleasesStream(String userId) {
-    return _fetchAndCacheStream('/home/new-releases?user_id=$userId', 'new_releases_$userId');
+  Stream<List<dynamic>> getNewReleasesStream(String userId, {bool forceRefresh = false}) {
+    return _fetchAndCacheStream('/home/new-releases?user_id=$userId', 'new_releases_$userId', forceRefresh: forceRefresh);
   }
 
-  Stream<List<dynamic>> getTopMexicoStream() {
-    return _fetchAndCacheStream('/home/top-mexico', 'top_mexico');
+  Stream<List<dynamic>> getTopMexicoStream({bool forceRefresh = false}) {
+    return _fetchAndCacheStream('/home/top-mexico', 'top_mexico', forceRefresh: forceRefresh);
+  }
+
+  Future<Map<String, dynamic>?> checkLocalTrack(String title, [String? artist]) async {
+    try {
+      var urlStr = '$_baseUrl/music/check-local?title=${Uri.encodeComponent(title)}';
+      if (artist != null && artist.isNotEmpty) {
+        urlStr += '&artist=${Uri.encodeComponent(artist)}';
+      }
+      final uri = Uri.parse(urlStr);
+      final request = await HttpClient().getUrl(uri).timeout(const Duration(seconds: 5));
+      request.headers.add('X-API-Key', _apiKey);
+      final response = await request.close().timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        final responseBody = await response.transform(utf8.decoder).join();
+        return json.decode(responseBody) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      print('Error checkLocalTrack: $e');
+    }
+    return null;
   }
 
 
