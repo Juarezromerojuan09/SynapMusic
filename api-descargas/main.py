@@ -26,17 +26,20 @@ if os.path.exists(dotenv_path):
 else:
     load_dotenv()
 
-# Asegurar que el PATH incluya el binario del entorno virtual y herramientas locales
-import sys
-venv_bin = os.path.dirname(sys.executable)
-if venv_bin and venv_bin not in os.environ.get("PATH", ""):
-    os.environ["PATH"] = f"{venv_bin}:{os.environ.get('PATH', '')}"
-
 API_KEY = os.getenv("API_KEY", "default_secret_key")
 MEDIA_DIR = os.getenv("MEDIA_DIR", "/home/juarezromerojuan09/servicios/synapmusic/media")
 JELLYFIN_URL = os.getenv("JELLYFIN_URL", "http://localhost:8096")
 JELLYFIN_API_KEY = os.getenv("JELLYFIN_API_KEY", "")
 DEEZER_ARL = os.getenv("DEEZER_ARL", "")
+
+def jf_headers(extra: dict = None) -> dict:
+    headers = {
+        "X-Emby-Token": JELLYFIN_API_KEY,
+        "Authorization": f'MediaBrowser Token="{JELLYFIN_API_KEY}"',
+    }
+    if extra:
+        headers.update(extra)
+    return headers
 
 # Configuración de Feedback / Ayuda y comentarios
 FEEDBACK_DIR = os.getenv("FEEDBACK_DIR", os.path.join(os.path.dirname(__file__), "feedback_images"))
@@ -283,21 +286,6 @@ def get_deemix_binary():
         return server_path
     return "deemix"
 
-def get_spotdl_binary():
-    """Obtiene la ruta absoluta al ejecutable spotdl."""
-    import sys
-    import shutil
-    venv_spotdl = os.path.join(os.path.dirname(sys.executable), "spotdl")
-    if os.path.isfile(venv_spotdl) and os.access(venv_spotdl, os.X_OK):
-        return venv_spotdl
-    which_path = shutil.which("spotdl")
-    if which_path:
-        return which_path
-    server_path = "/home/juarezromerojuan09/servicios/synapmusic/venv/bin/spotdl"
-    if os.path.isfile(server_path) and os.access(server_path, os.X_OK):
-        return server_path
-    return "spotdl"
-
 def setup_deemix():
     """Configura el entorno de Deemix inyectando ARL, config.json y aplicando el parche a deezer-py."""
     patch_deezer_utils()
@@ -376,10 +364,7 @@ async def update_jellyfin_library():
         return
         
     url = f"{JELLYFIN_URL.rstrip('/')}/Library/Refresh"
-    headers = {
-        "X-Emby-Token": JELLYFIN_API_KEY,
-        "Content-Type": "application/json"
-    }
+    headers = jf_headers({"Content-Type": "application/json"})
     
     async with httpx.AsyncClient() as client:
         try:
@@ -696,7 +681,7 @@ def run_dual_download(queries: List[str]):
             os.makedirs(spotdl_tmp, exist_ok=True)
             
             command_spotdl = [
-                get_spotdl_binary(),
+                "spotdl",
                 "download",
                 f"{query}",
                 "--output", f"{spotdl_tmp}/{{artists}} - {{title}}.{{ext}}",
@@ -804,10 +789,7 @@ async def create_playlist(request: PlaylistCreateRequest):
         raise HTTPException(status_code=500, detail="JELLYFIN_API_KEY no está configurada")
 
     async with httpx.AsyncClient() as client:
-        headers = {
-            "X-Emby-Token": JELLYFIN_API_KEY,
-            "Content-Type": "application/json"
-        }
+        headers = jf_headers({"Content-Type": "application/json"})
         
         user_id = request.user_id
         if not user_id:
@@ -863,7 +845,7 @@ async def delete_playlist(playlist_id: str):
     if not JELLYFIN_API_KEY:
         raise HTTPException(status_code=500, detail="JELLYFIN_API_KEY no está configurada")
     
-    headers = {"X-Emby-Token": JELLYFIN_API_KEY}
+    headers = jf_headers()
     url = f"{JELLYFIN_URL.rstrip('/')}/Items/{playlist_id}"
     try:
         async with httpx.AsyncClient() as client:
@@ -878,7 +860,7 @@ async def delete_playlist(playlist_id: str):
 async def get_playlists(user_id: Optional[str] = None):
     """Obtiene las playlists del usuario (o todas) desde Jellyfin, deduplicando 'My likes' si existieran duplicados."""
     try:
-        headers = {"X-Emby-Token": JELLYFIN_API_KEY}
+        headers = jf_headers()
         url = f"{JELLYFIN_URL.rstrip('/')}/Users/{user_id}/Items" if user_id else f"{JELLYFIN_URL.rstrip('/')}/Items"
         params = {
             "IncludeItemTypes": "Playlist",
@@ -994,9 +976,7 @@ async def check_jellyfin_local(query: str, client: httpx.AsyncClient = None, art
         client = None
 
     url = f"{JELLYFIN_URL.rstrip('/')}/Items"
-    headers = {
-        "X-Emby-Token": JELLYFIN_API_KEY
-    }
+    headers = jf_headers()
 
     async def do_req(c, search_term):
         try:
@@ -1376,7 +1356,7 @@ class RegisterRequest(BaseModel):
 @app.post("/register")
 async def register_user(req: RegisterRequest):
     # Crea un usuario en Jellyfin y lo deshabilita (Sala de Espera).
-    headers = {"X-Emby-Token": JELLYFIN_API_KEY}
+    headers = jf_headers()
     
     async with httpx.AsyncClient() as client:
         # 1. Crear usuario
@@ -1417,7 +1397,7 @@ async def register_user(req: RegisterRequest):
 @app.get("/users/pending")
 async def get_pending_users():
     # Obtiene todos los usuarios que están deshabilitados (en sala de espera).
-    headers = {"X-Emby-Token": JELLYFIN_API_KEY}
+    headers = jf_headers()
     
     async with httpx.AsyncClient() as client:
         users_url = f"{JELLYFIN_URL}/Users"
@@ -1434,7 +1414,7 @@ async def get_pending_users():
 @app.post("/users/approve/{user_id}")
 async def approve_user(user_id: str):
     # Habilita a un usuario en sala de espera y le da acceso a las bibliotecas.
-    headers = {"X-Emby-Token": JELLYFIN_API_KEY}
+    headers = jf_headers()
     
     async with httpx.AsyncClient() as client:
         # 1. Obtener usuario actual para su policy
@@ -1466,7 +1446,7 @@ class UpdateUserNameRequest(BaseModel):
 @app.post("/users/{user_id}/name", dependencies=[Depends(get_api_key)])
 async def update_user_name(user_id: str, req: UpdateUserNameRequest):
     """Actualiza el nombre de un usuario en Jellyfin."""
-    headers = {"X-Emby-Token": JELLYFIN_API_KEY}
+    headers = jf_headers()
     async with httpx.AsyncClient() as client:
         get_user_url = f"{JELLYFIN_URL}/Users/{user_id}"
         user_resp = await client.get(get_user_url, headers=headers)
@@ -1485,10 +1465,9 @@ async def update_user_name(user_id: str, req: UpdateUserNameRequest):
 @app.post("/users/{user_id}/avatar", dependencies=[Depends(get_api_key)])
 async def update_user_avatar(user_id: str, request: Request):
     """Actualiza la foto de perfil del usuario en Jellyfin."""
-    headers = {
-        "X-Emby-Token": JELLYFIN_API_KEY,
+    headers = jf_headers({
         "Content-Type": request.headers.get("content-type", "image/jpeg")
-    }
+    })
     body = await request.body()
     async with httpx.AsyncClient() as client:
         avatar_url = f"{JELLYFIN_URL}/Users/{user_id}/Images/Primary"
@@ -1496,6 +1475,7 @@ async def update_user_avatar(user_id: str, request: Request):
         if resp.status_code not in [200, 204]:
             raise HTTPException(status_code=500, detail="Error subiendo avatar a Jellyfin")
         return {"status": "success", "message": "Avatar actualizado"}
+
 
 @app.post("/feedback", dependencies=[Depends(get_api_key)])
 async def submit_feedback(
@@ -1808,7 +1788,7 @@ async def get_top_songs(user_id: str):
         "Recursive": "true",
         "Filters": "IsPlayed"
     }
-    headers = {"X-Emby-Token": JELLYFIN_API_KEY}
+    headers = jf_headers()
     try:
         async with httpx.AsyncClient() as client:
             res = await client.get(url, params=params, headers=headers)
@@ -1854,7 +1834,7 @@ async def get_top_artists(user_id: str):
         "Limit": 150,
         "Recursive": "true"
     }
-    headers = {"X-Emby-Token": JELLYFIN_API_KEY}
+    headers = jf_headers()
     try:
         async with httpx.AsyncClient() as client:
             res = await client.get(url, params=params, headers=headers)
@@ -1952,7 +1932,7 @@ async def get_top_albums(user_id: str):
         "Limit": 150,
         "Recursive": "true"
     }
-    headers = {"X-Emby-Token": JELLYFIN_API_KEY}
+    headers = jf_headers()
     results = []
     seen = set()
     try:
@@ -2035,7 +2015,7 @@ async def get_new_releases(user_id: str):
                     "Limit": 50,
                     "Recursive": "true"
                 }
-                res = await client.get(url, params=params, headers={"X-Emby-Token": JELLYFIN_API_KEY})
+                res = await client.get(url, params=params, headers=jf_headers())
                 if res.status_code == 200:
                     items = res.json().get("Items", [])
                     seen_alb = set()
@@ -2216,7 +2196,7 @@ async def check_metadata_editable(item_id: str):
         from mutagen.mp3 import MP3
         from mutagen.id3 import ID3
         
-        headers = {"X-Emby-Token": JELLYFIN_API_KEY}
+        headers = jf_headers()
         url = f"{JELLYFIN_URL}/Items?Ids={item_id}&Fields=Path"
         async with httpx.AsyncClient() as client:
             res = await client.get(url, headers=headers, timeout=5)
@@ -2252,7 +2232,7 @@ async def check_metadata_editable(item_id: str):
 async def edit_metadata(item_id: str, request: MetadataEditRequest):
     try:
         import httpx
-        headers = {"X-Emby-Token": JELLYFIN_API_KEY}
+        headers = jf_headers()
         url = f"{JELLYFIN_URL}/Items?Ids={item_id}&Fields=Path"
         async with httpx.AsyncClient() as client:
             res = await client.get(url, headers=headers, timeout=5)
@@ -2320,7 +2300,7 @@ async def edit_metadata(item_id: str, request: MetadataEditRequest):
                 )
                 audio.save(v2_version=3)
                 
-                headers_post = {"X-Emby-Token": JELLYFIN_API_KEY, "Content-Type": "image/jpeg"}
+                headers_post = jf_headers({"Content-Type": "image/jpeg"})
                 post_url = f"{JELLYFIN_URL}/Items/{item_id}/Images/Primary"
                 async with httpx.AsyncClient() as c2:
                     await c2.post(post_url, headers=headers_post, content=cover_bytes)
@@ -2334,7 +2314,7 @@ async def edit_metadata(item_id: str, request: MetadataEditRequest):
                     
             items[0]["Name"] = request.query
             update_url = f"{JELLYFIN_URL}/Items/{item_id}"
-            headers_json = {"X-Emby-Token": JELLYFIN_API_KEY, "Content-Type": "application/json"}
+            headers_json = jf_headers({"Content-Type": "application/json"})
             async with httpx.AsyncClient() as c3:
                 await c3.post(update_url, headers=headers_json, json=items[0])
                 

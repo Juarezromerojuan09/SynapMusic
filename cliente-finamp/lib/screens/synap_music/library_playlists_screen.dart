@@ -418,7 +418,7 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
                       final songCount = (downloadedParent != null && downloadedParent.downloadedChildren.isNotEmpty)
                           ? downloadedParent.downloadedChildren.length
                           : (playlist.childCount ?? 0);
-                      final imageUrl = 'http://100.81.156.126:8096/Items/${playlist.id}/Images/Primary';
+                      final imageUrl = 'http://100.64.134.104:8096/Items/${playlist.id}/Images/Primary';
 
                       return GestureDetector(
                         onLongPress: () {

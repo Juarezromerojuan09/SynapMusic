@@ -6,7 +6,7 @@ import '../models/synap_search_result.dart';
 
 class SynapApiService {
   // Ajusta esta URL a la IP de tu servidor si pruebas en un dispositivo físico
-  static const String _baseUrl = 'http://100.81.156.126:8000';
+  static const String _baseUrl = 'http://100.64.134.104:8000';
   static const String _apiKey = 'juarezromerojuan160311';
 
   String get baseUrl => _baseUrl;

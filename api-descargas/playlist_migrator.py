@@ -490,7 +490,11 @@ async def run_migration_task(url: str, user_id: str, jellyfin_url: str, jellyfin
     subprocess.run(["chmod", "-R", "755", MEDIA_DIR])
 
     async with httpx.AsyncClient() as client:
-        headers = {"X-Emby-Token": jellyfin_api_key, "Content-Type": "application/json"}
+        headers = {
+            "X-Emby-Token": jellyfin_api_key,
+            "Authorization": f'MediaBrowser Token="{jellyfin_api_key}"',
+            "Content-Type": "application/json"
+        }
         base_url = jellyfin_url.rstrip('/')
 
         # Buscar si ya existe una playlist con este nombre para evitar duplicados

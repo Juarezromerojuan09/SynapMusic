@@ -29,7 +29,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   String _userId = '';
   String _username = '';
-  String _serverUrl = 'http://100.81.156.126:8096';
+  String _serverUrl = 'http://100.64.134.104:8096';
   bool _isAdmin = false;
   bool _isLoading = true;
   bool _isUploadingImage = false;
