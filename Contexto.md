@@ -12,7 +12,7 @@
 2. **API Puente de Descargas (Backend):**
    - **Carpeta:** `/api-descargas`
    - **Tecnología:** Python 3, FastAPI, uvicorn, spotDL. (Seguridad mediante API Key estática por variables de entorno).
-   - **Objetivo:** Una API RESTful que reciba peticiones de búsqueda/descarga, ejecute spotDL en segundo plano para descargar música en alta calidad directamente a la carpeta mapeada de Jellyfin en el host (`/opt/synapmusic/media`), y luego notifique a la API de Jellyfin para que actualice la biblioteca.
+   - **Objetivo:** Una API RESTful que reciba peticiones de búsqueda/descarga, ejecute spotDL en segundo plano para descargar música en alta calidad directamente a la carpeta mapeada de Jellyfin en el host (`/home/juarezromerojuan09/servicios/synapmusic/media`), y luego notifique a la API de Jellyfin para que actualice la biblioteca.
 
 3. **Cliente Móvil/Web (Frontend):**
    - **Carpeta:** `/cliente-finamp`

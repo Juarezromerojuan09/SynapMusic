@@ -19,11 +19,21 @@ from zoneinfo import ZoneInfo
 import datetime
 import time
 
-# Cargar variables de entorno desde .env
-load_dotenv()
+# Cargar variables de entorno desde .env local o entorno
+dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
+else:
+    load_dotenv()
+
+# Asegurar que el PATH incluya el binario del entorno virtual y herramientas locales
+import sys
+venv_bin = os.path.dirname(sys.executable)
+if venv_bin and venv_bin not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = f"{venv_bin}:{os.environ.get('PATH', '')}"
 
 API_KEY = os.getenv("API_KEY", "default_secret_key")
-MEDIA_DIR = "/opt/synapmusic/media"  # Restaurado a ruta absoluta obligatoria
+MEDIA_DIR = os.getenv("MEDIA_DIR", "/home/juarezromerojuan09/servicios/synapmusic/media")
 JELLYFIN_URL = os.getenv("JELLYFIN_URL", "http://localhost:8096")
 JELLYFIN_API_KEY = os.getenv("JELLYFIN_API_KEY", "")
 DEEZER_ARL = os.getenv("DEEZER_ARL", "")
@@ -88,8 +98,10 @@ def patch_deemix_libraries():
         pass
 
     fixed_deezer_paths = [
-        "/opt/synapmusic/api-descargas/venv/lib64/python3.13/site-packages/deezer/utils.py",
-        "/opt/synapmusic/api-descargas/venv/lib/python3.13/site-packages/deezer/utils.py",
+        "/home/juarezromerojuan09/servicios/synapmusic/venv/lib64/python3.13/site-packages/deezer/utils.py",
+        "/home/juarezromerojuan09/servicios/synapmusic/venv/lib/python3.13/site-packages/deezer/utils.py",
+        "/home/juarezromerojuan09/servicios/synapmusic/venv/lib64/python3.11/site-packages/deezer/utils.py",
+        "/home/juarezromerojuan09/servicios/synapmusic/venv/lib/python3.11/site-packages/deezer/utils.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib64/python3.13/site-packages/deezer/utils.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib/python3.13/site-packages/deezer/utils.py",
     ]
@@ -149,8 +161,10 @@ def patch_deemix_libraries():
         pass
 
     fixed_deemix_paths = [
-        "/opt/synapmusic/api-descargas/venv/lib64/python3.13/site-packages/deemix/itemgen.py",
-        "/opt/synapmusic/api-descargas/venv/lib/python3.13/site-packages/deemix/itemgen.py",
+        "/home/juarezromerojuan09/servicios/synapmusic/venv/lib64/python3.13/site-packages/deemix/itemgen.py",
+        "/home/juarezromerojuan09/servicios/synapmusic/venv/lib/python3.13/site-packages/deemix/itemgen.py",
+        "/home/juarezromerojuan09/servicios/synapmusic/venv/lib64/python3.11/site-packages/deemix/itemgen.py",
+        "/home/juarezromerojuan09/servicios/synapmusic/venv/lib/python3.11/site-packages/deemix/itemgen.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib64/python3.13/site-packages/deemix/itemgen.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib/python3.13/site-packages/deemix/itemgen.py",
     ]
@@ -212,8 +226,10 @@ def patch_deemix_libraries():
         pass
 
     fixed_pathtemplates = [
-        "/opt/synapmusic/api-descargas/venv/lib64/python3.13/site-packages/deemix/utils/pathtemplates.py",
-        "/opt/synapmusic/api-descargas/venv/lib/python3.13/site-packages/deemix/utils/pathtemplates.py",
+        "/home/juarezromerojuan09/servicios/synapmusic/venv/lib64/python3.13/site-packages/deemix/utils/pathtemplates.py",
+        "/home/juarezromerojuan09/servicios/synapmusic/venv/lib/python3.13/site-packages/deemix/utils/pathtemplates.py",
+        "/home/juarezromerojuan09/servicios/synapmusic/venv/lib64/python3.11/site-packages/deemix/utils/pathtemplates.py",
+        "/home/juarezromerojuan09/servicios/synapmusic/venv/lib/python3.11/site-packages/deemix/utils/pathtemplates.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib64/python3.13/site-packages/deemix/utils/pathtemplates.py",
         "/home/juarezromerojuan09/api-descargas/venv/lib/python3.13/site-packages/deemix/utils/pathtemplates.py",
     ]
@@ -262,10 +278,25 @@ def get_deemix_binary():
     which_path = shutil.which("deemix")
     if which_path:
         return which_path
-    server_path = "/opt/synapmusic/api-descargas/venv/bin/deemix"
+    server_path = "/home/juarezromerojuan09/servicios/synapmusic/venv/bin/deemix"
     if os.path.isfile(server_path) and os.access(server_path, os.X_OK):
         return server_path
     return "deemix"
+
+def get_spotdl_binary():
+    """Obtiene la ruta absoluta al ejecutable spotdl."""
+    import sys
+    import shutil
+    venv_spotdl = os.path.join(os.path.dirname(sys.executable), "spotdl")
+    if os.path.isfile(venv_spotdl) and os.access(venv_spotdl, os.X_OK):
+        return venv_spotdl
+    which_path = shutil.which("spotdl")
+    if which_path:
+        return which_path
+    server_path = "/home/juarezromerojuan09/servicios/synapmusic/venv/bin/spotdl"
+    if os.path.isfile(server_path) and os.access(server_path, os.X_OK):
+        return server_path
+    return "spotdl"
 
 def setup_deemix():
     """Configura el entorno de Deemix inyectando ARL, config.json y aplicando el parche a deezer-py."""
@@ -665,7 +696,7 @@ def run_dual_download(queries: List[str]):
             os.makedirs(spotdl_tmp, exist_ok=True)
             
             command_spotdl = [
-                "spotdl",
+                get_spotdl_binary(),
                 "download",
                 f"{query}",
                 "--output", f"{spotdl_tmp}/{{artists}} - {{title}}.{{ext}}",
