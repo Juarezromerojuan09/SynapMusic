@@ -29,8 +29,8 @@ else:
     if found:
         local_apk = found[0]
     else:
-        print(f"Error: No se encontró ningún archivo APK en {default_flutter_apk}.")
-        print("Compila primero la aplicación con: flutter build apk --release")
+        print(f"Error: No se encontrÃ³ ningÃºn archivo APK en {default_flutter_apk}.")
+        print("Compila primero la aplicaciÃ³n con: flutter build apk --release")
         print("O pasa la ruta del archivo APK: python publicar_apk.py <ruta_a_tu_apk>")
         sys.exit(1)
 
@@ -55,10 +55,10 @@ def progress_callback(transferred, total):
 
 print("Iniciando subida al portal web...")
 sftp.put(local_apk, REMOTE_APK_PATH, callback=progress_callback)
-print("\n¡APK publicada con éxito en el portal web!")
+print("\nÂ¡APK publicada con Ã©xito en el portal web!")
 sftp.close()
 ssh.close()
 
-print(f"\nYa está disponible para descarga en:")
-print(f"  • Tailscale: http://100.64.134.104:8000/synapmusic")
-print(f"  • Red Local: http://192.168.1.121:8000/synapmusic")
+print(f"\nYa estÃ¡ disponible para descarga en:")
+print(f"  â€¢ Tailscale: http://100.64.134.104:8000/synapmusic")
+print(f"  â€¢ Red Local: http://192.168.1.121:8000/synapmusic")

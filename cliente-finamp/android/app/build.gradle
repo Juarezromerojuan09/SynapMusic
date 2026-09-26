@@ -31,7 +31,7 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace "com.unicornsonlsd.finamp"
     ndkVersion "28.2.13676358"
-    compileSdkVersion 36
+    compileSdkVersion 34
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
