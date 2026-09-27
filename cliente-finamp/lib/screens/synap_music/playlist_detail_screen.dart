@@ -24,6 +24,7 @@ import '../player_screen.dart';
 import '../../services/synap_events.dart';
 import '../../components/synap_fast_scroller.dart';
 import '../../services/likes_playlist_helper.dart';
+import 'edit_playlist_screen.dart';
 
 enum PlaylistSortMode { artist, dateAdded, duration, title }
 
@@ -359,6 +360,25 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     } finally {
       setState(() { _isDownloading = false; });
       _isDownloadedNotifier.value = _downloadsHelper.getDownloadedParent(widget.playlist.id) != null;
+    }
+  }
+
+  Future<void> _handlePlaylistShuffle() async {
+    if (_tracks == null || _tracks!.isEmpty) return;
+    try {
+      await GetIt.instance<AudioServiceHelper>().replaceQueueWithItem(
+        itemList: _tracks!,
+        shuffle: true,
+      );
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pushNamed(PlayerScreen.routeName);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al reproducir aleatoriamente: $e')),
+        );
+      }
     }
   }
 
@@ -779,17 +799,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                                 // 2. Aleatorio
                                 IconButton(
                                   icon: const Icon(Icons.shuffle, size: 24, color: Colors.white),
-                                  onPressed: () async {
-                                    if (_tracks == null || _tracks!.isEmpty) return;
-                                    await GetIt.instance<AudioServiceHelper>().replaceQueueWithItem(
-                                      itemList: _tracks!,
-                                      initialIndex: Random().nextInt(_tracks!.length),
-                                      shuffle: true,
-                                    );
-                                    if (mounted) {
-                                      Navigator.of(context, rootNavigator: true).pushNamed(PlayerScreen.routeName);
-                                    }
-                                  },
+                                  tooltip: 'Reproducción aleatoria',
+                                  onPressed: _handlePlaylistShuffle,
                                 ),
                                 // 3. Lupa / Buscar
                                 IconButton(
@@ -804,15 +815,22 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                                 // 4. Filtro
                                 IconButton(
                                   icon: const Icon(Icons.sort, size: 24, color: Colors.white),
+                                  tooltip: 'Ordenar',
                                   onPressed: _showSortDialog,
                                 ),
                                 // 5. Lapiz
                                 IconButton(
                                   icon: const Icon(Icons.edit, size: 24, color: Colors.white),
-                                  onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Edición próximamente')),
+                                  tooltip: 'Modificar playlist',
+                                  onPressed: () async {
+                                    final updated = await Navigator.of(context).push<bool>(
+                                      MaterialPageRoute(
+                                        builder: (_) => EditPlaylistScreen(playlist: widget.playlist),
+                                      ),
                                     );
+                                    if (updated == true && mounted) {
+                                      _loadItems();
+                                    }
                                   },
                                 ),
                                 // 6. Descargar

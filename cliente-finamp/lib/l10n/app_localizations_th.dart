@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,8 +17,7 @@ class AppLocalizationsTh extends AppLocalizations {
   String get serverUrl => 'URL ของเซิร์ฟเวอร์';
 
   @override
-  String get internalExternalIpExplanation =>
-      'หากคุณต้องการเข้าถึงเซิร์ฟเวอร์ Jellyfin จากภายนอก คุณจำเป็นต้องมี IP ภายนอก\n\nหากเซิร์ฟเวอร์ของคุณรันบนพอร์ต HTTP (80/443) คุณไม่จำเป็นต้องระบุพอร์ต ในเคสนี้เซิร์ฟเวอร์ของคุณอาจจะอยู่หลัง Reverse Proxy';
+  String get internalExternalIpExplanation => 'หากคุณต้องการเข้าถึงเซิร์ฟเวอร์ Jellyfin จากภายนอก คุณจำเป็นต้องมี IP ภายนอก\n\nหากเซิร์ฟเวอร์ของคุณรันบนพอร์ต HTTP (80/443) คุณไม่จำเป็นต้องระบุพอร์ต ในเคสนี้เซิร์ฟเวอร์ของคุณอาจจะอยู่หลัง Reverse Proxy';
 
   @override
   String get emptyServerUrl => 'จำเป็นต้องระบุ URL ของเซิร์ฟเวอร์';
@@ -69,12 +68,10 @@ class AppLocalizationsTh extends AppLocalizations {
   String get startMix => 'เริ่มมิกซ์';
 
   @override
-  String get startMixNoSongsArtist =>
-      'แตะค้างที่ศิลปินเพื่อเพิ่มหรือนำออกจากตัวสร้างมิกซ์ก่อนที่จะเริ่มมิกซ์';
+  String get startMixNoSongsArtist => 'แตะค้างที่ศิลปินเพื่อเพิ่มหรือนำออกจากตัวสร้างมิกซ์ก่อนที่จะเริ่มมิกซ์';
 
   @override
-  String get startMixNoSongsAlbum =>
-      'แตะค้างที่อัลบั้มเพื่อเพิ่มหรือนำออกจากตัวสร้างมิกซ์ก่อนที่จะเริ่มมิกซ์';
+  String get startMixNoSongsAlbum => 'แตะค้างที่อัลบั้มเพื่อเพิ่มหรือนำออกจากตัวสร้างมิกซ์ก่อนที่จะเริ่มมิกซ์';
 
   @override
   String get music => 'เพลง';
@@ -206,8 +203,7 @@ class AppLocalizationsTh extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -238,12 +234,10 @@ class AppLocalizationsTh extends AppLocalizations {
   String get noErrors => 'ไม่มีข้อผิดพลาด!';
 
   @override
-  String get errorScreenError =>
-      'พบข้อผิดพลาดในการดึงรายการข้อผิดพลาด! ถ้าถึงขั้นนี้แล้ว คุณน่าจะต้องไปสร้าง Issue บน Github แล้วลบข้อมูลแอปทิ้งซะ';
+  String get errorScreenError => 'พบข้อผิดพลาดในการดึงรายการข้อผิดพลาด! ถ้าถึงขั้นนี้แล้ว คุณน่าจะต้องไปสร้าง Issue บน Github แล้วลบข้อมูลแอปทิ้งซะ';
 
   @override
-  String get failedToGetSongFromDownloadId =>
-      'ล้มเหลวในการเรียกข้อมูลเพลงจากไอดีสำหรับดาวน์โหลด';
+  String get failedToGetSongFromDownloadId => 'ล้มเหลวในการเรียกข้อมูลเพลงจากไอดีสำหรับดาวน์โหลด';
 
   @override
   String deleteDownloadsPrompt(String itemName, String itemType) {
@@ -338,8 +332,7 @@ class AppLocalizationsTh extends AppLocalizations {
   String get stackTrace => 'ตามรอย';
 
   @override
-  String get applicationLegalese =>
-      'สงวนลิขสิทธิ์โดย Mozilla Public License 2.0 สามารถดาวน์โหลด Source Code ได้ที่:\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => 'สงวนลิขสิทธิ์โดย Mozilla Public License 2.0 สามารถดาวน์โหลด Source Code ได้ที่:\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => 'การแปลงไฟล์';
@@ -363,29 +356,25 @@ class AppLocalizationsTh extends AppLocalizations {
   String get logOut => 'ออกจากระบบ';
 
   @override
-  String get downloadedSongsWillNotBeDeleted =>
-      'เพลงที่ดาวน์โหลดแล้วจะไม่ถูกลบ';
+  String get downloadedSongsWillNotBeDeleted => 'เพลงที่ดาวน์โหลดแล้วจะไม่ถูกลบ';
 
   @override
   String get areYouSure => 'แน่ใจหรือไม่?';
 
   @override
-  String get jellyfinUsesAACForTranscoding =>
-      'Jellyfin ใช้รหัส AAC สำหรับการแปลงไฟล์';
+  String get jellyfinUsesAACForTranscoding => 'Jellyfin ใช้รหัส AAC สำหรับการแปลงไฟล์';
 
   @override
   String get enableTranscoding => 'เปิดใช้งานการแปลงไฟล์';
 
   @override
-  String get enableTranscodingSubtitle =>
-      'การแปลงไฟล์เพลงจะถูกดำเนินการจากฝั่งเซิร์ฟเวอร์';
+  String get enableTranscodingSubtitle => 'การแปลงไฟล์เพลงจะถูกดำเนินการจากฝั่งเซิร์ฟเวอร์';
 
   @override
   String get bitrate => 'บิทเรต';
 
   @override
-  String get bitrateSubtitle =>
-      'บิตเรตที่สูงขึ้นจะช่วยให้เสียงดีขึ้นแต่ก็แลกมาด้วยการใช้งานเน็ตเวิร์กที่มากขึ้น';
+  String get bitrateSubtitle => 'บิตเรตที่สูงขึ้นจะช่วยให้เสียงดีขึ้นแต่ก็แลกมาด้วยการใช้งานเน็ตเวิร์กที่มากขึ้น';
 
   @override
   String get customLocation => 'ตำแหน่งแบบเลือกเอง';
@@ -403,30 +392,25 @@ class AppLocalizationsTh extends AppLocalizations {
   String get unknownError => 'ข้อผิดพลาดที่ไม่รู้จัก';
 
   @override
-  String get pathReturnSlashErrorMessage =>
-      'ตำแหน่งที่ได้ \"/\" ไม่สามารถใช้ได้';
+  String get pathReturnSlashErrorMessage => 'ตำแหน่งที่ได้ \"/\" ไม่สามารถใช้ได้';
 
   @override
   String get directoryMustBeEmpty => 'โฟลเดอร์นั้นต้องว่าง';
 
   @override
-  String get customLocationsBuggy =>
-      'ตำแหน่งแบบเลือกเองนั้นค่อนข้างไม่สเถียรเนื่องจากปัญหาด้านสิทธิ์ ตอนนี้ยังหาวิธีแก้เรื่องนี้อยู่ ทางที่ดีตอนนี้ไม่ค่อยแนะนำให้ใช้ฟีเจอร์นี้';
+  String get customLocationsBuggy => 'ตำแหน่งแบบเลือกเองนั้นค่อนข้างไม่สเถียรเนื่องจากปัญหาด้านสิทธิ์ ตอนนี้ยังหาวิธีแก้เรื่องนี้อยู่ ทางที่ดีตอนนี้ไม่ค่อยแนะนำให้ใช้ฟีเจอร์นี้';
 
   @override
-  String get enterLowPriorityStateOnPause =>
-      'เมื่อหยุดพักจะเข้าสู่โหมดความสำคัญต่ำ';
+  String get enterLowPriorityStateOnPause => 'เมื่อหยุดพักจะเข้าสู่โหมดความสำคัญต่ำ';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      'ให้แถบแจ้งเตือนสามารถปัดทิ้งไปได้เมื่อหยุดชั่วคราว รวมถึงให้แอนดรอยสามารถปิดเซอร์วิสนี้ได้เมื่อหยุดชั่วคราว';
+  String get enterLowPriorityStateOnPauseSubtitle => 'ให้แถบแจ้งเตือนสามารถปัดทิ้งไปได้เมื่อหยุดชั่วคราว รวมถึงให้แอนดรอยสามารถปิดเซอร์วิสนี้ได้เมื่อหยุดชั่วคราว';
 
   @override
   String get shuffleAllSongCount => 'จำนวนครั้งที่สุ่มเพลงทั้งหมด';
 
   @override
-  String get shuffleAllSongCountSubtitle =>
-      'จำนวนเพลงที่โหลดขึ้นมาเมื่อใช้ปุ่ม สุ่มทั้งหมด';
+  String get shuffleAllSongCountSubtitle => 'จำนวนเพลงที่โหลดขึ้นมาเมื่อใช้ปุ่ม สุ่มทั้งหมด';
 
   @override
   String get viewType => 'ประเภทการแสดงผล';
@@ -460,24 +444,19 @@ class AppLocalizationsTh extends AppLocalizations {
   String get showTextOnGridView => 'แสดงตัวอักษรในโหมดตาราง';
 
   @override
-  String get showTextOnGridViewSubtitle =>
-      'แสดงหรือไม่แสดงข้อความ (ชื่อเพลง, ศิลปิน, อื่น ๆ) บนตารางแสดงเพลง';
+  String get showTextOnGridViewSubtitle => 'แสดงหรือไม่แสดงข้อความ (ชื่อเพลง, ศิลปิน, อื่น ๆ) บนตารางแสดงเพลง';
 
   @override
-  String get showCoverAsPlayerBackground =>
-      'แสดงภาพเบลอของปกเพลงเป็นภาพพื้นหลังของตัวเล่นเพลง';
+  String get showCoverAsPlayerBackground => 'แสดงภาพเบลอของปกเพลงเป็นภาพพื้นหลังของตัวเล่นเพลง';
 
   @override
-  String get showCoverAsPlayerBackgroundSubtitle =>
-      'แสดงหรือไม่แสดงภาพเบลอของปกเพลงเป็นพื้นหลังของตัวเล่นเพลง';
+  String get showCoverAsPlayerBackgroundSubtitle => 'แสดงหรือไม่แสดงภาพเบลอของปกเพลงเป็นพื้นหลังของตัวเล่นเพลง';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtists =>
-      'ซ่อนศิลปินของเพลงหากเป็นชื่อเดียวกับศิลปินของอัลบั้ม';
+  String get hideSongArtistsIfSameAsAlbumArtists => 'ซ่อนศิลปินของเพลงหากเป็นชื่อเดียวกับศิลปินของอัลบั้ม';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      'แสดงหรือไม่แสดงชื่อศิลปินเพลงบนหน้าจออัลบั้มหากทั้งสองชื่อไม่ต่างกัน';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => 'แสดงหรือไม่แสดงชื่อศิลปินเพลงบนหน้าจออัลบั้มหากทั้งสองชื่อไม่ต่างกัน';
 
   @override
   String get disableGesture => 'ปิดการใช้งาน gestures';
@@ -646,8 +625,7 @@ class AppLocalizationsTh extends AppLocalizations {
   String get bufferDuration => 'ระยะเวลาที่บัฟเฟอร์';
 
   @override
-  String get bufferDurationSubtitle =>
-      'ตัวเล่นเพลงควรจะอ่านไฟล์ล่วงหน้าเท่าไร ระบุเป็นวินาที หากเปลี่ยนต้องรีสตาร์ท';
+  String get bufferDurationSubtitle => 'ตัวเล่นเพลงควรจะอ่านไฟล์ล่วงหน้าเท่าไร ระบุเป็นวินาที หากเปลี่ยนต้องรีสตาร์ท';
 
   @override
   String get language => 'ภาษา';
@@ -656,8 +634,7 @@ class AppLocalizationsTh extends AppLocalizations {
   String get confirm => 'ยืนยัน';
 
   @override
-  String get showUncensoredLogMessage =>
-      'ล็อกนี้มีข้อมูลการล็อกอินของคุณอยู่ ต้องการให้แสดงใช่ไหม?';
+  String get showUncensoredLogMessage => 'ล็อกนี้มีข้อมูลการล็อกอินของคุณอยู่ ต้องการให้แสดงใช่ไหม?';
 
   @override
   String get resetTabs => 'รีเซ็ตการตั้งค่าแท็ป';
@@ -666,8 +643,7 @@ class AppLocalizationsTh extends AppLocalizations {
   String get noMusicLibrariesTitle => 'ไม่มีคลังเพลง';
 
   @override
-  String get noMusicLibrariesBody =>
-      'ฟินแอมป์ไม่พบคลังเพลงใดเลย โปรดตรวจสอบว่าเซิร์ฟเวอร์ของ Jellyfin นั้นมีอย่างน้อยหนึ่งคลังที่ตั้งประเภทของคอนเทนต์ไว้เป็น \"Music\"';
+  String get noMusicLibrariesBody => 'ฟินแอมป์ไม่พบคลังเพลงใดเลย โปรดตรวจสอบว่าเซิร์ฟเวอร์ของ Jellyfin นั้นมีอย่างน้อยหนึ่งคลังที่ตั้งประเภทของคอนเทนต์ไว้เป็น \"Music\"';
 
   @override
   String get refresh => 'รีเฟชร';
@@ -676,8 +652,7 @@ class AppLocalizationsTh extends AppLocalizations {
   String get swipeInsertQueueNext => 'Play Swiped Song Next';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      'Enable to insert a song as next item in queue when swiped in song list instead of appending it to the end.';
+  String get swipeInsertQueueNextSubtitle => 'Enable to insert a song as next item in queue when swiped in song list instead of appending it to the end.';
 
   @override
   String get redesignBeta => 'Try the Beta';

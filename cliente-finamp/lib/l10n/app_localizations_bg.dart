@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,19 +17,16 @@ class AppLocalizationsBg extends AppLocalizations {
   String get serverUrl => 'URL на сървъра';
 
   @override
-  String get internalExternalIpExplanation =>
-      'В случай, че искате да имате достъп до вашия Jellyfin сървър дистанционно, трябва да използвате външния си IP адрес.\n\nВ случай, че сървърът ви работи на HTTP порт (80/443), не е нужно да посочвате такъв. Например ако използвате обратно прокси.';
+  String get internalExternalIpExplanation => 'В случай, че искате да имате достъп до вашия Jellyfin сървър дистанционно, трябва да използвате външния си IP адрес.\n\nВ случай, че сървърът ви работи на HTTP порт (80/443), не е нужно да посочвате такъв. Например ако използвате обратно прокси.';
 
   @override
   String get emptyServerUrl => 'URL адресът на сървъра не може да бъде празен';
 
   @override
-  String get urlStartWithHttps =>
-      'URL адресът трябва да започва с http:// или https://';
+  String get urlStartWithHttps => 'URL адресът трябва да започва с http:// или https://';
 
   @override
-  String get urlTrailingSlash =>
-      'URL адресът не трябва да включва наклонена черта';
+  String get urlTrailingSlash => 'URL адресът не трябва да включва наклонена черта';
 
   @override
   String get username => 'Потребителско име';
@@ -71,12 +68,10 @@ class AppLocalizationsBg extends AppLocalizations {
   String get startMix => 'Стартирайте разбъркано възпроизвеждане';
 
   @override
-  String get startMixNoSongsArtist =>
-      'Натиснете и задръжте върху изпълнител, за да го добавите или премахнете, от разбъркано възпроизвеждане';
+  String get startMixNoSongsArtist => 'Натиснете и задръжте върху изпълнител, за да го добавите или премахнете, от разбъркано възпроизвеждане';
 
   @override
-  String get startMixNoSongsAlbum =>
-      'Натиснете и задръжте върху албум, за да го добавите или премахнете от разбъркано възпроизвеждане';
+  String get startMixNoSongsAlbum => 'Натиснете и задръжте върху албум, за да го добавите или премахнете от разбъркано възпроизвеждане';
 
   @override
   String get music => 'Музика';
@@ -208,8 +203,7 @@ class AppLocalizationsBg extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -240,12 +234,10 @@ class AppLocalizationsBg extends AppLocalizations {
   String get noErrors => 'Без грешки!';
 
   @override
-  String get errorScreenError =>
-      'Възникна грешка при получаване на списъка с грешки! Преинсталирайте приложението и съобщете за проблема на GitHub';
+  String get errorScreenError => 'Възникна грешка при получаване на списъка с грешки! Преинсталирайте приложението и съобщете за проблема на GitHub';
 
   @override
-  String get failedToGetSongFromDownloadId =>
-      'Неуспех при получаване на песен, посредством ID на изтегляне';
+  String get failedToGetSongFromDownloadId => 'Неуспех при получаване на песен, посредством ID на изтегляне';
 
   @override
   String deleteDownloadsPrompt(String itemName, String itemType) {
@@ -295,12 +287,10 @@ class AppLocalizationsBg extends AppLocalizations {
   }
 
   @override
-  String get editPlaylistNameTooltip =>
-      'Редактирай името на списъка за изпълнение';
+  String get editPlaylistNameTooltip => 'Редактирай името на списъка за изпълнение';
 
   @override
-  String get editPlaylistNameTitle =>
-      'Редактирай името на списъка за изпълнение';
+  String get editPlaylistNameTitle => 'Редактирай името на списъка за изпълнение';
 
   @override
   String get required => 'Задължително';
@@ -309,8 +299,7 @@ class AppLocalizationsBg extends AppLocalizations {
   String get updateButtonLabel => 'АКТУАЛИЗАЦИЯ';
 
   @override
-  String get playlistNameUpdated =>
-      'Името на списъка за изпълнение е обновено.';
+  String get playlistNameUpdated => 'Името на списъка за изпълнение е обновено.';
 
   @override
   String get favourite => 'Любими';
@@ -343,8 +332,7 @@ class AppLocalizationsBg extends AppLocalizations {
   String get stackTrace => 'Проследяване на стека';
 
   @override
-  String get applicationLegalese =>
-      'Лиценз Mozilla Public License 2.0. Програмният код е достъпен на:\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => 'Лиценз Mozilla Public License 2.0. Програмният код е достъпен на:\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => 'Транскодиране';
@@ -368,29 +356,25 @@ class AppLocalizationsBg extends AppLocalizations {
   String get logOut => 'Излезте от профила си';
 
   @override
-  String get downloadedSongsWillNotBeDeleted =>
-      'Изтеглените песни няма да бъдат изтрити';
+  String get downloadedSongsWillNotBeDeleted => 'Изтеглените песни няма да бъдат изтрити';
 
   @override
   String get areYouSure => 'Сигурни ли сте?';
 
   @override
-  String get jellyfinUsesAACForTranscoding =>
-      'Jellyfin използва AAC за транскодиране';
+  String get jellyfinUsesAACForTranscoding => 'Jellyfin използва AAC за транскодиране';
 
   @override
   String get enableTranscoding => 'Активиране на транскодирането';
 
   @override
-  String get enableTranscodingSubtitle =>
-      'Транскодирането на музикалните потоци се осъществява от страна на сървъра.';
+  String get enableTranscodingSubtitle => 'Транскодирането на музикалните потоци се осъществява от страна на сървъра.';
 
   @override
   String get bitrate => 'Битрейт';
 
   @override
-  String get bitrateSubtitle =>
-      'По-високият битрейт гарантира висококачествено аудио за сметка на завишен мрежови трафик.';
+  String get bitrateSubtitle => 'По-високият битрейт гарантира висококачествено аудио за сметка на завишен мрежови трафик.';
 
   @override
   String get customLocation => 'Персонализирано местоположение';
@@ -408,30 +392,25 @@ class AppLocalizationsBg extends AppLocalizations {
   String get unknownError => 'Неизвестна грешка';
 
   @override
-  String get pathReturnSlashErrorMessage =>
-      'Невъзможно е указването на път, използващ \"/\"';
+  String get pathReturnSlashErrorMessage => 'Невъзможно е указването на път, използващ \"/\"';
 
   @override
   String get directoryMustBeEmpty => 'Директорията трябва да е празна';
 
   @override
-  String get customLocationsBuggy =>
-      'Персонализираните местоположения са изключително нестабилни, поради проблеми с правата. Обмислям варианти са справяне с проблема, но за сега непрепоръчвам тяхното използване.';
+  String get customLocationsBuggy => 'Персонализираните местоположения са изключително нестабилни, поради проблеми с правата. Обмислям варианти са справяне с проблема, но за сега непрепоръчвам тяхното използване.';
 
   @override
-  String get enterLowPriorityStateOnPause =>
-      'При пауза, използвай режим на нисък приоритет';
+  String get enterLowPriorityStateOnPause => 'При пауза, използвай режим на нисък приоритет';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      'Известията да бъдат отхвърлени при пауза. Също така позволи на Android да прекрати услугата при пауза.';
+  String get enterLowPriorityStateOnPauseSubtitle => 'Известията да бъдат отхвърлени при пауза. Също така позволи на Android да прекрати услугата при пауза.';
 
   @override
   String get shuffleAllSongCount => 'Разбъркайте всички песни';
 
   @override
-  String get shuffleAllSongCountSubtitle =>
-      'Брой песни за зареждане при използване на бутона за разбъркване на всички песни.';
+  String get shuffleAllSongCountSubtitle => 'Брой песни за зареждане при използване на бутона за разбъркване на всички песни.';
 
   @override
   String get viewType => 'Вид преглед';
@@ -465,24 +444,19 @@ class AppLocalizationsBg extends AppLocalizations {
   String get showTextOnGridView => 'Показване на текст в решетъчен изглед';
 
   @override
-  String get showTextOnGridViewSubtitle =>
-      'Дали да се показва или не текст (името на песента, изпълнителя и т.н.), в решетъчен режим.';
+  String get showTextOnGridViewSubtitle => 'Дали да се показва или не текст (името на песента, изпълнителя и т.н.), в решетъчен режим.';
 
   @override
-  String get showCoverAsPlayerBackground =>
-      'Показване на замъглена обложка като фон на плейъра';
+  String get showCoverAsPlayerBackground => 'Показване на замъглена обложка като фон на плейъра';
 
   @override
-  String get showCoverAsPlayerBackgroundSubtitle =>
-      'Дали да се показва или не, замъглена обложка на албума като фон на плейъра.';
+  String get showCoverAsPlayerBackgroundSubtitle => 'Дали да се показва или не, замъглена обложка на албума като фон на плейъра.';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtists =>
-      'Скриване изпълнителя на песента, ако е същият като изпълнителя на албума';
+  String get hideSongArtistsIfSameAsAlbumArtists => 'Скриване изпълнителя на песента, ако е същият като изпълнителя на албума';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      'Дали да се покаже изпълнителят на песента на екрана, ако не се различава от изпълнителя на албума.';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => 'Дали да се покаже изпълнителят на песента на екрана, ако не се различава от изпълнителя на албума.';
 
   @override
   String get disableGesture => 'Disable gestures';
@@ -651,8 +625,7 @@ class AppLocalizationsBg extends AppLocalizations {
   String get bufferDuration => 'Buffer Duration';
 
   @override
-  String get bufferDurationSubtitle =>
-      'How much the player should buffer, in seconds. Requires a restart.';
+  String get bufferDurationSubtitle => 'How much the player should buffer, in seconds. Requires a restart.';
 
   @override
   String get language => 'Language';
@@ -661,8 +634,7 @@ class AppLocalizationsBg extends AppLocalizations {
   String get confirm => 'Confirm';
 
   @override
-  String get showUncensoredLogMessage =>
-      'This log contains your login information. Show?';
+  String get showUncensoredLogMessage => 'This log contains your login information. Show?';
 
   @override
   String get resetTabs => 'Reset tabs';
@@ -671,8 +643,7 @@ class AppLocalizationsBg extends AppLocalizations {
   String get noMusicLibrariesTitle => 'No Music Libraries';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp could not find any music libraries. Please ensure that your Jellyfin server contains at least one library with the content type set to \"Music\".';
+  String get noMusicLibrariesBody => 'Finamp could not find any music libraries. Please ensure that your Jellyfin server contains at least one library with the content type set to \"Music\".';
 
   @override
   String get refresh => 'REFRESH';
@@ -681,8 +652,7 @@ class AppLocalizationsBg extends AppLocalizations {
   String get swipeInsertQueueNext => 'Play Swiped Song Next';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      'Enable to insert a song as next item in queue when swiped in song list instead of appending it to the end.';
+  String get swipeInsertQueueNextSubtitle => 'Enable to insert a song as next item in queue when swiped in song list instead of appending it to the end.';
 
   @override
   String get redesignBeta => 'Try the Beta';

@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,15 +17,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get serverUrl => 'عنوان الخادم';
 
   @override
-  String get internalExternalIpExplanation =>
-      'إذا تريد ان توصل خدامة \"جلي فين\" من بعيد, يجيب ان تستعمل آي بي(IP) الخارجي.\n\nإذا خادمك يستعمل منافذ الويب(80 أو 443), لا يجب ان تحدد منفذ. هذه محتمل جدا إذا خادمك بستعمل\"Reverse proxy\".';
+  String get internalExternalIpExplanation => 'إذا تريد ان توصل خدامة \"جلي فين\" من بعيد, يجيب ان تستعمل آي بي(IP) الخارجي.\n\nإذا خادمك يستعمل منافذ الويب(80 أو 443), لا يجب ان تحدد منفذ. هذه محتمل جدا إذا خادمك بستعمل\"Reverse proxy\".';
 
   @override
   String get emptyServerUrl => 'لا يمكن عنوان الخادم يكون فارغ';
 
   @override
-  String get urlStartWithHttps =>
-      'العنوان يجب ان يبدأ مع \"//:http\" أو \"//:https\"';
+  String get urlStartWithHttps => 'العنوان يجب ان يبدأ مع \"//:http\" أو \"//:https\"';
 
   @override
   String get urlTrailingSlash => 'العنوان لا يمكن ان ينهي مع \"/\"';
@@ -70,12 +68,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get startMix => 'خلط فوري';
 
   @override
-  String get startMixNoSongsArtist =>
-      'إكبس طويل على البوم لتضيف أو تزيل هم من بناء الخلطة قبل ان تبدأ الخلطة';
+  String get startMixNoSongsArtist => 'إكبس طويل على البوم لتضيف أو تزيل هم من بناء الخلطة قبل ان تبدأ الخلطة';
 
   @override
-  String get startMixNoSongsAlbum =>
-      'إكبس طويل على البوم لتضيف أو تزيل ها من بناء الخلطة قبل ان تبدأ الخلطة';
+  String get startMixNoSongsAlbum => 'إكبس طويل على البوم لتضيف أو تزيل ها من بناء الخلطة قبل ان تبدأ الخلطة';
 
   @override
   String get music => 'موسيقى';
@@ -207,8 +203,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -239,12 +234,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noErrors => 'لا يوجد اخطأ!';
 
   @override
-  String get errorScreenError =>
-      'حدث خطأ اثناء حصول على قائمة الأخطأ! في هذه المرحلة ربما يجب عليك ان تفتح تعليقة على <‎GitHub> و تمسح تخزين التطبيق';
+  String get errorScreenError => 'حدث خطأ اثناء حصول على قائمة الأخطأ! في هذه المرحلة ربما يجب عليك ان تفتح تعليقة على <‎GitHub> و تمسح تخزين التطبيق';
 
   @override
-  String get failedToGetSongFromDownloadId =>
-      'فشل ان يجد الاغنية من رقم التنزيل';
+  String get failedToGetSongFromDownloadId => 'فشل ان يجد الاغنية من رقم التنزيل';
 
   @override
   String deleteDownloadsPrompt(String itemName, String itemType) {
@@ -339,8 +332,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get stackTrace => 'إشارة تراكمية';
 
   @override
-  String get applicationLegalese =>
-      'مرخص مع رخصة موزيلا العمومية <Mozilla Public License 2.0>. الشريفة توجد على:\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => 'مرخص مع رخصة موزيلا العمومية <Mozilla Public License 2.0>. الشريفة توجد على:\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => 'تحويل';
@@ -370,22 +362,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get areYouSure => 'هل انت متأكد؟';
 
   @override
-  String get jellyfinUsesAACForTranscoding =>
-      '\"جلي فين\" يستعمل مشفر <AAC> للتحويل';
+  String get jellyfinUsesAACForTranscoding => '\"جلي فين\" يستعمل مشفر <AAC> للتحويل';
 
   @override
   String get enableTranscoding => 'تمكين التحويل';
 
   @override
-  String get enableTranscodingSubtitle =>
-      'إذا ممكن, بث الموسيقى سايتحول من الخادم';
+  String get enableTranscodingSubtitle => 'إذا ممكن, بث الموسيقى سايتحول من الخادم';
 
   @override
   String get bitrate => 'معدل البتات';
 
   @override
-  String get bitrateSubtitle =>
-      'معدل بتات اعلى يعطي جودة صوت أحسن واكن يستعمل اكثر بيانات.';
+  String get bitrateSubtitle => 'معدل بتات اعلى يعطي جودة صوت أحسن واكن يستعمل اكثر بيانات.';
 
   @override
   String get customLocation => 'موقع مخصص';
@@ -403,30 +392,25 @@ class AppLocalizationsAr extends AppLocalizations {
   String get unknownError => 'خطأ غير معروف';
 
   @override
-  String get pathReturnSlashErrorMessage =>
-      'مسارات التي ترجع \"/\" لا يمكن ان تستعمل';
+  String get pathReturnSlashErrorMessage => 'مسارات التي ترجع \"/\" لا يمكن ان تستعمل';
 
   @override
   String get directoryMustBeEmpty => 'المجلد يجب ان يكون فارغ';
 
   @override
-  String get customLocationsBuggy =>
-      'المواقع المخصصة عرضة للأخطأ لأن يوجد مشاكل مع الأذونات. أنا أحوال إصلاحه, و لكن لا أنصح ان تستغدمه.';
+  String get customLocationsBuggy => 'المواقع المخصصة عرضة للأخطأ لأن يوجد مشاكل مع الأذونات. أنا أحوال إصلاحه, و لكن لا أنصح ان تستغدمه.';
 
   @override
-  String get enterLowPriorityStateOnPause =>
-      'تشغيل وضع <low-priority state> عندما توقف استماع مؤقتاً';
+  String get enterLowPriorityStateOnPause => 'تشغيل وضع <low-priority state> عندما توقف استماع مؤقتاً';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      'إذا ممكن، يمكن ان تمسح الإعلام عنمدا توقف مؤقتاً للاستماع. و يمكن \"اندرويد\" ان يقتل الخدمة.';
+  String get enterLowPriorityStateOnPauseSubtitle => 'إذا ممكن، يمكن ان تمسح الإعلام عنمدا توقف مؤقتاً للاستماع. و يمكن \"اندرويد\" ان يقتل الخدمة.';
 
   @override
   String get shuffleAllSongCount => 'استماع عشوائي لعدد الأغاني';
 
   @override
-  String get shuffleAllSongCountSubtitle =>
-      'عدد الأغاني التي تحمل عندما تستعمل كبسة \"استماع عشوائ لكل الأغاني\".';
+  String get shuffleAllSongCountSubtitle => 'عدد الأغاني التي تحمل عندما تستعمل كبسة \"استماع عشوائ لكل الأغاني\".';
 
   @override
   String get viewType => 'نوع العرض';
@@ -460,24 +444,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get showTextOnGridView => 'أظهر كلمات على عرض الشبك';
 
   @override
-  String get showTextOnGridViewSubtitle =>
-      'سواء ان تظهر كلمات  [الإسم، الفنان، أو الباقي] على صفحة الموسيقى التي تستعمل عرض الشبكي.';
+  String get showTextOnGridViewSubtitle => 'سواء ان تظهر كلمات  [الإسم، الفنان، أو الباقي] على صفحة الموسيقى التي تستعمل عرض الشبكي.';
 
   @override
-  String get showCoverAsPlayerBackground =>
-      'أظهر مخلاف البوم غائم على مشغل الموسيقى';
+  String get showCoverAsPlayerBackground => 'أظهر مخلاف البوم غائم على مشغل الموسيقى';
 
   @override
-  String get showCoverAsPlayerBackgroundSubtitle =>
-      'سواء ان تستعمل مخلاف البوم غائم على مشغل الموسيقى.';
+  String get showCoverAsPlayerBackgroundSubtitle => 'سواء ان تستعمل مخلاف البوم غائم على مشغل الموسيقى.';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtists =>
-      'إخفاء أسماء فنانين اﻷغنية إذا هن نفس أسماء فنانين الأابوم';
+  String get hideSongArtistsIfSameAsAlbumArtists => 'إخفاء أسماء فنانين اﻷغنية إذا هن نفس أسماء فنانين الأابوم';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      'سواء ان تخفي فنانين الأغنية من صفحة الألبوم إذا يختلف من فنانين الألبوم.';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => 'سواء ان تخفي فنانين الأغنية من صفحة الألبوم إذا يختلف من فنانين الألبوم.';
 
   @override
   String get disableGesture => 'Disable gestures';
@@ -646,8 +625,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get bufferDuration => 'Buffer Duration';
 
   @override
-  String get bufferDurationSubtitle =>
-      'How much the player should buffer, in seconds. Requires a restart.';
+  String get bufferDurationSubtitle => 'How much the player should buffer, in seconds. Requires a restart.';
 
   @override
   String get language => 'اللغة';
@@ -656,8 +634,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get confirm => 'Confirm';
 
   @override
-  String get showUncensoredLogMessage =>
-      'This log contains your login information. Show?';
+  String get showUncensoredLogMessage => 'This log contains your login information. Show?';
 
   @override
   String get resetTabs => 'Reset tabs';
@@ -666,8 +643,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noMusicLibrariesTitle => 'No Music Libraries';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp could not find any music libraries. Please ensure that your Jellyfin server contains at least one library with the content type set to \"Music\".';
+  String get noMusicLibrariesBody => 'Finamp could not find any music libraries. Please ensure that your Jellyfin server contains at least one library with the content type set to \"Music\".';
 
   @override
   String get refresh => 'REFRESH';
@@ -676,8 +652,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get swipeInsertQueueNext => 'Play Swiped Song Next';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      'Enable to insert a song as next item in queue when swiped in song list instead of appending it to the end.';
+  String get swipeInsertQueueNextSubtitle => 'Enable to insert a song as next item in queue when swiped in song list instead of appending it to the end.';
 
   @override
   String get redesignBeta => 'Try the Beta';

@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,8 +17,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get serverUrl => 'サーバー URL';
 
   @override
-  String get internalExternalIpExplanation =>
-      'リモートからJellyfinサーバーにアクセスするには外部IPを指定する必要があります。\n\nサーバーがHTTPポート(80/443)で動いている場合にはポートは不要です。サーバーがリバースプロキシの後ろにある場合はこれが一般的です。';
+  String get internalExternalIpExplanation => 'リモートからJellyfinサーバーにアクセスするには外部IPを指定する必要があります。\n\nサーバーがHTTPポート(80/443)で動いている場合にはポートは不要です。サーバーがリバースプロキシの後ろにある場合はこれが一般的です。';
 
   @override
   String get emptyServerUrl => 'サーバーURLを入力してください';
@@ -204,8 +203,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -236,8 +234,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get noErrors => 'エラーなし!';
 
   @override
-  String get errorScreenError =>
-      'エラーリスト取得時にエラーが発生しました！この時点では、GitHub で issue を作成し、アプリデータを削除することをお勧めします';
+  String get errorScreenError => 'エラーリスト取得時にエラーが発生しました！この時点では、GitHub で issue を作成し、アプリデータを削除することをお勧めします';
 
   @override
   String get failedToGetSongFromDownloadId => 'ダウンロード ID から曲が取得できません';
@@ -335,8 +332,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get stackTrace => 'スタックトレース';
 
   @override
-  String get applicationLegalese =>
-      'Mozilla Public License 2.0 でライセンスされています。ソース コードは以下から入手できます:\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => 'Mozilla Public License 2.0 でライセンスされています。ソース コードは以下から入手できます:\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => 'トランスコード';
@@ -402,15 +398,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get directoryMustBeEmpty => 'ディレクトリは空でなければなりません';
 
   @override
-  String get customLocationsBuggy =>
-      'カスタムの場所は、権限の問題により、非常にバグが多くなります。これを修正する方法を考えていますが、今のところは使用しないことをお勧めします。';
+  String get customLocationsBuggy => 'カスタムの場所は、権限の問題により、非常にバグが多くなります。これを修正する方法を考えていますが、今のところは使用しないことをお勧めします。';
 
   @override
   String get enterLowPriorityStateOnPause => '一時停止時は低優先度状態';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      '一時停止時に通知をスワイプで除去できます。また Android では一時停止時にサービスを停止できます。';
+  String get enterLowPriorityStateOnPauseSubtitle => '一時停止時に通知をスワイプで除去できます。また Android では一時停止時にサービスを停止できます。';
 
   @override
   String get shuffleAllSongCount => '曲がシャッフル化される回数';
@@ -450,23 +444,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get showTextOnGridView => 'グリッド・ビューでテキストを表示する';
 
   @override
-  String get showTextOnGridViewSubtitle =>
-      'グリッド音楽画面でテキスト（タイトル、アーティスト等）を表示させるか。';
+  String get showTextOnGridViewSubtitle => 'グリッド音楽画面でテキスト（タイトル、アーティスト等）を表示させるか。';
 
   @override
   String get showCoverAsPlayerBackground => 'プレイヤー背景にジャケット画像をぼかして表示する';
 
   @override
-  String get showCoverAsPlayerBackgroundSubtitle =>
-      'プレイヤー画面で背景にジャケット画像をぼかして表示させるか。';
+  String get showCoverAsPlayerBackgroundSubtitle => 'プレイヤー画面で背景にジャケット画像をぼかして表示させるか。';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtists =>
-      '曲のアーティストがアルバム・アーティストと同じの場合、表示しない';
+  String get hideSongArtistsIfSameAsAlbumArtists => '曲のアーティストがアルバム・アーティストと同じの場合、表示しない';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      '曲のアーティストがアルバムのアーティストと一致した場合、アルバム画面に表示させるか。';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => '曲のアーティストがアルバムのアーティストと一致した場合、アルバム画面に表示させるか。';
 
   @override
   String get disableGesture => 'ジェスチャーを無効';
@@ -653,8 +643,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get noMusicLibrariesTitle => '音楽ライブラリなし';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp は音楽ライブラリを見つけることができませんでした。Jellyfin サーバーに、コンテンツ タイプが「音楽」に設定されているライブラリが少なくとも 1 つ含まれていることを確認してください。';
+  String get noMusicLibrariesBody => 'Finamp は音楽ライブラリを見つけることができませんでした。Jellyfin サーバーに、コンテンツ タイプが「音楽」に設定されているライブラリが少なくとも 1 つ含まれていることを確認してください。';
 
   @override
   String get refresh => 'リフレッシュ';
@@ -663,8 +652,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get swipeInsertQueueNext => 'スワイプした曲を再生する';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      '曲リストでスワイプしたときに、曲を最後に追加するのではなく、キューの次の項目として挿入できるようにします。';
+  String get swipeInsertQueueNextSubtitle => '曲リストでスワイプしたときに、曲を最後に追加するのではなく、キューの次の項目として挿入できるようにします。';
 
   @override
   String get redesignBeta => 'Try the Beta';

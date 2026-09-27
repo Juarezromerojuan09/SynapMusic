@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,8 +17,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get serverUrl => '服务器 URL';
 
   @override
-  String get internalExternalIpExplanation =>
-      '如果您希望能够远程访问您的 Jellyfin 服务器，则需要使用您的外部 IP。\n\n如果您的服务器位于 HTTP 端口 (80/443) 上，则不必指定端口。 如果您的服务器位于反向代理后面，则可能会出现这种情况。';
+  String get internalExternalIpExplanation => '如果您希望能够远程访问您的 Jellyfin 服务器，则需要使用您的外部 IP。\n\n如果您的服务器位于 HTTP 端口 (80/443) 上，则不必指定端口。 如果您的服务器位于反向代理后面，则可能会出现这种情况。';
 
   @override
   String get emptyServerUrl => '服务器 URL 不能为空';
@@ -204,8 +203,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -334,8 +332,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get stackTrace => '堆栈跟踪';
 
   @override
-  String get applicationLegalese =>
-      '获得 Mozilla 公共许可证 2.0 的许可。 源代码位于：\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => '获得 Mozilla 公共许可证 2.0 的许可。 源代码位于：\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => '转码';
@@ -401,15 +398,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get directoryMustBeEmpty => '目录必须为空';
 
   @override
-  String get customLocationsBuggy =>
-      '由于权限问题，自定义位置存在很多问题。 我正在考虑解决此问题的方法，但目前我不建议使用它们。';
+  String get customLocationsBuggy => '由于权限问题，自定义位置存在很多问题。 我正在考虑解决此问题的方法，但目前我不建议使用它们。';
 
   @override
   String get enterLowPriorityStateOnPause => '暂停时进入低优先级状态';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      '通知可以在暂停时滑动。 启用此功能还允许 Android 在暂停时终止服务。';
+  String get enterLowPriorityStateOnPauseSubtitle => '通知可以在暂停时滑动。 启用此功能还允许 Android 在暂停时终止服务。';
 
   @override
   String get shuffleAllSongCount => '随机播放所有歌曲计数';
@@ -461,8 +456,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get hideSongArtistsIfSameAsAlbumArtists => '如果与专辑艺术家相同，则隐藏歌曲艺术家';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      '是否在专辑屏幕上隐藏歌曲艺术家（如果他们与专辑艺术家没有区别）。';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => '是否在专辑屏幕上隐藏歌曲艺术家（如果他们与专辑艺术家没有区别）。';
 
   @override
   String get disableGesture => '禁用手势';
@@ -649,8 +643,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noMusicLibrariesTitle => '没有音乐库';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp 找不到任何音乐库。请确保您的 Jellyfin 服务器至少包含一个内容类型设置为“音乐”的媒体库。';
+  String get noMusicLibrariesBody => 'Finamp 找不到任何音乐库。请确保您的 Jellyfin 服务器至少包含一个内容类型设置为“音乐”的媒体库。';
 
   @override
   String get refresh => '刷新';
@@ -659,8 +652,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get swipeInsertQueueNext => '播放滑动的下一首歌曲';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      '在歌曲列表中滑动时，可以将歌曲作为队列中的下一个项目插入，而不是将其附加到末尾。';
+  String get swipeInsertQueueNextSubtitle => '在歌曲列表中滑动时，可以将歌曲作为队列中的下一个项目插入，而不是将其附加到末尾。';
 
   @override
   String get redesignBeta => '试用 Beta 版';
@@ -719,7 +711,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
 class AppLocalizationsZhHant extends AppLocalizationsZh {
-  AppLocalizationsZhHant() : super('zh_Hant');
+  AppLocalizationsZhHant(): super('zh_Hant');
 
   @override
   String startupError(String error) {
@@ -730,8 +722,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get serverUrl => '伺服器 URL';
 
   @override
-  String get internalExternalIpExplanation =>
-      '如果您希望能夠遠程訪問您的 Jellyfin 伺服器，則需要使用您的外部 IP。\n\n如果您的伺服器位於 HTTP 端口 (80/443) 上，則不必指定端口。 如果您的伺服器位於反向代理後面，則可能會出現這種情況。';
+  String get internalExternalIpExplanation => '如果您希望能夠遠程訪問您的 Jellyfin 伺服器，則需要使用您的外部 IP。\n\n如果您的伺服器位於 HTTP 端口 (80/443) 上，則不必指定端口。 如果您的伺服器位於反向代理後面，則可能會出現這種情況。';
 
   @override
   String get emptyServerUrl => '伺服器 URL 不能為空';
@@ -917,8 +908,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -1047,8 +1037,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get stackTrace => '堆棧跟蹤';
 
   @override
-  String get applicationLegalese =>
-      '獲得 Mozilla 公共授權條款 2.0 的許可。 源代碼位於：\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => '獲得 Mozilla 公共授權條款 2.0 的許可。 源代碼位於：\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => '轉碼';
@@ -1114,15 +1103,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get directoryMustBeEmpty => '目錄必須為空';
 
   @override
-  String get customLocationsBuggy =>
-      '由於權限問題，自定義位置存在很多問題。 我正在考慮解決此問題的方法，但目前我不建議使用它們。';
+  String get customLocationsBuggy => '由於權限問題，自定義位置存在很多問題。 我正在考慮解決此問題的方法，但目前我不建議使用它們。';
 
   @override
   String get enterLowPriorityStateOnPause => '暫停時進入低優先級狀態';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      '啓用後，通知可以在暫停時滑動。 啓用此功能還允許 Android 在暫停時終止服務。';
+  String get enterLowPriorityStateOnPauseSubtitle => '啓用後，通知可以在暫停時滑動。 啓用此功能還允許 Android 在暫停時終止服務。';
 
   @override
   String get shuffleAllSongCount => '隨機播放所有歌曲計數';
@@ -1174,8 +1161,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get hideSongArtistsIfSameAsAlbumArtists => '如果與專輯藝術家相同，則隱藏歌曲藝術家';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      '是否在專輯螢幕上隱藏歌曲歌手（如果他們與專輯歌手沒有區別）。';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => '是否在專輯螢幕上隱藏歌曲歌手（如果他們與專輯歌手沒有區別）。';
 
   @override
   String get disableGesture => '禁用手勢';
@@ -1362,8 +1348,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get noMusicLibrariesTitle => '尚無音樂庫';
 
   @override
-  String get noMusicLibrariesBody =>
-      '找不到音樂庫。請確保 Jellyfin 中至少有一個資料庫的類別需設置成\"音樂\"。';
+  String get noMusicLibrariesBody => '找不到音樂庫。請確保 Jellyfin 中至少有一個資料庫的類別需設置成\"音樂\"。';
 
   @override
   String get refresh => '重新整理';
@@ -1372,8 +1357,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get swipeInsertQueueNext => '滑動歌曲接著播放';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      '開啟後滑動清單中的歌曲，可以將歌曲接著播放，而不是加到播放清單的最後一首。';
+  String get swipeInsertQueueNextSubtitle => '開啟後滑動清單中的歌曲，可以將歌曲接著播放，而不是加到播放清單的最後一首。';
 
   @override
   String get redesignBeta => '重新設計的Beta測試版';
@@ -1381,7 +1365,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
 /// The translations for Chinese, as used in Hong Kong, using the Han script (`zh_Hant_HK`).
 class AppLocalizationsZhHantHk extends AppLocalizationsZh {
-  AppLocalizationsZhHantHk() : super('zh_Hant_HK');
+  AppLocalizationsZhHantHk(): super('zh_Hant_HK');
 
   @override
   String startupError(String error) {
@@ -1392,8 +1376,7 @@ class AppLocalizationsZhHantHk extends AppLocalizationsZh {
   String get serverUrl => '伺服器 URL';
 
   @override
-  String get internalExternalIpExplanation =>
-      '如果您需要在局部區域網絡（LAN）以外的地方連接 Jellyfin，請使用伺服器的區域網絡（WAN）IP。\n\n如果目標伺服器使用的連接埠（port）是 HTTP 的預設連接埠（80／433），則毋須填寫連接埠。';
+  String get internalExternalIpExplanation => '如果您需要在局部區域網絡（LAN）以外的地方連接 Jellyfin，請使用伺服器的區域網絡（WAN）IP。\n\n如果目標伺服器使用的連接埠（port）是 HTTP 的預設連接埠（80／433），則毋須填寫連接埠。';
 
   @override
   String get emptyServerUrl => '伺服器 URL 並不能漏空';
@@ -1579,8 +1562,7 @@ class AppLocalizationsZhHantHk extends AppLocalizationsZh {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems， $downloadedImages';
   }
 
@@ -1709,8 +1691,7 @@ class AppLocalizationsZhHantHk extends AppLocalizationsZh {
   String get stackTrace => '除錯資訊（Stack Trace）';
 
   @override
-  String get applicationLegalese =>
-      '採用 Mozilla Public License 2.0 特許條款。原始碼：\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => '採用 Mozilla Public License 2.0 特許條款。原始碼：\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => '轉碼（Transcoding）';
@@ -1782,8 +1763,7 @@ class AppLocalizationsZhHantHk extends AppLocalizationsZh {
   String get enterLowPriorityStateOnPause => '暫停播放時會進入「低優先」狀態';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      '在停止播放時，允許本程式的「通知」能被掃走及關閉應用程式（適用於 Android 裝置）。';
+  String get enterLowPriorityStateOnPauseSubtitle => '在停止播放時，允許本程式的「通知」能被掃走及關閉應用程式（適用於 Android 裝置）。';
 
   @override
   String get shuffleAllSongCount => '隨機播放上限';
@@ -1835,8 +1815,7 @@ class AppLocalizationsZhHantHk extends AppLocalizationsZh {
   String get hideSongArtistsIfSameAsAlbumArtists => '隱藏與專輯歌手同名的歌手名稱';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      '當專輯的歌手與歌曲的歌手相同時，隱藏歌曲的歌手名稱。';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => '當專輯的歌手與歌曲的歌手相同時，隱藏歌曲的歌手名稱。';
 
   @override
   String get disableGesture => '禁用「手勢」功能';
@@ -2023,8 +2002,7 @@ class AppLocalizationsZhHantHk extends AppLocalizationsZh {
   String get noMusicLibrariesTitle => '沒有音樂類媒體庫';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp 未有發現任何音樂媒體庫。請檢查 Jellyfin 伺服器上最少有一個屬於「音樂」類別的媒體庫。';
+  String get noMusicLibrariesBody => 'Finamp 未有發現任何音樂媒體庫。請檢查 Jellyfin 伺服器上最少有一個屬於「音樂」類別的媒體庫。';
 
   @override
   String get refresh => '重新載入';

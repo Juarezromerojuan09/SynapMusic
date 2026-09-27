@@ -36,14 +36,7 @@ class PlayerButtons extends StatelessWidget {
               ),
               onPressed: playbackState != null
                   ? () async {
-                      if (playbackState.shuffleMode ==
-                          AudioServiceShuffleMode.all) {
-                        await audioHandler
-                            .setShuffleMode(AudioServiceShuffleMode.none);
-                      } else {
-                        await audioHandler
-                            .setShuffleMode(AudioServiceShuffleMode.all);
-                      }
+                      await audioHandler.toggleShuffleMode();
                     }
                   : null,
               iconSize: 22,

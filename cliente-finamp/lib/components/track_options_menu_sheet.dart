@@ -4,6 +4,7 @@ import '../services/jellyfin_api_helper.dart';
 import '../services/audio_service_helper.dart';
 import '../services/playback_download_coordinator.dart';
 import 'add_to_playlist_sheet.dart';
+import 'request_metadata_sheet.dart';
 import '../services/synap_api_service.dart';
 import 'fix_metadata_dialog.dart';
 
@@ -168,6 +169,32 @@ class _TrackOptionsMenuSheetState extends State<TrackOptionsMenuSheet> {
                     builder: (context) => FixMetadataDialog(
                       itemId: widget.itemId!,
                       currentTitle: widget.title ?? '',
+                    ),
+                  );
+                },
+              ),
+
+            if (isLocal)
+              ListTile(
+                leading: const Icon(Icons.flag_outlined, color: Colors.amber),
+                title: const Text(
+                  'Reportar letra o metadatos incorrectos',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+                subtitle: const Text(
+                  'Reporta letra o metadatos para corregir la pista',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => RequestMetadataSheet(
+                      trackId: widget.itemId!,
+                      initialTitle: widget.title ?? '',
+                      initialArtist: widget.artist ?? '',
                     ),
                   );
                 },

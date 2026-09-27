@@ -16,6 +16,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'album_detail_screen.dart';
+import 'artist_profile_screen.dart';
 import '../../services/likes_playlist_helper.dart';
 
 class LibraryPlaylistsScreen extends StatefulWidget {
@@ -32,6 +33,7 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   List<dynamic> _favoriteAlbums = [];
+  List<dynamic> _favoriteArtists = [];
   final SynapApiService _apiService = SynapApiService();
   final DownloadsHelper _downloadsHelper = GetIt.instance<DownloadsHelper>();
   StreamSubscription? _refreshSub;
@@ -197,6 +199,7 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
       }
     }
     await _loadFavoriteAlbums();
+    await _loadFavoriteArtists();
   }
 
   Future<void> _loadFavoriteAlbums() async {
@@ -213,6 +216,23 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
       }
     } catch (e) {
       print('Error al cargar álbumes favoritos: $e');
+    }
+  }
+
+  Future<void> _loadFavoriteArtists() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/synap_favorite_artists.json');
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        if (mounted) {
+          setState(() {
+            _favoriteArtists = json.decode(content);
+          });
+        }
+      }
+    } catch (e) {
+      print('Error al cargar artistas favoritos: $e');
     }
   }
 
@@ -533,6 +553,83 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
                       );
                     },
                     childCount: _playlists!.length,
+                  ),
+                ),
+              ),
+
+            // Header Artistas Favoritos
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(left: 16.0, right: 16.0, top: 32.0, bottom: 8.0),
+                child: Text(
+                  'Tus Artistas Favoritos',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+
+            if (_favoriteArtists.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Center(
+                    child: Text(
+                      'No hay artistas favoritos aún.',
+                      style: TextStyle(fontSize: 16, color: Colors.grey.withOpacity(0.5)),
+                    ),
+                  ),
+                ),
+              )
+            else
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 140,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    itemCount: _favoriteArtists.length,
+                    itemBuilder: (context, index) {
+                      final artist = _favoriteArtists[index];
+                      final name = (artist is Map) ? (artist['name'] ?? '') : artist.toString();
+                      final picture = (artist is Map) ? (artist['picture_medium'] ?? artist['picture'] ?? '') : '';
+
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => ArtistProfileScreen(
+                              artistName: name,
+                            ),
+                          )).then((_) => _loadFavoriteArtists());
+                        },
+                        child: Container(
+                          width: 100,
+                          margin: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircleAvatar(
+                                radius: 42,
+                                backgroundColor: _synapColor.withOpacity(0.15),
+                                backgroundImage: (picture.isNotEmpty && (picture as String).startsWith('http'))
+                                    ? NetworkImage(picture)
+                                    : null,
+                                child: (picture.isEmpty || !(picture as String).startsWith('http'))
+                                    ? const Icon(Icons.person, size: 40, color: Colors.white70)
+                                    : null,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                name,
+                                maxLines: 2,
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),

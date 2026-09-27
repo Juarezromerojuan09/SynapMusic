@@ -9,6 +9,7 @@ import '../../services/audio_service_helper.dart';
 import '../../models/jellyfin_models.dart';
 import '../player_screen.dart';
 import 'album_detail_screen.dart';
+import 'artist_profile_screen.dart';
 import '../../services/finamp_user_helper.dart';
 import '../../services/jellyfin_api_helper.dart';
 import '../../services/playback_download_coordinator.dart';
@@ -28,6 +29,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
   Timer? _debounce;
   bool _isLoading = false;
   bool _isAlbumLoading = false;
+  bool _isArtistLoading = false;
   bool _isLoadingMoreDeezer = false;
   bool _isLoadingYoutube = false;
   bool _isDirectUrl = false;
@@ -39,6 +41,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
   List<SynapSearchResult> _deezerResults = [];
   List<SynapSearchResult> _youtubeResults = [];
   List<dynamic> _albumResults = [];
+  List<dynamic> _artistResults = [];
   
   int _deezerOffset = 0;
 
@@ -47,6 +50,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
   List<BaseItemDto>? _discoveries;
   bool _isInitialLoading = true;
   Future<List<dynamic>>? _globalAlbumsFuture;
+  Future<List<dynamic>>? _globalArtistsFuture;
   StreamSubscription<LocalTrackReadyEvent>? _trackReadySub;
 
   final Color _synapColor = const Color(0xFF8B93FF); 
@@ -70,6 +74,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
   Future<void> _loadInitialData() async {
     try {
       _globalAlbumsFuture = _apiService.getGlobalAlbums();
+      _globalArtistsFuture = _apiService.getGlobalArtists();
       final helper = GetIt.instance<JellyfinApiHelper>();
       
       final responses = await Future.wait([
@@ -139,6 +144,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
         _deezerResults = [];
         _youtubeResults = [];
         _albumResults = [];
+        _artistResults = [];
         _localJellyfinData = null;
       });
       return;
@@ -153,6 +159,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
         _deezerResults = [];
         _youtubeResults = [];
         _albumResults = [];
+        _artistResults = [];
         _localJellyfinData = null;
       });
       return;
@@ -168,6 +175,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
       setState(() {
         _isLoading = true;
         _isAlbumLoading = true;
+        _isArtistLoading = true;
         _deezerOffset = 0;
         _youtubeResults.clear();
       });
@@ -176,10 +184,12 @@ class _DownloadScreenState extends State<DownloadScreen> {
     try {
       final responseMapFuture = _apiService.searchExternal(query, source: 'deezer', limit: 15, offset: _deezerOffset);
       final albumResultsFuture = reset ? _apiService.searchAlbums(query) : Future.value(null);
+      final artistResultsFuture = reset ? _apiService.searchArtists(query) : Future.value(null);
 
-      final responses = await Future.wait([responseMapFuture, albumResultsFuture]);
+      final responses = await Future.wait([responseMapFuture, albumResultsFuture, artistResultsFuture]);
       final responseMap = responses[0] as Map<String, dynamic>?;
       final albumResults = responses[1] as List<dynamic>?;
+      final artistResults = responses[2] as List<dynamic>?;
       
       setState(() {
         if (responseMap != null) {
@@ -208,6 +218,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
 
         if (reset) {
           _albumResults = albumResults ?? [];
+          _artistResults = artistResults ?? [];
         }
       });
     } catch (e) {
@@ -218,6 +229,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
       setState(() {
         _isLoading = false;
         _isAlbumLoading = false;
+        _isArtistLoading = false;
         _isLoadingMoreDeezer = false;
       });
     }
@@ -299,7 +311,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: const Color(0xFF0A0A0A),
         body: SafeArea(
@@ -333,6 +345,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
                   tabs: const [
                     Tab(text: 'Canciones'),
                     Tab(text: 'Álbumes'),
+                    Tab(text: 'Artistas'),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -341,6 +354,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
                     children: [
                       _buildSongsTab(),
                       _buildAlbumsTab(),
+                      _buildArtistsTab(),
                     ],
                   ),
                 ),
@@ -553,6 +567,92 @@ class _DownloadScreenState extends State<DownloadScreen> {
         );
       },
     );
+  }
+
+  Widget _buildArtistsTab() {
+    if (_isArtistLoading) return const Center(child: CircularProgressIndicator());
+
+    if (_searchController.text.isEmpty) {
+      return FutureBuilder<List<dynamic>>(
+        future: _globalArtistsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No se encontraron artistas populares'));
+          }
+          final globals = snapshot.data!;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: Text('Artistas Populares', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: globals.length,
+                  itemBuilder: (context, index) => _buildArtistTile(globals[index]),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    if (_artistResults.isEmpty) {
+      return const Center(child: Text('No se encontraron artistas'));
+    }
+
+    return ListView.builder(
+      itemCount: _artistResults.length,
+      itemBuilder: (context, index) => _buildArtistTile(_artistResults[index]),
+    );
+  }
+
+  Widget _buildArtistTile(dynamic artist) {
+    final picture = artist['picture_medium'] ?? artist['picture_xl'] ?? '';
+    final name = artist['name'] ?? 'Artista';
+    final fans = artist['nb_fan'] != null ? _formatFans(artist['nb_fan']) : '';
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 0),
+      leading: CircleAvatar(
+        radius: 28,
+        backgroundColor: _synapColor.withOpacity(0.15),
+        backgroundImage: picture.isNotEmpty ? NetworkImage(picture) : null,
+        child: picture.isEmpty ? const Icon(Icons.person, color: Colors.white70) : null,
+      ),
+      title: Text(
+        name,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: fans.isNotEmpty
+          ? Text(fans, style: const TextStyle(color: Colors.grey, fontSize: 13))
+          : null,
+      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+      onTap: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => ArtistProfileScreen(
+            artistName: name,
+          ),
+        ));
+      },
+    );
+  }
+
+  String _formatFans(dynamic fans) {
+    final count = int.tryParse(fans.toString()) ?? 0;
+    if (count >= 1000000) {
+      return '${(count / 1000000).toStringAsFixed(1)}M fans';
+    } else if (count >= 1000) {
+      return '${(count / 1000).toStringAsFixed(1)}K fans';
+    }
+    return '$count fans';
   }
 
   Widget _buildSpotifyUrlCard() {

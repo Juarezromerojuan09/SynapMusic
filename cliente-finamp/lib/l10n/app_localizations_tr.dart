@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,8 +17,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get serverUrl => 'Sunucunun URL\'i';
 
   @override
-  String get internalExternalIpExplanation =>
-      'Jellyfin sunucunuza uzaktan erişmek istiyorsanız dış IP adresinizi kullanmalısınız.\n\nEğer sunucunuz HTTP portlarından (80/443) birindeyse port belirtmenize gerek yok. Sunucunuz bir reverse proxy\'nin arkasındaysa muhtemelen bu durum geçerlidir.';
+  String get internalExternalIpExplanation => 'Jellyfin sunucunuza uzaktan erişmek istiyorsanız dış IP adresinizi kullanmalısınız.\n\nEğer sunucunuz HTTP portlarından (80/443) birindeyse port belirtmenize gerek yok. Sunucunuz bir reverse proxy\'nin arkasındaysa muhtemelen bu durum geçerlidir.';
 
   @override
   String get emptyServerUrl => 'Sunucu URL\'i boş bırakılamaz';
@@ -69,12 +68,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get startMix => 'Mix\'i başlat';
 
   @override
-  String get startMixNoSongsArtist =>
-      'Mix\'i başlatmadan önce bir sanatçıya uzun basarak mix\'e ekleyip çıkar';
+  String get startMixNoSongsArtist => 'Mix\'i başlatmadan önce bir sanatçıya uzun basarak mix\'e ekleyip çıkar';
 
   @override
-  String get startMixNoSongsAlbum =>
-      'Mix\'i başlatmadan önce bir albüme uzun basarak mix\'e ekleyip çıkar';
+  String get startMixNoSongsAlbum => 'Mix\'i başlatmadan önce bir albüme uzun basarak mix\'e ekleyip çıkar';
 
   @override
   String get music => 'Müzik';
@@ -206,8 +203,7 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -238,12 +234,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get noErrors => 'Hata yok!';
 
   @override
-  String get errorScreenError =>
-      'Hata listesi oluşturulurken hata meydana geldi. Bu noktada, GitHub\'da bir sorun oluşturmalı ve uygulama verilerini silmelisiniz';
+  String get errorScreenError => 'Hata listesi oluşturulurken hata meydana geldi. Bu noktada, GitHub\'da bir sorun oluşturmalı ve uygulama verilerini silmelisiniz';
 
   @override
-  String get failedToGetSongFromDownloadId =>
-      'İndirme ID\'sinden şarkıya ulaşılamadı';
+  String get failedToGetSongFromDownloadId => 'İndirme ID\'sinden şarkıya ulaşılamadı';
 
   @override
   String deleteDownloadsPrompt(String itemName, String itemType) {
@@ -338,8 +332,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get stackTrace => 'Fonksiyon Çağrı Yığını';
 
   @override
-  String get applicationLegalese =>
-      'Mozilla Public License 2.0 ile lisanslandı. Kaynak koda buradan ulaşılabilir:\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => 'Mozilla Public License 2.0 ile lisanslandı. Kaynak koda buradan ulaşılabilir:\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => 'Yeniden kodlama (transcoding)';
@@ -363,29 +356,25 @@ class AppLocalizationsTr extends AppLocalizations {
   String get logOut => 'Çıkış Yap';
 
   @override
-  String get downloadedSongsWillNotBeDeleted =>
-      'İndirilmiş şarkılar silinmeyecek';
+  String get downloadedSongsWillNotBeDeleted => 'İndirilmiş şarkılar silinmeyecek';
 
   @override
   String get areYouSure => 'Emin misiniz?';
 
   @override
-  String get jellyfinUsesAACForTranscoding =>
-      'Jellyfin transcoding için AAC kullanıyor';
+  String get jellyfinUsesAACForTranscoding => 'Jellyfin transcoding için AAC kullanıyor';
 
   @override
   String get enableTranscoding => 'Transcoding\'i aktifleştir';
 
   @override
-  String get enableTranscodingSubtitle =>
-      'Sunucu tarafında müzik akışlarını yeniden kodlar.';
+  String get enableTranscodingSubtitle => 'Sunucu tarafında müzik akışlarını yeniden kodlar.';
 
   @override
   String get bitrate => 'Bit oranı';
 
   @override
-  String get bitrateSubtitle =>
-      'Daha yüksek bir bit oranı, daha fazla bant genişliği kullanır ancak daha kaliteli ses verir.';
+  String get bitrateSubtitle => 'Daha yüksek bir bit oranı, daha fazla bant genişliği kullanır ancak daha kaliteli ses verir.';
 
   @override
   String get customLocation => 'Farklı Lokasyon';
@@ -403,30 +392,25 @@ class AppLocalizationsTr extends AppLocalizations {
   String get unknownError => 'Bilinmeyen Hata';
 
   @override
-  String get pathReturnSlashErrorMessage =>
-      '\"/\" döndüren yollar kullanılamaz';
+  String get pathReturnSlashErrorMessage => '\"/\" döndüren yollar kullanılamaz';
 
   @override
   String get directoryMustBeEmpty => 'Klasör boş olmalı';
 
   @override
-  String get customLocationsBuggy =>
-      'İzinlerden kaynaklanan sorunlar dolayısıyla özel konum seçmek fazlasıyla bug\'a yol açmakta. Şimdilik kullanmanızı önermiyorum, çözmenin bir yolunu düşünüyorum.';
+  String get customLocationsBuggy => 'İzinlerden kaynaklanan sorunlar dolayısıyla özel konum seçmek fazlasıyla bug\'a yol açmakta. Şimdilik kullanmanızı önermiyorum, çözmenin bir yolunu düşünüyorum.';
 
   @override
-  String get enterLowPriorityStateOnPause =>
-      'Bekletmede Düşük Öncelik Durumuna Geç';
+  String get enterLowPriorityStateOnPause => 'Bekletmede Düşük Öncelik Durumuna Geç';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      'Şarkı duraklatıldığında bildirimin temizlenebilmesini sağlar. Ayrıca Android\'in hizmeti kapatmasına izin verir.';
+  String get enterLowPriorityStateOnPauseSubtitle => 'Şarkı duraklatıldığında bildirimin temizlenebilmesini sağlar. Ayrıca Android\'in hizmeti kapatmasına izin verir.';
 
   @override
   String get shuffleAllSongCount => 'Karıştırılacak Tüm Şarkıların Sayısı';
 
   @override
-  String get shuffleAllSongCountSubtitle =>
-      'Tüm şarkıları karıştır butonuna tıklandığında karıştırılacak şarkıların sayısı.';
+  String get shuffleAllSongCountSubtitle => 'Tüm şarkıları karıştır butonuna tıklandığında karıştırılacak şarkıların sayısı.';
 
   @override
   String get viewType => 'Görüntüleme Tipi';
@@ -460,31 +444,25 @@ class AppLocalizationsTr extends AppLocalizations {
   String get showTextOnGridView => 'Izgara görünümünde metin göster';
 
   @override
-  String get showTextOnGridViewSubtitle =>
-      'Izgara müzik ekranında metin (başlık, sanatçı, vs.) gösterilip gösterilmeyeceğini belirler.';
+  String get showTextOnGridViewSubtitle => 'Izgara müzik ekranında metin (başlık, sanatçı, vs.) gösterilip gösterilmeyeceğini belirler.';
 
   @override
-  String get showCoverAsPlayerBackground =>
-      'Oynatıcı arkaplanı olarak bulanık kapak fotoğrafını göster';
+  String get showCoverAsPlayerBackground => 'Oynatıcı arkaplanı olarak bulanık kapak fotoğrafını göster';
 
   @override
-  String get showCoverAsPlayerBackgroundSubtitle =>
-      'Oynatıcı arkaplanı olarak bulanık kapak fotoğrafını gösterilip gösterilmeyeceğini belirler.';
+  String get showCoverAsPlayerBackgroundSubtitle => 'Oynatıcı arkaplanı olarak bulanık kapak fotoğrafını gösterilip gösterilmeyeceğini belirler.';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtists =>
-      'Albüm ile şarkı sanatçısı aynıysa gösterme';
+  String get hideSongArtistsIfSameAsAlbumArtists => 'Albüm ile şarkı sanatçısı aynıysa gösterme';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      'Eğer albüm sanatçısından farklı değilse şarkı sanatçısını albüm ekranında gösterilip gösterilmeyeceğini belirler.';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => 'Eğer albüm sanatçısından farklı değilse şarkı sanatçısını albüm ekranında gösterilip gösterilmeyeceğini belirler.';
 
   @override
   String get disableGesture => 'Jestleri devre dışı bırak';
 
   @override
-  String get disableGestureSubtitle =>
-      'Jestleri devre dışı bırakır veya aktifleştirir.';
+  String get disableGestureSubtitle => 'Jestleri devre dışı bırakır veya aktifleştirir.';
 
   @override
   String get showFastScroller => 'Hızlı kaydırıcıyı göster';
@@ -647,8 +625,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get bufferDuration => 'Önden Kaydetme Süresi';
 
   @override
-  String get bufferDurationSubtitle =>
-      'Oynatıcının kaç saniye önden kaydetmesi gerektiğini ayarlar. Yeniden başlatmayı gerektirir.';
+  String get bufferDurationSubtitle => 'Oynatıcının kaç saniye önden kaydetmesi gerektiğini ayarlar. Yeniden başlatmayı gerektirir.';
 
   @override
   String get language => 'Dil';
@@ -657,8 +634,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get confirm => 'Onayla';
 
   @override
-  String get showUncensoredLogMessage =>
-      'Bu günlük oturum açma bilgilerinizi içerir. Gösterilsin mi?';
+  String get showUncensoredLogMessage => 'Bu günlük oturum açma bilgilerinizi içerir. Gösterilsin mi?';
 
   @override
   String get resetTabs => 'Sekmeleri sıfırla';
@@ -667,8 +643,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get noMusicLibrariesTitle => 'Müzik Kütüphanesi Bulunamadı';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp herhangi bir müzik kütüphanesi bulamadı. Lütfen Jellyfin sunucunun içerik türü \"Müzik\" olarak ayarlanmış en az bir kütüphaneye sahip olduğundan emin ol.';
+  String get noMusicLibrariesBody => 'Finamp herhangi bir müzik kütüphanesi bulamadı. Lütfen Jellyfin sunucunun içerik türü \"Müzik\" olarak ayarlanmış en az bir kütüphaneye sahip olduğundan emin ol.';
 
   @override
   String get refresh => 'YENİLE';
@@ -677,8 +652,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get swipeInsertQueueNext => 'Kaydırılan Şarkıyı Ardından Oynat';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      'Şarkı listesinde kaydırıldığında bir şarkıyı sona eklemek yerine sıradaki öge olarak eklemeyi etkinleştirin.';
+  String get swipeInsertQueueNextSubtitle => 'Şarkı listesinde kaydırıldığında bir şarkıyı sona eklemek yerine sıradaki öge olarak eklemeyi etkinleştirin.';
 
   @override
   String get redesignBeta => 'Yeniden Tasarım Beta';

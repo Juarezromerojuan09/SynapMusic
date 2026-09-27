@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,8 +17,7 @@ class AppLocalizationsHr extends AppLocalizations {
   String get serverUrl => 'URL servera';
 
   @override
-  String get internalExternalIpExplanation =>
-      'Ako želiš pristupiti Jellyfin serveru na daljinski način moraš korisititi tvoju externu IP adresu.\n\nAko je tvoj server na HTTP priključku (80/443), ne moraš navesti priključak. To će vjerojatno slučaj ako se tvoj server nalazi iza obrnutog proxija.';
+  String get internalExternalIpExplanation => 'Ako želiš pristupiti Jellyfin serveru na daljinski način moraš korisititi tvoju externu IP adresu.\n\nAko je tvoj server na HTTP priključku (80/443), ne moraš navesti priključak. To će vjerojatno slučaj ako se tvoj server nalazi iza obrnutog proxija.';
 
   @override
   String get emptyServerUrl => 'URL servera ne smije biti prazan';
@@ -45,8 +44,7 @@ class AppLocalizationsHr extends AppLocalizations {
   String get selectMusicLibraries => 'Odaberi fonoteke';
 
   @override
-  String get couldNotFindLibraries =>
-      'Nije bilo moguće pronaći niti jednu fonoteku.';
+  String get couldNotFindLibraries => 'Nije bilo moguće pronaći niti jednu fonoteku.';
 
   @override
   String get unknownName => 'Nepoznato ime';
@@ -70,12 +68,10 @@ class AppLocalizationsHr extends AppLocalizations {
   String get startMix => 'Pokreni miks';
 
   @override
-  String get startMixNoSongsArtist =>
-      'Pritisni dugo na izvođača za dodavanje ili uklanjanje izvođača iz miksera prije pokretanja miksa';
+  String get startMixNoSongsArtist => 'Pritisni dugo na izvođača za dodavanje ili uklanjanje izvođača iz miksera prije pokretanja miksa';
 
   @override
-  String get startMixNoSongsAlbum =>
-      'Pritisni dugo na album za dodavanje ili uklanjanje albuma iz miksera prije pokretanja miksa';
+  String get startMixNoSongsAlbum => 'Pritisni dugo na album za dodavanje ili uklanjanje albuma iz miksera prije pokretanja miksa';
 
   @override
   String get music => 'Glazba';
@@ -211,8 +207,7 @@ class AppLocalizationsHr extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -243,12 +238,10 @@ class AppLocalizationsHr extends AppLocalizations {
   String get noErrors => 'Nema grešaka!';
 
   @override
-  String get errorScreenError =>
-      'Dogodila se greška prilikom dohvaćanja popisa grešaka! Prijavi problem na GitHubu i izbriši podatke aplikacije';
+  String get errorScreenError => 'Dogodila se greška prilikom dohvaćanja popisa grešaka! Prijavi problem na GitHubu i izbriši podatke aplikacije';
 
   @override
-  String get failedToGetSongFromDownloadId =>
-      'Neuspjelo dohvaćanje pjesme s ID-a preuzimanja';
+  String get failedToGetSongFromDownloadId => 'Neuspjelo dohvaćanje pjesme s ID-a preuzimanja';
 
   @override
   String deleteDownloadsPrompt(String itemName, String itemType) {
@@ -344,8 +337,7 @@ class AppLocalizationsHr extends AppLocalizations {
   String get stackTrace => 'Trag Stacka';
 
   @override
-  String get applicationLegalese =>
-      'Licenca: Mozilla Public License 2.0. Izvorni kod je dostupan na:\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => 'Licenca: Mozilla Public License 2.0. Izvorni kod je dostupan na:\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => 'Transkodiranje';
@@ -369,29 +361,25 @@ class AppLocalizationsHr extends AppLocalizations {
   String get logOut => 'Odjavi se';
 
   @override
-  String get downloadedSongsWillNotBeDeleted =>
-      'Preuzete pjesme neće biti izbrisane';
+  String get downloadedSongsWillNotBeDeleted => 'Preuzete pjesme neće biti izbrisane';
 
   @override
   String get areYouSure => 'Jeste li sigurni?';
 
   @override
-  String get jellyfinUsesAACForTranscoding =>
-      'Jellyfin koristi AAC za transkodiranje';
+  String get jellyfinUsesAACForTranscoding => 'Jellyfin koristi AAC za transkodiranje';
 
   @override
   String get enableTranscoding => 'Omogući transkodiranje';
 
   @override
-  String get enableTranscodingSubtitle =>
-      'Transkodira stream glazbe na server strani.';
+  String get enableTranscodingSubtitle => 'Transkodira stream glazbe na server strani.';
 
   @override
   String get bitrate => 'Brzina prijenosa';
 
   @override
-  String get bitrateSubtitle =>
-      'Veća brzina prijenosa daje veću kvalitetu zvuka, ali troši veću količinu prometa.';
+  String get bitrateSubtitle => 'Veća brzina prijenosa daje veću kvalitetu zvuka, ali troši veću količinu prometa.';
 
   @override
   String get customLocation => 'Prilagođena lokacija';
@@ -409,30 +397,25 @@ class AppLocalizationsHr extends AppLocalizations {
   String get unknownError => 'Nepoznata greška';
 
   @override
-  String get pathReturnSlashErrorMessage =>
-      'Staze sa znakom „/” se ne mogu koristiti';
+  String get pathReturnSlashErrorMessage => 'Staze sa znakom „/” se ne mogu koristiti';
 
   @override
   String get directoryMustBeEmpty => 'Direktorij mora biti prazan';
 
   @override
-  String get customLocationsBuggy =>
-      'Prilagođene lokacije su izrazito pune grešaka zbog problema oko dozvola. Razmišljam o načinima da ovo ispravim, ali za sada ne bih preporučio korištenje.';
+  String get customLocationsBuggy => 'Prilagođene lokacije su izrazito pune grešaka zbog problema oko dozvola. Razmišljam o načinima da ovo ispravim, ali za sada ne bih preporučio korištenje.';
 
   @override
-  String get enterLowPriorityStateOnPause =>
-      'Unesite stanje niskog prioriteta za vrijeme pauze';
+  String get enterLowPriorityStateOnPause => 'Unesite stanje niskog prioriteta za vrijeme pauze';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      'Omogućuje brisanje obavijesti kada je pauzirano. Također omogućuje Androidu da prekine uslugu kada je pauzirana.';
+  String get enterLowPriorityStateOnPauseSubtitle => 'Omogućuje brisanje obavijesti kada je pauzirano. Također omogućuje Androidu da prekine uslugu kada je pauzirana.';
 
   @override
   String get shuffleAllSongCount => 'Broj pjesama za miješanje';
 
   @override
-  String get shuffleAllSongCountSubtitle =>
-      'Broj pjesama koje se učitavaju kada se koristi gumb „Izmiješaj sve pjesme”.';
+  String get shuffleAllSongCountSubtitle => 'Broj pjesama koje se učitavaju kada se koristi gumb „Izmiješaj sve pjesme”.';
 
   @override
   String get viewType => 'Vrsta prikaza';
@@ -466,24 +449,19 @@ class AppLocalizationsHr extends AppLocalizations {
   String get showTextOnGridView => 'Prikaži tekst u rešetkastom prikazu';
 
   @override
-  String get showTextOnGridViewSubtitle =>
-      'Da li prikazati tekst (naslov, izvođač itd.) u rešetkastom ekranu glazbe.';
+  String get showTextOnGridViewSubtitle => 'Da li prikazati tekst (naslov, izvođač itd.) u rešetkastom ekranu glazbe.';
 
   @override
-  String get showCoverAsPlayerBackground =>
-      'Prikaži mutnu sliku omota kao pozadinu playera';
+  String get showCoverAsPlayerBackground => 'Prikaži mutnu sliku omota kao pozadinu playera';
 
   @override
-  String get showCoverAsPlayerBackgroundSubtitle =>
-      'Da li koristiti mutnu sliku omota kao pozadinu na ekranu playera.';
+  String get showCoverAsPlayerBackgroundSubtitle => 'Da li koristiti mutnu sliku omota kao pozadinu na ekranu playera.';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtists =>
-      'Sakrij izvođače pjesama ako su isti kao izvođači albuma';
+  String get hideSongArtistsIfSameAsAlbumArtists => 'Sakrij izvođače pjesama ako su isti kao izvođači albuma';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      'Da li prikazati izvođače pjesama na ekranu albuma ako se ne razlikuju od izvođača albuma.';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => 'Da li prikazati izvođače pjesama na ekranu albuma ako se ne razlikuju od izvođača albuma.';
 
   @override
   String get disableGesture => 'Deaktiviraj geste';
@@ -653,8 +631,7 @@ class AppLocalizationsHr extends AppLocalizations {
   String get bufferDuration => 'Trajanje međuspremnika';
 
   @override
-  String get bufferDurationSubtitle =>
-      'Količina koju player treba spremiti u međuspremnik, u sekundama. Zahtijeva ponovno pokretanje.';
+  String get bufferDurationSubtitle => 'Količina koju player treba spremiti u međuspremnik, u sekundama. Zahtijeva ponovno pokretanje.';
 
   @override
   String get language => 'Jezik';
@@ -663,8 +640,7 @@ class AppLocalizationsHr extends AppLocalizations {
   String get confirm => 'Potvrdi';
 
   @override
-  String get showUncensoredLogMessage =>
-      'Ovaj zapis sadrži tvoje podatke za prijavu. Prikazati?';
+  String get showUncensoredLogMessage => 'Ovaj zapis sadrži tvoje podatke za prijavu. Prikazati?';
 
   @override
   String get resetTabs => 'Resetiraj kartice';
@@ -673,42 +649,34 @@ class AppLocalizationsHr extends AppLocalizations {
   String get noMusicLibrariesTitle => 'Nema fonoteka';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp nije mogao pronaći nijednu fonoteku. Provjeri sadrži li tvoj Jellyfin poslužitelj barem jednu biblioteku s vrstom sadržaja postavljenom na „Glazba”.';
+  String get noMusicLibrariesBody => 'Finamp nije mogao pronaći nijednu fonoteku. Provjeri sadrži li tvoj Jellyfin poslužitelj barem jednu biblioteku s vrstom sadržaja postavljenom na „Glazba”.';
 
   @override
   String get refresh => 'AKTUALIZIRAJ';
 
   @override
-  String get swipeInsertQueueNext =>
-      'Reproduciraj pjesmu kao sljedeću povlačenjem';
+  String get swipeInsertQueueNext => 'Reproduciraj pjesmu kao sljedeću povlačenjem';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      'Omogući umetanje pjesme kao sljedeću pjesmu u redu reprodukcije povlačenjem pjesme iz popisa pjesama umjesto dodavanja pjesme na kraj popisa.';
+  String get swipeInsertQueueNextSubtitle => 'Omogući umetanje pjesme kao sljedeću pjesmu u redu reprodukcije povlačenjem pjesme iz popisa pjesama umjesto dodavanja pjesme na kraj popisa.';
 
   @override
   String get redesignBeta => 'Probaj beta verziju';
 
   @override
-  String get playbackOrderShuffledTooltip =>
-      'Miješanje. Uključi/isključi dodirom.';
+  String get playbackOrderShuffledTooltip => 'Miješanje. Uključi/isključi dodirom.';
 
   @override
-  String get playbackOrderLinearTooltip =>
-      'Reprodukcija redom. Uključi/isključi dodirom.';
+  String get playbackOrderLinearTooltip => 'Reprodukcija redom. Uključi/isključi dodirom.';
 
   @override
-  String get loopModeAllTooltip =>
-      'Ponavljanje svih. Uključi/isključi dodirom.';
+  String get loopModeAllTooltip => 'Ponavljanje svih. Uključi/isključi dodirom.';
 
   @override
-  String get loopModeOneTooltip =>
-      'Ponavljanje jedne. Uključi/isključi dodirom.';
+  String get loopModeOneTooltip => 'Ponavljanje jedne. Uključi/isključi dodirom.';
 
   @override
-  String get loopModeNoneTooltip =>
-      'Bez ponavljanja. Uključi/isključi dodirom.';
+  String get loopModeNoneTooltip => 'Bez ponavljanja. Uključi/isključi dodirom.';
 
   @override
   String get skipToPrevious => 'Prijeđi na prethodnu pjesmu';

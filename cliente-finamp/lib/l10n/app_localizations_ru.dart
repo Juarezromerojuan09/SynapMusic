@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,15 +17,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get serverUrl => 'URL сервера';
 
   @override
-  String get internalExternalIpExplanation =>
-      'Чтобы получить удалённый доступ к серверу Jellyfin, используйте внешний IP-адрес.\n\nЕсли ваш сервер работает на портах HTTP(S) 80/443, указывать порт не нужно. Это обычно так, если сервер находится за обратным прокси-сервером.';
+  String get internalExternalIpExplanation => 'Чтобы получить удалённый доступ к серверу Jellyfin, используйте внешний IP-адрес.\n\nЕсли ваш сервер работает на портах HTTP(S) 80/443, указывать порт не нужно. Это обычно так, если сервер находится за обратным прокси-сервером.';
 
   @override
   String get emptyServerUrl => 'URL сервера не может быть пустым';
 
   @override
-  String get urlStartWithHttps =>
-      'URL сервера должно начинаться с http:// или https://';
+  String get urlStartWithHttps => 'URL сервера должно начинаться с http:// или https://';
 
   @override
   String get urlTrailingSlash => 'URL сервера не должен иметь / в конце';
@@ -70,12 +68,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get startMix => 'Начать Микс';
 
   @override
-  String get startMixNoSongsArtist =>
-      'Чтобы добавить или удалить исполнителя из микса, нажмите и удерживайте его имя';
+  String get startMixNoSongsArtist => 'Чтобы добавить или удалить исполнителя из микса, нажмите и удерживайте его имя';
 
   @override
-  String get startMixNoSongsAlbum =>
-      'Чтобы добавить или удалить альбом из микса, нажмите и удерживайте его';
+  String get startMixNoSongsAlbum => 'Чтобы добавить или удалить альбом из микса, нажмите и удерживайте его';
 
   @override
   String get music => 'Музыка';
@@ -153,8 +149,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get runtime => 'Время выполнения';
 
   @override
-  String get syncDownloadedPlaylists =>
-      'Синхронизировать загруженные плейлисты';
+  String get syncDownloadedPlaylists => 'Синхронизировать загруженные плейлисты';
 
   @override
   String get downloadMissingImages => 'Скачать отсутствующие изображения';
@@ -212,8 +207,7 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -244,12 +238,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noErrors => 'Ошибок нет!';
 
   @override
-  String get errorScreenError =>
-      'Ошибка при получении списка ошибок! Скорее всего, вам нужно очистить данные приложения и сообщить о данной ошибке на Github';
+  String get errorScreenError => 'Ошибка при получении списка ошибок! Скорее всего, вам нужно очистить данные приложения и сообщить о данной ошибке на Github';
 
   @override
-  String get failedToGetSongFromDownloadId =>
-      'Не удалось запросить песню с ID загрузки';
+  String get failedToGetSongFromDownloadId => 'Не удалось запросить песню с ID загрузки';
 
   @override
   String deleteDownloadsPrompt(String itemName, String itemType) {
@@ -345,8 +337,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get stackTrace => 'Отслеживание стека';
 
   @override
-  String get applicationLegalese =>
-      'Лицензия Mozilla Public License 2.0. Открытый код приложения доступен по ссылке:\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => 'Лицензия Mozilla Public License 2.0. Открытый код приложения доступен по ссылке:\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => 'Транскодирование';
@@ -370,29 +361,25 @@ class AppLocalizationsRu extends AppLocalizations {
   String get logOut => 'Выйти';
 
   @override
-  String get downloadedSongsWillNotBeDeleted =>
-      'Скачанные песни не будут удалены';
+  String get downloadedSongsWillNotBeDeleted => 'Скачанные песни не будут удалены';
 
   @override
   String get areYouSure => 'Вы уверены?';
 
   @override
-  String get jellyfinUsesAACForTranscoding =>
-      'Jellyfin использует AAC для транскодирования';
+  String get jellyfinUsesAACForTranscoding => 'Jellyfin использует AAC для транскодирования';
 
   @override
   String get enableTranscoding => 'Включить транскодирование';
 
   @override
-  String get enableTranscodingSubtitle =>
-      'Треки будут транскодированы сервером.';
+  String get enableTranscodingSubtitle => 'Треки будут транскодированы сервером.';
 
   @override
   String get bitrate => 'Битрейт';
 
   @override
-  String get bitrateSubtitle =>
-      'Высокий битрейт обеспечивает лучшее качество звука за счет большего потребления трафика.';
+  String get bitrateSubtitle => 'Высокий битрейт обеспечивает лучшее качество звука за счет большего потребления трафика.';
 
   @override
   String get customLocation => 'Пользовательские Папки';
@@ -410,30 +397,25 @@ class AppLocalizationsRu extends AppLocalizations {
   String get unknownError => 'Неизвестная Ошибка';
 
   @override
-  String get pathReturnSlashErrorMessage =>
-      'Невозможно указывать пути, использующие \"/\"';
+  String get pathReturnSlashErrorMessage => 'Невозможно указывать пути, использующие \"/\"';
 
   @override
   String get directoryMustBeEmpty => 'Папка должна быть пустой';
 
   @override
-  String get customLocationsBuggy =>
-      'Пользовательские папки крайне нестабильны в связи с ошибками доступа. Я размышляю над тем, как это исправить, но пока я не рекомендую Вам их использовать.';
+  String get customLocationsBuggy => 'Пользовательские папки крайне нестабильны в связи с ошибками доступа. Я размышляю над тем, как это исправить, но пока я не рекомендую Вам их использовать.';
 
   @override
-  String get enterLowPriorityStateOnPause =>
-      'Использовать режим низкого приоритета на Паузе';
+  String get enterLowPriorityStateOnPause => 'Использовать режим низкого приоритета на Паузе';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      'Позволяет смахнуть уведомление на паузе. Также позволяет андроиду остановить сервис на паузе.';
+  String get enterLowPriorityStateOnPauseSubtitle => 'Позволяет смахнуть уведомление на паузе. Также позволяет андроиду остановить сервис на паузе.';
 
   @override
   String get shuffleAllSongCount => 'Перемешать порядок всех песен';
 
   @override
-  String get shuffleAllSongCountSubtitle =>
-      'Количество песен для загрузки в режиме случайного проигрывания.';
+  String get shuffleAllSongCountSubtitle => 'Количество песен для загрузки в режиме случайного проигрывания.';
 
   @override
   String get viewType => 'Тип вида';
@@ -467,24 +449,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get showTextOnGridView => 'Отображать текст в режиме решётки';
 
   @override
-  String get showTextOnGridViewSubtitle =>
-      'Отображать или нет текст (название песни, исполнителя и т.д.) в режиме решётки.';
+  String get showTextOnGridViewSubtitle => 'Отображать или нет текст (название песни, исполнителя и т.д.) в режиме решётки.';
 
   @override
-  String get showCoverAsPlayerBackground =>
-      'Показывать размытую обложку на фоне';
+  String get showCoverAsPlayerBackground => 'Показывать размытую обложку на фоне';
 
   @override
-  String get showCoverAsPlayerBackgroundSubtitle =>
-      'Отображать или нет размытую обложку альбома как фон в плеере.';
+  String get showCoverAsPlayerBackgroundSubtitle => 'Отображать или нет размытую обложку альбома как фон в плеере.';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtists =>
-      'Не отображать одинаковых исполнителей для трека и альбома';
+  String get hideSongArtistsIfSameAsAlbumArtists => 'Не отображать одинаковых исполнителей для трека и альбома';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      'Отображать исполнителя трека на странице альбома, если он совпадает с исполнителем альбома.';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => 'Отображать исполнителя трека на странице альбома, если он совпадает с исполнителем альбома.';
 
   @override
   String get disableGesture => 'Отключить жесты';
@@ -654,8 +631,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get bufferDuration => 'Длительность буферизации';
 
   @override
-  String get bufferDurationSubtitle =>
-      'Размер буфера плеера (в секундах). Требуется перезапуск.';
+  String get bufferDurationSubtitle => 'Размер буфера плеера (в секундах). Требуется перезапуск.';
 
   @override
   String get language => 'Язык';
@@ -664,8 +640,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get confirm => 'Подтвердить';
 
   @override
-  String get showUncensoredLogMessage =>
-      'Этот лог содержит ваши данные для входа. Показать?';
+  String get showUncensoredLogMessage => 'Этот лог содержит ваши данные для входа. Показать?';
 
   @override
   String get resetTabs => 'Сбросить вкладки';
@@ -674,8 +649,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noMusicLibrariesTitle => 'Нет музыкальных библиотек';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp не обнаружил музыкальных библиотек. Убедитесь, что на вашем сервере Jellyfin есть хотя бы одна библиотека с типом контента \"Музыка\".';
+  String get noMusicLibrariesBody => 'Finamp не обнаружил музыкальных библиотек. Убедитесь, что на вашем сервере Jellyfin есть хотя бы одна библиотека с типом контента \"Музыка\".';
 
   @override
   String get refresh => 'ОБНОВИТЬ';
@@ -684,8 +658,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get swipeInsertQueueNext => 'Воспроизвести смахнутую песню следующей';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      'Разрешить вставлять песню следующей в очереди при свайпе в списке песен, а не добавлять ее в конец.';
+  String get swipeInsertQueueNextSubtitle => 'Разрешить вставлять песню следующей в очереди при свайпе в списке песен, а не добавлять ее в конец.';
 
   @override
   String get redesignBeta => 'Новый дизайн (бета)';

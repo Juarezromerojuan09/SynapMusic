@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,8 +17,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get serverUrl => '서버 URL';
 
   @override
-  String get internalExternalIpExplanation =>
-      '귀하의 Jellyfin 서버에 원격으로 접속하려면, 외부 IP 주소를 사용해야 합니다.\n\n귀하의 서버가 HTTP 포트(80/443)에 있거나 역방향 프록시(Reverse Proxy) 뒤에 있는 경우, 포트를 지정할 필요는 없습니다.';
+  String get internalExternalIpExplanation => '귀하의 Jellyfin 서버에 원격으로 접속하려면, 외부 IP 주소를 사용해야 합니다.\n\n귀하의 서버가 HTTP 포트(80/443)에 있거나 역방향 프록시(Reverse Proxy) 뒤에 있는 경우, 포트를 지정할 필요는 없습니다.';
 
   @override
   String get emptyServerUrl => '서버 URL은 필수값 입니다';
@@ -69,12 +68,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get startMix => '믹스 시작하기';
 
   @override
-  String get startMixNoSongsArtist =>
-      '믹스를 시작하기 전에 \'아티스트\'를 길게 탭하여 믹스 빌더에서 추가하거나 제거하세요';
+  String get startMixNoSongsArtist => '믹스를 시작하기 전에 \'아티스트\'를 길게 탭하여 믹스 빌더에서 추가하거나 제거하세요';
 
   @override
-  String get startMixNoSongsAlbum =>
-      '믹스를 시작하기 전에 \'앨범\'을 길게 탭하여 믹스 빌더에서 추가하거나 제거하세요';
+  String get startMixNoSongsAlbum => '믹스를 시작하기 전에 \'앨범\'을 길게 탭하여 믹스 빌더에서 추가하거나 제거하세요';
 
   @override
   String get music => '음악';
@@ -206,8 +203,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -238,8 +234,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get noErrors => '오류가 없습니다!';
 
   @override
-  String get errorScreenError =>
-      '오류 목록을 가져오지 못했습니다! 이 시점에서는 GitHub에 문제를 등록하고 앱 데이터를 삭제해야 합니다';
+  String get errorScreenError => '오류 목록을 가져오지 못했습니다! 이 시점에서는 GitHub에 문제를 등록하고 앱 데이터를 삭제해야 합니다';
 
   @override
   String get failedToGetSongFromDownloadId => '다운로드 ID에서 노래를 가져오지 못했습니다';
@@ -337,8 +332,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get stackTrace => '스택 추적';
 
   @override
-  String get applicationLegalese =>
-      'Mozilla Public License 2.0에 따라 라이선스가 부여됐습니다. 소스 코드는 다음에서 확인할 수 있습니다:\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => 'Mozilla Public License 2.0에 따라 라이선스가 부여됐습니다. 소스 코드는 다음에서 확인할 수 있습니다:\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => '트랜스코딩';
@@ -380,8 +374,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get bitrate => '비트레이트';
 
   @override
-  String get bitrateSubtitle =>
-      '비트레이트가 높으면 고품질의 음악을 들을 수 있습니다. 데이터 사용량도 증가합니다.';
+  String get bitrateSubtitle => '비트레이트가 높으면 고품질의 음악을 들을 수 있습니다. 데이터 사용량도 증가합니다.';
 
   @override
   String get customLocation => '사용자 지정 위치';
@@ -405,22 +398,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get directoryMustBeEmpty => '디렉토리는 비어 있어야 합니다';
 
   @override
-  String get customLocationsBuggy =>
-      '사용자 지정 위치는 권한 문제 때문에 버그가 매우 많습니다. 이 문제를 해결할 방법을 찾을 때 까지는 사용을 권장하지 않습니다.';
+  String get customLocationsBuggy => '사용자 지정 위치는 권한 문제 때문에 버그가 매우 많습니다. 이 문제를 해결할 방법을 찾을 때 까지는 사용을 권장하지 않습니다.';
 
   @override
   String get enterLowPriorityStateOnPause => '일시 중지시 낮은 우선순위 상태로 전환합니다';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      '일시 중지시 알림창을 밀어서 사라지게 합니다. 안드로이드(OS)에서는 일시 중지시 서비스를 강제 종료할 수 있게 합니다.';
+  String get enterLowPriorityStateOnPauseSubtitle => '일시 중지시 알림창을 밀어서 사라지게 합니다. 안드로이드(OS)에서는 일시 중지시 서비스를 강제 종료할 수 있게 합니다.';
 
   @override
   String get shuffleAllSongCount => '전곡 임의 재생시 곡 수';
 
   @override
-  String get shuffleAllSongCountSubtitle =>
-      '\'전곡 임의 재생\' 버튼을 사용할 때 불러올 곡의 개수입니다.';
+  String get shuffleAllSongCountSubtitle => '\'전곡 임의 재생\' 버튼을 사용할 때 불러올 곡의 개수입니다.';
 
   @override
   String get viewType => '보기 유형';
@@ -454,23 +444,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get showTextOnGridView => '그리드 보기에서 텍스트를 보여줌';
 
   @override
-  String get showTextOnGridViewSubtitle =>
-      '그리드 음악 화면에서 \'텍스트(곡목, 아티스트 등)\' 표시 여부를 설정합니다.';
+  String get showTextOnGridViewSubtitle => '그리드 음악 화면에서 \'텍스트(곡목, 아티스트 등)\' 표시 여부를 설정합니다.';
 
   @override
   String get showCoverAsPlayerBackground => '흐릿한 커버를 재생 화면 배경으로 보여줌';
 
   @override
-  String get showCoverAsPlayerBackgroundSubtitle =>
-      '재생 화면에서 \'흐릿한 앨범 커버 배경\' 사용 여부를 설정합니다.';
+  String get showCoverAsPlayerBackgroundSubtitle => '재생 화면에서 \'흐릿한 앨범 커버 배경\' 사용 여부를 설정합니다.';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtists =>
-      '앨범 아티스트와 동일한 경우, 곡 아티스트를 숨김';
+  String get hideSongArtistsIfSameAsAlbumArtists => '앨범 아티스트와 동일한 경우, 곡 아티스트를 숨김';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      '앨범 화면에서 앨범 아티스트와 동일한 \'곡 아티스트\' 표시 여부를 설정합니다.';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => '앨범 화면에서 앨범 아티스트와 동일한 \'곡 아티스트\' 표시 여부를 설정합니다.';
 
   @override
   String get disableGesture => '제스처 비활성화';
@@ -648,8 +634,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get confirm => '확인';
 
   @override
-  String get showUncensoredLogMessage =>
-      '이 로그(사용기록)는 귀하의 로그인 정보를 포함합니다. 표시할까요?';
+  String get showUncensoredLogMessage => '이 로그(사용기록)는 귀하의 로그인 정보를 포함합니다. 표시할까요?';
 
   @override
   String get resetTabs => '탭 초기화';
@@ -658,8 +643,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get noMusicLibrariesTitle => '음악 라이브러리 없음';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp가 음악 라이브러리를 찾을 수 없습니다. 귀하의 Jellyfin 서버에 콘텐츠 유형이 \"음악\"으로 설정된 라이브러리가 하나 이상 있는지 확인하세요.';
+  String get noMusicLibrariesBody => 'Finamp가 음악 라이브러리를 찾을 수 없습니다. 귀하의 Jellyfin 서버에 콘텐츠 유형이 \"음악\"으로 설정된 라이브러리가 하나 이상 있는지 확인하세요.';
 
   @override
   String get refresh => '새로고침';
@@ -668,8 +652,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get swipeInsertQueueNext => '스와이프한 노래 재생';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      '노래 목록에서 스와이프 했을 때, 노래를 대기열 끝에 추가하는 대신 바로 다음 곡으로 삽입할 수 있습니다.';
+  String get swipeInsertQueueNextSubtitle => '노래 목록에서 스와이프 했을 때, 노래를 대기열 끝에 추가하는 대신 바로 다음 곡으로 삽입할 수 있습니다.';
 
   @override
   String get redesignBeta => '베타 버전 사용해보기';

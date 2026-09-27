@@ -110,7 +110,7 @@ class _QueueListState extends State<QueueList> {
                 width: 40,
                 height: 4.5,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.3),
+                  color: Colors.white.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(2.5),
                 ),
               ),
@@ -206,13 +206,13 @@ class _QueueListState extends State<QueueList> {
                           DismissDirection.horizontal: 0.5,
                         },
                         background: Container(
-                          color: Colors.red.shade900.withValues(alpha: 0.7),
+                          color: Colors.red.shade900.withOpacity(0.7),
                           alignment: Alignment.centerLeft,
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: const Icon(Icons.delete_outline, color: Colors.white, size: 26),
                         ),
                         secondaryBackground: Container(
-                          color: Colors.red.shade900.withValues(alpha: 0.7),
+                          color: Colors.red.shade900.withOpacity(0.7),
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: const Icon(Icons.delete_outline, color: Colors.white, size: 26),
@@ -231,7 +231,7 @@ class _QueueListState extends State<QueueList> {
                         },
                         child: Container(
                           color: isPlaying
-                              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
+                              ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
                               : null,
                           child: ListTile(
                             leading: SizedBox(

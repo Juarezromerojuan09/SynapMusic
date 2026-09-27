@@ -1185,6 +1185,36 @@ async def search_albums(q: str):
         print(f"❌ Error buscando álbumes en Deezer: {e}")
         return {"error": str(e), "results": []}
 
+@app.get("/search/artists", dependencies=[Depends(get_api_key)])
+async def search_artists(q: str):
+    """
+    Busca artistas usando la API de Deezer.
+    """
+    if not q:
+        return {"results": []}
+
+    try:
+        url = "https://api.deezer.com/search/artist"
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.get(url, params={"q": q, "limit": 15})
+            response.raise_for_status()
+            data = response.json()
+
+        artists_data = []
+        for item in data.get('data', []):
+            artists_data.append({
+                "id": str(item.get('id')),
+                "name": item.get('name', 'Unknown Artist'),
+                "picture_medium": item.get('picture_medium', ''),
+                "picture_xl": item.get('picture_xl', item.get('picture_big', '')),
+                "nb_fan": item.get('nb_fan', 0)
+            })
+            
+        return {"results": artists_data}
+    except Exception as e:
+        print(f"❌ Error buscando artistas en Deezer: {e}")
+        return {"results": []}
+
 @app.get("/album/{album_id}", dependencies=[Depends(get_api_key)])
 async def get_album_details(album_id: str):
     """
@@ -2075,6 +2105,27 @@ async def get_global_albums():
     except:
         return []
 
+@app.get("/search/global-artists", dependencies=[Depends(get_api_key)])
+async def get_global_artists():
+    try:
+        url = "https://api.deezer.com/chart/0/artists"
+        async with httpx.AsyncClient() as client:
+            res = await client.get(url, params={"limit": 15})
+            res.raise_for_status()
+            data = res.json().get("data", [])
+            results = []
+            for item in data:
+                results.append({
+                    "id": str(item.get("id")),
+                    "name": item.get("name"),
+                    "picture_medium": item.get("picture_medium"),
+                    "picture_xl": item.get("picture_xl") or item.get("picture_big"),
+                    "nb_fan": item.get("nb_fan", 0)
+                })
+            return results
+    except:
+        return []
+
 @app.get("/home/top-mexico", dependencies=[Depends(get_api_key)])
 async def get_top_mexico():
     return await sync_top_mexico(auto_download=True)
@@ -2324,6 +2375,112 @@ async def edit_metadata(item_id: str, request: MetadataEditRequest):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+METADATA_REQUESTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "metadata_requests.json")
+
+class CreateMetadataRequest(BaseModel):
+    item_id: str
+    current_title: str
+    current_artist: str
+    proposed_query: str
+    proposed_cover_url: Optional[str] = None
+    proposed_lyrics: Optional[str] = None
+    note: Optional[str] = None
+
+@app.get("/metadata/requests", dependencies=[Depends(get_api_key)])
+async def get_metadata_requests():
+    if not os.path.exists(METADATA_REQUESTS_FILE):
+        return []
+    try:
+        with open(METADATA_REQUESTS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error leyendo solicitudes de metadatos: {e}")
+        return []
+
+@app.post("/metadata/requests", dependencies=[Depends(get_api_key)])
+async def create_metadata_request(req: CreateMetadataRequest):
+    requests_list = []
+    if os.path.exists(METADATA_REQUESTS_FILE):
+        try:
+            with open(METADATA_REQUESTS_FILE, "r", encoding="utf-8") as f:
+                requests_list = json.load(f)
+        except:
+            requests_list = []
+            
+    new_req = {
+        "id": str(uuid.uuid4())[:8],
+        "item_id": req.item_id,
+        "current_title": req.current_title,
+        "current_artist": req.current_artist,
+        "proposed_query": req.proposed_query,
+        "proposed_cover_url": req.proposed_cover_url,
+        "proposed_lyrics": req.proposed_lyrics,
+        "note": req.note,
+        "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
+    }
+    requests_list.insert(0, new_req)
+    with open(METADATA_REQUESTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(requests_list, f, indent=2, ensure_ascii=False)
+    return {"status": "success", "request": new_req}
+
+@app.delete("/metadata/requests/{request_id}", dependencies=[Depends(get_api_key)])
+async def delete_metadata_request(request_id: str):
+    if not os.path.exists(METADATA_REQUESTS_FILE):
+        return {"status": "success"}
+    try:
+        with open(METADATA_REQUESTS_FILE, "r", encoding="utf-8") as f:
+            requests_list = json.load(f)
+        requests_list = [r for r in requests_list if r.get("id") != request_id]
+        with open(METADATA_REQUESTS_FILE, "w", encoding="utf-8") as f:
+            json.dump(requests_list, f, indent=2, ensure_ascii=False)
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/metadata/requests/{request_id}/apply", dependencies=[Depends(get_api_key)])
+async def apply_metadata_request(request_id: str):
+    if not os.path.exists(METADATA_REQUESTS_FILE):
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    with open(METADATA_REQUESTS_FILE, "r", encoding="utf-8") as f:
+        requests_list = json.load(f)
+    req = next((r for r in requests_list if r.get("id") == request_id), None)
+    if not req:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+
+    edit_req = MetadataEditRequest(
+        query=req.get("proposed_query") or f"{req.get('current_title')} {req.get('current_artist')}",
+        manual_cover_url=req.get("proposed_cover_url"),
+        manual_lyrics=req.get("proposed_lyrics")
+    )
+    res = await edit_metadata(req["item_id"], edit_req)
+
+    requests_list = [r for r in requests_list if r.get("id") != request_id]
+    with open(METADATA_REQUESTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(requests_list, f, indent=2, ensure_ascii=False)
+
+    return res
+
+@app.get("/metadata/preview", dependencies=[Depends(get_api_key)])
+async def preview_metadata(query: str):
+    if not query:
+        return {}
+    try:
+        url = "https://api.deezer.com/search"
+        async with httpx.AsyncClient() as client:
+            res = await client.get(url, params={"q": query, "limit": 1})
+            data = res.json().get("data", [])
+            if data:
+                t = data[0]
+                return {
+                    "title": t.get("title"),
+                    "artist": t.get("artist", {}).get("name"),
+                    "album": t.get("album", {}).get("title"),
+                    "cover_url": t.get("album", {}).get("cover_xl") or t.get("album", {}).get("cover_big")
+                }
+    except Exception as e:
+        print(f"Error preview_metadata: {e}")
+    return {}
+
 @app.get("/music/check-local", dependencies=[Depends(get_api_key)])
 async def check_track_local(title: str, artist: str = None):
     """Permite al cliente móvil comprobar en tiempo real si una pista ya está disponible en Jellyfin."""
@@ -2386,10 +2543,10 @@ async def download_apk():
 async def get_app_version():
     return {
         "app_name": "SynapMusic",
-        "version": "0.6.28",
-        "version_code": 53,
+        "version": "0.6.31",
+        "version_code": 56,
         "download_url": "/synapmusic/download",
-        "release_date": "2026-09-06",
+        "release_date": "2026-09-27",
         "min_android_version": "Android 8.0+",
-        "changelog": "Sincronización unificada de Top 10 México con auto-descarga en segundo plano, soporte de Pull-to-Refresh y correcciones de estabilidad."
+        "changelog": "Rediseño completo de perfiles de artistas Deezer, buscador con pestaña de Artistas Populares, botón aleatorio inteligente con preservación de reproducción activa, edición y recorte 1:1 de carátulas de playlists, nuevo logotipo e iconos adaptativos y sistema de reporte y revisión de metadatos."
     }

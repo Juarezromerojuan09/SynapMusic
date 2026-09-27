@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,8 +17,7 @@ class AppLocalizationsEt extends AppLocalizations {
   String get serverUrl => 'Serveri URL';
 
   @override
-  String get internalExternalIpExplanation =>
-      'Kui soovid oma Jellyfini serverile kaugjuurdepääsu saada, pead kasutama oma välist IP-d.\n\nKui server kasutab HTTP-porti (80/443), ei pea porti määrama. See on tõenäoliselt nii, kui server on pöördpuhverserveri taga.';
+  String get internalExternalIpExplanation => 'Kui soovid oma Jellyfini serverile kaugjuurdepääsu saada, pead kasutama oma välist IP-d.\n\nKui server kasutab HTTP-porti (80/443), ei pea porti määrama. See on tõenäoliselt nii, kui server on pöördpuhverserveri taga.';
 
   @override
   String get emptyServerUrl => 'Serveri URL ei tohi olla tühi';
@@ -69,12 +68,10 @@ class AppLocalizationsEt extends AppLocalizations {
   String get startMix => 'Käivita miks';
 
   @override
-  String get startMixNoSongsArtist =>
-      'Vajuta pikalt esitajale, et lisada või eemaldada ta enne miksi koostamise alustamist koostajast';
+  String get startMixNoSongsArtist => 'Vajuta pikalt esitajale, et lisada või eemaldada ta enne miksi koostamise alustamist koostajast';
 
   @override
-  String get startMixNoSongsAlbum =>
-      'Vajuta pikalt albumile, et lisada või eemaldada ta enne miksi koostamise alustamist koostajast';
+  String get startMixNoSongsAlbum => 'Vajuta pikalt albumile, et lisada või eemaldada ta enne miksi koostamise alustamist koostajast';
 
   @override
   String get music => 'Muusika';
@@ -206,8 +203,7 @@ class AppLocalizationsEt extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -238,12 +234,10 @@ class AppLocalizationsEt extends AppLocalizations {
   String get noErrors => 'Pole vigu!';
 
   @override
-  String get errorScreenError =>
-      'Vigade loendi saamisel tekkis viga! Siinkohal peaksid ilmselt lihtsalt looma probleemi GitHubis ja kustutama rakenduse andmed';
+  String get errorScreenError => 'Vigade loendi saamisel tekkis viga! Siinkohal peaksid ilmselt lihtsalt looma probleemi GitHubis ja kustutama rakenduse andmed';
 
   @override
-  String get failedToGetSongFromDownloadId =>
-      'Allalaadimise ID-st laulu hankimine nurjus';
+  String get failedToGetSongFromDownloadId => 'Allalaadimise ID-st laulu hankimine nurjus';
 
   @override
   String deleteDownloadsPrompt(String itemName, String itemType) {
@@ -338,8 +332,7 @@ class AppLocalizationsEt extends AppLocalizations {
   String get stackTrace => 'Stack Trace';
 
   @override
-  String get applicationLegalese =>
-      'Litsentsitud Mozilla avaliku litsentsiga 2.0. Lähtekood on saadaval aadressil:\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => 'Litsentsitud Mozilla avaliku litsentsiga 2.0. Lähtekood on saadaval aadressil:\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => 'Transkoodimine';
@@ -357,36 +350,31 @@ class AppLocalizationsEt extends AppLocalizations {
   String get layoutAndTheme => 'Paigutus ja teema';
 
   @override
-  String get notAvailableInOfflineMode =>
-      'Pole võrguühenduseta režiimis saadaval';
+  String get notAvailableInOfflineMode => 'Pole võrguühenduseta režiimis saadaval';
 
   @override
   String get logOut => 'Logi välja';
 
   @override
-  String get downloadedSongsWillNotBeDeleted =>
-      'Allalaaditud lugusid ei kustutata';
+  String get downloadedSongsWillNotBeDeleted => 'Allalaaditud lugusid ei kustutata';
 
   @override
   String get areYouSure => 'Kas oled kindel?';
 
   @override
-  String get jellyfinUsesAACForTranscoding =>
-      'Jellyfin kasutab transkodeerimiseks AAC-d';
+  String get jellyfinUsesAACForTranscoding => 'Jellyfin kasutab transkodeerimiseks AAC-d';
 
   @override
   String get enableTranscoding => 'Luba transkodeerimine';
 
   @override
-  String get enableTranscodingSubtitle =>
-      'Transkodeerib muusikavooge serveri poolel.';
+  String get enableTranscodingSubtitle => 'Transkodeerib muusikavooge serveri poolel.';
 
   @override
   String get bitrate => 'Bitikiirus';
 
   @override
-  String get bitrateSubtitle =>
-      'Suurem bitikiirus annab kvaliteetsema heli, kuid see nõuab suuremat ribalaiust.';
+  String get bitrateSubtitle => 'Suurem bitikiirus annab kvaliteetsema heli, kuid see nõuab suuremat ribalaiust.';
 
   @override
   String get customLocation => 'Kohandatud asukoht';
@@ -404,30 +392,25 @@ class AppLocalizationsEt extends AppLocalizations {
   String get unknownError => 'Tundmatu viga';
 
   @override
-  String get pathReturnSlashErrorMessage =>
-      'Radu, mis tagastavad \"/\", ei saa kasutada';
+  String get pathReturnSlashErrorMessage => 'Radu, mis tagastavad \"/\", ei saa kasutada';
 
   @override
   String get directoryMustBeEmpty => 'Kataloog peab olema tühi';
 
   @override
-  String get customLocationsBuggy =>
-      'Kohandatud asukohad on äärmiselt vigased, kuna on probleeme õigustega. Ma mõtlen, kuidas seda parandada, kuid praegu ma ei soovitaks neid kasutada.';
+  String get customLocationsBuggy => 'Kohandatud asukohad on äärmiselt vigased, kuna on probleeme õigustega. Ma mõtlen, kuidas seda parandada, kuid praegu ma ei soovitaks neid kasutada.';
 
   @override
-  String get enterLowPriorityStateOnPause =>
-      'Kasuta pausil madala prioriteediga olekut';
+  String get enterLowPriorityStateOnPause => 'Kasuta pausil madala prioriteediga olekut';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      'Laseb pausi ajal märguande ära pühkida. Võimaldab Androidil ka teenuse pausi ajal lõpetada.';
+  String get enterLowPriorityStateOnPauseSubtitle => 'Laseb pausi ajal märguande ära pühkida. Võimaldab Androidil ka teenuse pausi ajal lõpetada.';
 
   @override
   String get shuffleAllSongCount => '\'Sega kõik lood\' arv';
 
   @override
-  String get shuffleAllSongCountSubtitle =>
-      'Laaditavate lugude hulk, kui kasutada nuppu \'Sega kõik lood\'.';
+  String get shuffleAllSongCountSubtitle => 'Laaditavate lugude hulk, kui kasutada nuppu \'Sega kõik lood\'.';
 
   @override
   String get viewType => 'Vaate tüüp';
@@ -461,24 +444,19 @@ class AppLocalizationsEt extends AppLocalizations {
   String get showTextOnGridView => 'Kuva teksti ruudustikuvaates';
 
   @override
-  String get showTextOnGridViewSubtitle =>
-      'Kas kuvada teksti (pealkiri, esitaja jne) muusikaekraani ruudustikul või mitte.';
+  String get showTextOnGridViewSubtitle => 'Kas kuvada teksti (pealkiri, esitaja jne) muusikaekraani ruudustikul või mitte.';
 
   @override
-  String get showCoverAsPlayerBackground =>
-      'Kuva hägustatud kaanepilt mängija taustana';
+  String get showCoverAsPlayerBackground => 'Kuva hägustatud kaanepilt mängija taustana';
 
   @override
-  String get showCoverAsPlayerBackgroundSubtitle =>
-      'Kas kasutada mängija ekraanil taustaks hägustatud kaanekujundust või mitte.';
+  String get showCoverAsPlayerBackgroundSubtitle => 'Kas kasutada mängija ekraanil taustaks hägustatud kaanekujundust või mitte.';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtists =>
-      'Peida laulu esitajad, kui need on samad kui albumi esitajad';
+  String get hideSongArtistsIfSameAsAlbumArtists => 'Peida laulu esitajad, kui need on samad kui albumi esitajad';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      'Kas näidata lugude esitajaid albumiekraanil, kui need ei erine albumi esitajatest.';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => 'Kas näidata lugude esitajaid albumiekraanil, kui need ei erine albumi esitajatest.';
 
   @override
   String get disableGesture => 'Keela žestid';
@@ -647,8 +625,7 @@ class AppLocalizationsEt extends AppLocalizations {
   String get bufferDuration => 'Puhvri kestus';
 
   @override
-  String get bufferDurationSubtitle =>
-      'Kui palju mängija peaks puhverdama sekundites. Nõuab taaskäivitamist.';
+  String get bufferDurationSubtitle => 'Kui palju mängija peaks puhverdama sekundites. Nõuab taaskäivitamist.';
 
   @override
   String get language => 'Language';
@@ -657,8 +634,7 @@ class AppLocalizationsEt extends AppLocalizations {
   String get confirm => 'Confirm';
 
   @override
-  String get showUncensoredLogMessage =>
-      'This log contains your login information. Show?';
+  String get showUncensoredLogMessage => 'This log contains your login information. Show?';
 
   @override
   String get resetTabs => 'Reset tabs';
@@ -667,8 +643,7 @@ class AppLocalizationsEt extends AppLocalizations {
   String get noMusicLibrariesTitle => 'No Music Libraries';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp could not find any music libraries. Please ensure that your Jellyfin server contains at least one library with the content type set to \"Music\".';
+  String get noMusicLibrariesBody => 'Finamp could not find any music libraries. Please ensure that your Jellyfin server contains at least one library with the content type set to \"Music\".';
 
   @override
   String get refresh => 'REFRESH';
@@ -677,8 +652,7 @@ class AppLocalizationsEt extends AppLocalizations {
   String get swipeInsertQueueNext => 'Play Swiped Song Next';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      'Enable to insert a song as next item in queue when swiped in song list instead of appending it to the end.';
+  String get swipeInsertQueueNextSubtitle => 'Enable to insert a song as next item in queue when swiped in song list instead of appending it to the end.';
 
   @override
   String get redesignBeta => 'Try the Beta';

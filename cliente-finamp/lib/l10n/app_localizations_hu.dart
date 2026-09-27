@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,15 +17,13 @@ class AppLocalizationsHu extends AppLocalizations {
   String get serverUrl => 'Szerver webcíme';
 
   @override
-  String get internalExternalIpExplanation =>
-      'Ha távolról szeretné elérni Jellyfin szerverét, akkor külső IP-címét kell használnia.\n\nHa a szerver HTTP porton (80/443) van, akkor nem kell portot megadnia. Valószínűleg ez a helyzet akkor, ha a szervere fordított proxy mögött van.';
+  String get internalExternalIpExplanation => 'Ha távolról szeretné elérni Jellyfin szerverét, akkor külső IP-címét kell használnia.\n\nHa a szerver HTTP porton (80/443) van, akkor nem kell portot megadnia. Valószínűleg ez a helyzet akkor, ha a szervere fordított proxy mögött van.';
 
   @override
   String get emptyServerUrl => 'A szerver URL-címe nem lehet üres';
 
   @override
-  String get urlStartWithHttps =>
-      'Az URL-nek \"http://\" vagy \"https://\" előtaggal kell kezdődnie';
+  String get urlStartWithHttps => 'Az URL-nek \"http://\" vagy \"https://\" előtaggal kell kezdődnie';
 
   @override
   String get urlTrailingSlash => 'Az URL végén nem lehet \"/\"-jel';
@@ -70,12 +68,10 @@ class AppLocalizationsHu extends AppLocalizations {
   String get startMix => 'Mix elindítása';
 
   @override
-  String get startMixNoSongsArtist =>
-      'Nyomd meg hosszan az előadót, hogy hozzáadja vagy eltávolítsa őket a mixkészítőből, mielőtt elkezdené a keverést';
+  String get startMixNoSongsArtist => 'Nyomd meg hosszan az előadót, hogy hozzáadja vagy eltávolítsa őket a mixkészítőből, mielőtt elkezdené a keverést';
 
   @override
-  String get startMixNoSongsAlbum =>
-      'Nyomd meg hosszan az albumot, hogy hozzáadja vagy eltávolítsa őket a mixkészítőből, mielőtt elkezdené a keverést';
+  String get startMixNoSongsAlbum => 'Nyomd meg hosszan az albumot, hogy hozzáadja vagy eltávolítsa őket a mixkészítőből, mielőtt elkezdené a keverést';
 
   @override
   String get music => 'Zene';
@@ -207,8 +203,7 @@ class AppLocalizationsHu extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -239,12 +234,10 @@ class AppLocalizationsHu extends AppLocalizations {
   String get noErrors => 'Nincsenek hibák!';
 
   @override
-  String get errorScreenError =>
-      'Hiba történt a hibalista lekérésekor! Ezen a ponton valószínűleg csak problémát kell létrehoznia a GitHubon, és törölnie kell az alkalmazásadatokat';
+  String get errorScreenError => 'Hiba történt a hibalista lekérésekor! Ezen a ponton valószínűleg csak problémát kell létrehoznia a GitHubon, és törölnie kell az alkalmazásadatokat';
 
   @override
-  String get failedToGetSongFromDownloadId =>
-      'Nem sikerült letölteni a dalt, a letöltési azonosítóból';
+  String get failedToGetSongFromDownloadId => 'Nem sikerült letölteni a dalt, a letöltési azonosítóból';
 
   @override
   String deleteDownloadsPrompt(String itemName, String itemType) {
@@ -339,8 +332,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get stackTrace => 'Kötegelt visszalépés';
 
   @override
-  String get applicationLegalese =>
-      'A Mozilla Public License 2.0 licenccel. A forráskód elérhető:\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => 'A Mozilla Public License 2.0 licenccel. A forráskód elérhető:\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => 'Transzkódolás';
@@ -364,29 +356,25 @@ class AppLocalizationsHu extends AppLocalizations {
   String get logOut => 'Kijelentkezés';
 
   @override
-  String get downloadedSongsWillNotBeDeleted =>
-      'A letöltött dalok nem törlődnek';
+  String get downloadedSongsWillNotBeDeleted => 'A letöltött dalok nem törlődnek';
 
   @override
   String get areYouSure => 'Biztos vagy ebben?';
 
   @override
-  String get jellyfinUsesAACForTranscoding =>
-      'Jellyfin AAC-t használ az transzkódoláshoz';
+  String get jellyfinUsesAACForTranscoding => 'Jellyfin AAC-t használ az transzkódoláshoz';
 
   @override
   String get enableTranscoding => 'Transzkódolás engedélyezése';
 
   @override
-  String get enableTranscodingSubtitle =>
-      'Transzkódolja a zenestreameket a szerver oldalon.';
+  String get enableTranscodingSubtitle => 'Transzkódolja a zenestreameket a szerver oldalon.';
 
   @override
   String get bitrate => 'Bitráta';
 
   @override
-  String get bitrateSubtitle =>
-      'A nagyobb bitráta jobb hangminőséget biztosít nagyobb sávszélesség mellett.';
+  String get bitrateSubtitle => 'A nagyobb bitráta jobb hangminőséget biztosít nagyobb sávszélesség mellett.';
 
   @override
   String get customLocation => 'Egyéni hely';
@@ -404,30 +392,25 @@ class AppLocalizationsHu extends AppLocalizations {
   String get unknownError => 'Ismeretlen hiba';
 
   @override
-  String get pathReturnSlashErrorMessage =>
-      'A „/” karaktert használó elérési utak nem értelmezhetőek';
+  String get pathReturnSlashErrorMessage => 'A „/” karaktert használó elérési utak nem értelmezhetőek';
 
   @override
   String get directoryMustBeEmpty => 'A könyvtárnak üresnek kell lennie';
 
   @override
-  String get customLocationsBuggy =>
-      'Az egyéni helyek rendkívül bugosak az engedélyekkel kapcsolatos problémák miatt. Gondolkozom a megoldáson, de egyelőre nem javaslom ezek használatát.';
+  String get customLocationsBuggy => 'Az egyéni helyek rendkívül bugosak az engedélyekkel kapcsolatos problémák miatt. Gondolkozom a megoldáson, de egyelőre nem javaslom ezek használatát.';
 
   @override
-  String get enterLowPriorityStateOnPause =>
-      'Lépjen az Alacsony-prioritású állapotba a Szünet módban';
+  String get enterLowPriorityStateOnPause => 'Lépjen az Alacsony-prioritású állapotba a Szünet módban';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      'Lehetővé teszi az értesítés elcsúsztatását, amikor szünetel. Azt is lehetővé teszi, hogy az Android leállítsa a szolgáltatást, amikor szünetel.';
+  String get enterLowPriorityStateOnPauseSubtitle => 'Lehetővé teszi az értesítés elcsúsztatását, amikor szünetel. Azt is lehetővé teszi, hogy az Android leállítsa a szolgáltatást, amikor szünetel.';
 
   @override
   String get shuffleAllSongCount => 'Az összes szám véletlenszerű lejátszása';
 
   @override
-  String get shuffleAllSongCountSubtitle =>
-      'A betöltendő zeneszámok száma az \"Összes dal keverése\" gombbal.';
+  String get shuffleAllSongCountSubtitle => 'A betöltendő zeneszámok száma az \"Összes dal keverése\" gombbal.';
 
   @override
   String get viewType => 'Nézet típusa';
@@ -461,24 +444,19 @@ class AppLocalizationsHu extends AppLocalizations {
   String get showTextOnGridView => 'Szöveg megjelenítése rácsnézetben';
 
   @override
-  String get showTextOnGridViewSubtitle =>
-      'Megjelenik-e a szöveg (cím, előadó stb.) a rácszene képernyőn.';
+  String get showTextOnGridViewSubtitle => 'Megjelenik-e a szöveg (cím, előadó stb.) a rácszene képernyőn.';
 
   @override
-  String get showCoverAsPlayerBackground =>
-      'Elmosódott borító megjelenítése lejátszási háttérként';
+  String get showCoverAsPlayerBackground => 'Elmosódott borító megjelenítése lejátszási háttérként';
 
   @override
-  String get showCoverAsPlayerBackgroundSubtitle =>
-      'Használja-e az elmosódott borítót háttérként a lejátszó képernyőjén.';
+  String get showCoverAsPlayerBackgroundSubtitle => 'Használja-e az elmosódott borítót háttérként a lejátszó képernyőjén.';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtists =>
-      'A dal előadóinak elrejtése, ha megegyezik az album előadóival';
+  String get hideSongArtistsIfSameAsAlbumArtists => 'A dal előadóinak elrejtése, ha megegyezik az album előadóival';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      'Megjeleníti-e a dal előadóit az album képernyőjén, ha nem különbözik az album előadóitól.';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => 'Megjeleníti-e a dal előadóit az album képernyőjén, ha nem különbözik az album előadóitól.';
 
   @override
   String get disableGesture => 'Gesztusok letiltása';
@@ -647,8 +625,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get bufferDuration => 'Puffer időtartama';
 
   @override
-  String get bufferDurationSubtitle =>
-      'Mennyit kell pufferelnie a lejátszónak másodpercben. Újraindítást igényel.';
+  String get bufferDurationSubtitle => 'Mennyit kell pufferelnie a lejátszónak másodpercben. Újraindítást igényel.';
 
   @override
   String get language => 'Language';
@@ -657,8 +634,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get confirm => 'Confirm';
 
   @override
-  String get showUncensoredLogMessage =>
-      'This log contains your login information. Show?';
+  String get showUncensoredLogMessage => 'This log contains your login information. Show?';
 
   @override
   String get resetTabs => 'Reset tabs';
@@ -667,8 +643,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get noMusicLibrariesTitle => 'No Music Libraries';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp could not find any music libraries. Please ensure that your Jellyfin server contains at least one library with the content type set to \"Music\".';
+  String get noMusicLibrariesBody => 'Finamp could not find any music libraries. Please ensure that your Jellyfin server contains at least one library with the content type set to \"Music\".';
 
   @override
   String get refresh => 'REFRESH';
@@ -677,8 +652,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get swipeInsertQueueNext => 'Play Swiped Song Next';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      'Enable to insert a song as next item in queue when swiped in song list instead of appending it to the end.';
+  String get swipeInsertQueueNextSubtitle => 'Enable to insert a song as next item in queue when swiped in song list instead of appending it to the end.';
 
   @override
   String get redesignBeta => 'Try the Beta';

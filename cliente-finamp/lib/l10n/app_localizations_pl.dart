@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,15 +17,13 @@ class AppLocalizationsPl extends AppLocalizations {
   String get serverUrl => 'Adres URL serwera';
 
   @override
-  String get internalExternalIpExplanation =>
-      'Jeśli chcesz uzyskać dostęp do zdalnej instancji Jellyfin, musisz posiadać zewnętrzne IP.\n\nJeśli serwer jest dostępny na portach HTTP(S) (80/443), nie musisz określać portu.';
+  String get internalExternalIpExplanation => 'Jeśli chcesz uzyskać dostęp do zdalnej instancji Jellyfin, musisz posiadać zewnętrzne IP.\n\nJeśli serwer jest dostępny na portach HTTP(S) (80/443), nie musisz określać portu.';
 
   @override
   String get emptyServerUrl => 'Adres URL serwera nie może być pusty';
 
   @override
-  String get urlStartWithHttps =>
-      'URL musi zaczynać się od http:// lub https://';
+  String get urlStartWithHttps => 'URL musi zaczynać się od http:// lub https://';
 
   @override
   String get urlTrailingSlash => 'URL nie może kończyć się znakiem \"/\"';
@@ -70,12 +68,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get startMix => 'Rozpocznij mix';
 
   @override
-  String get startMixNoSongsArtist =>
-      'Kliknij i przytrzymaj nazwę wykonawcy, aby dodać go do mix-u przed jego rozpoczęciem';
+  String get startMixNoSongsArtist => 'Kliknij i przytrzymaj nazwę wykonawcy, aby dodać go do mix-u przed jego rozpoczęciem';
 
   @override
-  String get startMixNoSongsAlbum =>
-      'Kliknij i przytrzymaj nazwę albumu, aby dodać go do mix-u przed jego rozpoczęciem';
+  String get startMixNoSongsAlbum => 'Kliknij i przytrzymaj nazwę albumu, aby dodać go do mix-u przed jego rozpoczęciem';
 
   @override
   String get music => 'Muzyka';
@@ -207,8 +203,7 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -239,12 +234,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get noErrors => 'Brak błędów!';
 
   @override
-  String get errorScreenError =>
-      'Wystąpił błąd podczas pobierania listy błędów. Utwórz zgłoszenie na portalu GitHub i usuń dane aplikacji';
+  String get errorScreenError => 'Wystąpił błąd podczas pobierania listy błędów. Utwórz zgłoszenie na portalu GitHub i usuń dane aplikacji';
 
   @override
-  String get failedToGetSongFromDownloadId =>
-      'Nie udało się pobrać utworu z ID pobierania';
+  String get failedToGetSongFromDownloadId => 'Nie udało się pobrać utworu z ID pobierania';
 
   @override
   String deleteDownloadsPrompt(String itemName, String itemType) {
@@ -339,8 +332,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get stackTrace => 'Stos błędu';
 
   @override
-  String get applicationLegalese =>
-      'Licencja Mozilla Public License 2.0. Kod źródłowy dostępny na:\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => 'Licencja Mozilla Public License 2.0. Kod źródłowy dostępny na:\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => 'Transkodowanie';
@@ -364,29 +356,25 @@ class AppLocalizationsPl extends AppLocalizations {
   String get logOut => 'Wyloguj';
 
   @override
-  String get downloadedSongsWillNotBeDeleted =>
-      'Pobrane utwory nie zostaną usunięte';
+  String get downloadedSongsWillNotBeDeleted => 'Pobrane utwory nie zostaną usunięte';
 
   @override
   String get areYouSure => 'Czy na pewno?';
 
   @override
-  String get jellyfinUsesAACForTranscoding =>
-      'Jellyfin używa AAC do transkodowania';
+  String get jellyfinUsesAACForTranscoding => 'Jellyfin używa AAC do transkodowania';
 
   @override
   String get enableTranscoding => 'Włącz transkodowanie';
 
   @override
-  String get enableTranscodingSubtitle =>
-      'Transkoduje strumienie muzyczne po stronie serwera.';
+  String get enableTranscodingSubtitle => 'Transkoduje strumienie muzyczne po stronie serwera.';
 
   @override
   String get bitrate => 'Bitrate';
 
   @override
-  String get bitrateSubtitle =>
-      'Wyższy bitrate dostarcza lepszą jakość, ale kosztem większego zużycia transferu danych.';
+  String get bitrateSubtitle => 'Wyższy bitrate dostarcza lepszą jakość, ale kosztem większego zużycia transferu danych.';
 
   @override
   String get customLocation => 'Własna lokalizacja';
@@ -410,23 +398,19 @@ class AppLocalizationsPl extends AppLocalizations {
   String get directoryMustBeEmpty => 'Folder musi być pusty';
 
   @override
-  String get customLocationsBuggy =>
-      'Niestandardowe lokalizacje są bardzo kłopotliwe ze względu na problemy z uprawnieniami. W chwili obecnej ich używanie nie jest zalecane.';
+  String get customLocationsBuggy => 'Niestandardowe lokalizacje są bardzo kłopotliwe ze względu na problemy z uprawnieniami. W chwili obecnej ich używanie nie jest zalecane.';
 
   @override
-  String get enterLowPriorityStateOnPause =>
-      'Przechodź w stan niskiego priorytetu w trakcie trwania pauzy';
+  String get enterLowPriorityStateOnPause => 'Przechodź w stan niskiego priorytetu w trakcie trwania pauzy';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      'Pozwala usunąć powiadomienie podczas pauzy. Pozwala również systemowi Android na zabicie usługi podczas pauzy.';
+  String get enterLowPriorityStateOnPauseSubtitle => 'Pozwala usunąć powiadomienie podczas pauzy. Pozwala również systemowi Android na zabicie usługi podczas pauzy.';
 
   @override
   String get shuffleAllSongCount => 'Maksymalna ilość losowych utworów';
 
   @override
-  String get shuffleAllSongCountSubtitle =>
-      'Ilość utworów do załadowania kiedy użyto przycisku \"Losowo\" na wszystkich utworach.';
+  String get shuffleAllSongCountSubtitle => 'Ilość utworów do załadowania kiedy użyto przycisku \"Losowo\" na wszystkich utworach.';
 
   @override
   String get viewType => 'Widok';
@@ -460,24 +444,19 @@ class AppLocalizationsPl extends AppLocalizations {
   String get showTextOnGridView => 'Pokaż tekst w widoku siatki';
 
   @override
-  String get showTextOnGridViewSubtitle =>
-      'Określa czy wyświetlać tekst (tytuł, wykonawca itp.) na siatce elementów.';
+  String get showTextOnGridViewSubtitle => 'Określa czy wyświetlać tekst (tytuł, wykonawca itp.) na siatce elementów.';
 
   @override
-  String get showCoverAsPlayerBackground =>
-      'Pokazuj rozmyty obraz jako tło odtwarzacza';
+  String get showCoverAsPlayerBackground => 'Pokazuj rozmyty obraz jako tło odtwarzacza';
 
   @override
-  String get showCoverAsPlayerBackgroundSubtitle =>
-      'Określa czy używać rozmytego obrazu na ekranie odtwarzacza.';
+  String get showCoverAsPlayerBackgroundSubtitle => 'Określa czy używać rozmytego obrazu na ekranie odtwarzacza.';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtists =>
-      'Ukryj wykonawców utworu jeśli odpowiadają wykonawcom albumu';
+  String get hideSongArtistsIfSameAsAlbumArtists => 'Ukryj wykonawców utworu jeśli odpowiadają wykonawcom albumu';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      'Określa czy wyświetlać wykonawców utworów na ekranie albumu, jeśli nie różnią się one od wykonawców albumów.';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => 'Określa czy wyświetlać wykonawców utworów na ekranie albumu, jeśli nie różnią się one od wykonawców albumów.';
 
   @override
   String get disableGesture => 'Wyłącz gesty';
@@ -646,8 +625,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get bufferDuration => 'Długość bufora';
 
   @override
-  String get bufferDurationSubtitle =>
-      'Ile odtwarzacz powinien buforować, w sekundach. Wymaga ponownego uruchomienia.';
+  String get bufferDurationSubtitle => 'Ile odtwarzacz powinien buforować, w sekundach. Wymaga ponownego uruchomienia.';
 
   @override
   String get language => 'Język';
@@ -656,8 +634,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get confirm => 'Potwierdź';
 
   @override
-  String get showUncensoredLogMessage =>
-      'Ten log zawiera twoje dane logowania. Pokazać?';
+  String get showUncensoredLogMessage => 'Ten log zawiera twoje dane logowania. Pokazać?';
 
   @override
   String get resetTabs => 'Resetowanie zakładek';
@@ -666,8 +643,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get noMusicLibrariesTitle => 'Brak bibliotek muzycznych';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp nie mógł znaleźć żadnych bibliotek muzycznych. Upewnij się, że serwer Jellyfin zawiera co najmniej jedną bibliotekę z typem zawartości ustawionym na \"Muzyka\".';
+  String get noMusicLibrariesBody => 'Finamp nie mógł znaleźć żadnych bibliotek muzycznych. Upewnij się, że serwer Jellyfin zawiera co najmniej jedną bibliotekę z typem zawartości ustawionym na \"Muzyka\".';
 
   @override
   String get refresh => 'ODŚWIEŻ';
@@ -676,8 +652,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get swipeInsertQueueNext => 'Odtwórz Przewiniętą Piosenkę Następnie';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      'Włącz wstawianie utworu jako następnego elementu w kolejce po przesunięciu palcem na liście utworów zamiast dołączania go na końcu.';
+  String get swipeInsertQueueNextSubtitle => 'Włącz wstawianie utworu jako następnego elementu w kolejce po przesunięciu palcem na liście utworów zamiast dołączania go na końcu.';
 
   @override
   String get redesignBeta => 'Przeprojektowanie Beta';

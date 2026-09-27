@@ -14,6 +14,7 @@ import '../components/SettingsScreen/logout_list_tile.dart';
 import 'view_selector.dart';
 import 'language_selection_screen.dart';
 import 'synap_music/admin_dashboard_screen.dart';
+import 'synap_music/metadata_requests_screen.dart';
 import '../services/jellyfin_api_helper.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -75,10 +76,21 @@ class SettingsScreen extends StatelessWidget {
               }),
               builder: (context, snapshot) {
                 if (snapshot.data == true) {
-                  return ListTile(
-                    leading: const Icon(Icons.admin_panel_settings, color: Color(0xFF8B93FF)),
-                    title: const Text('Panel de Administrador (Sala de Espera)'),
-                    onTap: () => Navigator.of(context).pushNamed(AdminDashboardScreen.routeName),
+                  return Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.admin_panel_settings, color: Color(0xFF8B93FF)),
+                        title: const Text('Panel de Administrador (Sala de Espera)'),
+                        onTap: () => Navigator.of(context).pushNamed(AdminDashboardScreen.routeName),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.auto_fix_high, color: Color(0xFF8B93FF)),
+                        title: const Text('Solicitudes de Metadatos'),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const MetadataRequestsScreen()),
+                        ),
+                      ),
+                    ],
                   );
                 }
                 return const SizedBox.shrink();

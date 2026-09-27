@@ -81,6 +81,48 @@ class SynapApiService {
     }
   }
 
+  Future<List<dynamic>?> searchArtists(String query) async {
+    if (query.isEmpty) return null;
+    try {
+      final uri = Uri.parse('$_baseUrl/search/artists?q=${Uri.encodeQueryComponent(query)}');
+      final request = await HttpClient().getUrl(uri);
+      request.headers.add('X-API-Key', _apiKey);
+      final response = await request.close();
+
+      if (response.statusCode == 200) {
+        final responseBody = await response.transform(utf8.decoder).join();
+        final data = json.decode(responseBody) as Map<String, dynamic>;
+        return data['results'] as List<dynamic>?;
+      } else {
+        print('Error en búsqueda de artistas: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Excepción en búsqueda de artistas: $e');
+      return null;
+    }
+  }
+
+  Future<List<dynamic>> getGlobalArtists() async {
+    try {
+      final uri = Uri.parse('$_baseUrl/search/global-artists');
+      final request = await HttpClient().getUrl(uri);
+      request.headers.add('X-API-Key', _apiKey);
+      final response = await request.close();
+
+      if (response.statusCode == 200) {
+        final responseBody = await response.transform(utf8.decoder).join();
+        return json.decode(responseBody) as List<dynamic>;
+      } else {
+        print('Error en getGlobalArtists: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      print('Excepción en getGlobalArtists: $e');
+      return [];
+    }
+  }
+
   Future<Map<String, dynamic>?> getAlbumDetails(String albumId) async {
     try {
       final uri = Uri.parse('$_baseUrl/album/$albumId');
@@ -406,6 +448,97 @@ class SynapApiService {
       return false;
     } catch (e) {
       print('Error editMetadata: $e');
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> previewMetadataMatch(String query) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/metadata/preview?query=${Uri.encodeComponent(query)}');
+      final request = await HttpClient().getUrl(uri);
+      request.headers.add('X-API-Key', _apiKey);
+      final response = await request.close();
+
+      if (response.statusCode == 200) {
+        final responseBody = await response.transform(utf8.decoder).join();
+        return json.decode(responseBody) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      print('Error previewMetadataMatch: $e');
+    }
+    return null;
+  }
+
+  Future<List<dynamic>> getMetadataRequests() async {
+    try {
+      final uri = Uri.parse('$_baseUrl/metadata/requests');
+      final request = await HttpClient().getUrl(uri);
+      request.headers.add('X-API-Key', _apiKey);
+      final response = await request.close();
+
+      if (response.statusCode == 200) {
+        final responseBody = await response.transform(utf8.decoder).join();
+        return json.decode(responseBody) as List<dynamic>;
+      }
+    } catch (e) {
+      print('Error getMetadataRequests: $e');
+    }
+    return [];
+  }
+
+  Future<bool> sendMetadataRequest({
+    required String itemId,
+    required String currentTitle,
+    required String currentArtist,
+    required String proposedQuery,
+    String? proposedCoverUrl,
+    String? proposedLyrics,
+    String? note,
+  }) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/metadata/requests');
+      final request = await HttpClient().postUrl(uri);
+      request.headers.add('X-API-Key', _apiKey);
+      request.headers.contentType = ContentType.json;
+      request.write(jsonEncode({
+        "item_id": itemId,
+        "current_title": currentTitle,
+        "current_artist": currentArtist,
+        "proposed_query": proposedQuery,
+        "proposed_cover_url": proposedCoverUrl,
+        "proposed_lyrics": proposedLyrics,
+        "note": note,
+      }));
+      final response = await request.close();
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error sendMetadataRequest: $e');
+      return false;
+    }
+  }
+
+  Future<bool> applyMetadataRequest(String requestId) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/metadata/requests/$requestId/apply');
+      final request = await HttpClient().postUrl(uri);
+      request.headers.add('X-API-Key', _apiKey);
+      final response = await request.close();
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error applyMetadataRequest: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteMetadataRequest(String requestId) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/metadata/requests/$requestId');
+      final request = await HttpClient().deleteUrl(uri);
+      request.headers.add('X-API-Key', _apiKey);
+      final response = await request.close();
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error deleteMetadataRequest: $e');
       return false;
     }
   }

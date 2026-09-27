@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,19 +17,16 @@ class AppLocalizationsNb extends AppLocalizations {
   String get serverUrl => 'Tjener-nettadresse';
 
   @override
-  String get internalExternalIpExplanation =>
-      'Hvis du vil ha tilgang til Jellyfin-tjeneren din annensteds fra må du bruke din eksterne IP-adresse.\n\nHvis tjeneren din er på en HTTP-port (80/443) må du angi en port. Dette er sannsynligvis tilfelle hvis tjeneren din er bak en omvendt mellomtjener.';
+  String get internalExternalIpExplanation => 'Hvis du vil ha tilgang til Jellyfin-tjeneren din annensteds fra må du bruke din eksterne IP-adresse.\n\nHvis tjeneren din er på en HTTP-port (80/443) må du angi en port. Dette er sannsynligvis tilfelle hvis tjeneren din er bak en omvendt mellomtjener.';
 
   @override
   String get emptyServerUrl => 'Tjener-nettadressen kan ikke stå tom';
 
   @override
-  String get urlStartWithHttps =>
-      'Nettadressen må starte med http:// eller https://';
+  String get urlStartWithHttps => 'Nettadressen må starte med http:// eller https://';
 
   @override
-  String get urlTrailingSlash =>
-      'Nettadressen kan ikke inneholde avsluttende skråstrek';
+  String get urlTrailingSlash => 'Nettadressen kan ikke inneholde avsluttende skråstrek';
 
   @override
   String get username => 'Brukernavn';
@@ -71,12 +68,10 @@ class AppLocalizationsNb extends AppLocalizations {
   String get startMix => 'Start miks';
 
   @override
-  String get startMixNoSongsArtist =>
-      'Lang-trykk på en artist for å legge til eller fjerne vedkommende fra miksbyggeren før du starter en miks';
+  String get startMixNoSongsArtist => 'Lang-trykk på en artist for å legge til eller fjerne vedkommende fra miksbyggeren før du starter en miks';
 
   @override
-  String get startMixNoSongsAlbum =>
-      'Lang-trykk et album for å legge til eller fjerne det fra miksbyggeren før du starter en miks';
+  String get startMixNoSongsAlbum => 'Lang-trykk et album for å legge til eller fjerne det fra miksbyggeren før du starter en miks';
 
   @override
   String get music => 'Musikk';
@@ -208,8 +203,7 @@ class AppLocalizationsNb extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -240,12 +234,10 @@ class AppLocalizationsNb extends AppLocalizations {
   String get noErrors => 'Ingen feil.';
 
   @override
-  String get errorScreenError =>
-      'En feil inntraff under innhenting av listen over feil. Herfra bør du kanskje opprette en feilrapport på GitHub og slette programdataen.';
+  String get errorScreenError => 'En feil inntraff under innhenting av listen over feil. Herfra bør du kanskje opprette en feilrapport på GitHub og slette programdataen.';
 
   @override
-  String get failedToGetSongFromDownloadId =>
-      'Klarte ikke å hente spor fra nedlastings-ID';
+  String get failedToGetSongFromDownloadId => 'Klarte ikke å hente spor fra nedlastings-ID';
 
   @override
   String deleteDownloadsPrompt(String itemName, String itemType) {
@@ -340,8 +332,7 @@ class AppLocalizationsNb extends AppLocalizations {
   String get stackTrace => 'Stabelspor';
 
   @override
-  String get applicationLegalese =>
-      'Lisensiert MPL 2.0, med kildekode tilgjengelig på\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => 'Lisensiert MPL 2.0, med kildekode tilgjengelig på\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => 'Transkoding';
@@ -365,29 +356,25 @@ class AppLocalizationsNb extends AppLocalizations {
   String get logOut => 'Logg ut';
 
   @override
-  String get downloadedSongsWillNotBeDeleted =>
-      'Nedlastede spor vil ikke slettes';
+  String get downloadedSongsWillNotBeDeleted => 'Nedlastede spor vil ikke slettes';
 
   @override
   String get areYouSure => 'Er du sikker?';
 
   @override
-  String get jellyfinUsesAACForTranscoding =>
-      'Jellyfin bruker AAC for transkoding';
+  String get jellyfinUsesAACForTranscoding => 'Jellyfin bruker AAC for transkoding';
 
   @override
   String get enableTranscoding => 'Skru på transkoding';
 
   @override
-  String get enableTranscodingSubtitle =>
-      'Transkoder musikkstrømmer på tjenersiden.';
+  String get enableTranscodingSubtitle => 'Transkoder musikkstrømmer på tjenersiden.';
 
   @override
   String get bitrate => 'Bitrate';
 
   @override
-  String get bitrateSubtitle =>
-      'Høyere bitrate gir lyd i bedre kvalitet, på bekostning av høyere båndbreddebruk.';
+  String get bitrateSubtitle => 'Høyere bitrate gir lyd i bedre kvalitet, på bekostning av høyere båndbreddebruk.';
 
   @override
   String get customLocation => 'Egendefinert sted';
@@ -405,30 +392,25 @@ class AppLocalizationsNb extends AppLocalizations {
   String get unknownError => 'Ukjent feil';
 
   @override
-  String get pathReturnSlashErrorMessage =>
-      'Stier som returnerer «/» kan ikke brukes.';
+  String get pathReturnSlashErrorMessage => 'Stier som returnerer «/» kan ikke brukes.';
 
   @override
   String get directoryMustBeEmpty => 'Mappen må være tom';
 
   @override
-  String get customLocationsBuggy =>
-      'Egendefinerte steder fungerer dårlig som følge av problemer med tilganger. Måter å løse det på vurderes, men akkurat nå anbefales ikke bruk.';
+  String get customLocationsBuggy => 'Egendefinerte steder fungerer dårlig som følge av problemer med tilganger. Måter å løse det på vurderes, men akkurat nå anbefales ikke bruk.';
 
   @override
-  String get enterLowPriorityStateOnPause =>
-      'Gå inn i lavprioritetstilstand ved pause';
+  String get enterLowPriorityStateOnPause => 'Gå inn i lavprioritetstilstand ved pause';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      'Lar merknaden bli dratt unna under pause. Tillater også Android å drepe tjenesten når pauset.';
+  String get enterLowPriorityStateOnPauseSubtitle => 'Lar merknaden bli dratt unna under pause. Tillater også Android å drepe tjenesten når pauset.';
 
   @override
   String get shuffleAllSongCount => 'Antall spor for tilfeldig avspilling';
 
   @override
-  String get shuffleAllSongCountSubtitle =>
-      'Mengden spor å laste inn ved bruk av «Tilfeldig avspilling av alle spor»-knappen.';
+  String get shuffleAllSongCountSubtitle => 'Mengden spor å laste inn ved bruk av «Tilfeldig avspilling av alle spor»-knappen.';
 
   @override
   String get viewType => 'Visningstype';
@@ -462,24 +444,19 @@ class AppLocalizationsNb extends AppLocalizations {
   String get showTextOnGridView => 'Vis tekst i rutenettsvisning';
 
   @override
-  String get showTextOnGridViewSubtitle =>
-      'Hvorvidt tekst (navn, artist, osv.( skal vises i rutenettsmusikkskjermen.';
+  String get showTextOnGridViewSubtitle => 'Hvorvidt tekst (navn, artist, osv.( skal vises i rutenettsmusikkskjermen.';
 
   @override
-  String get showCoverAsPlayerBackground =>
-      'Vis tilslørt omslag som avspillerbakgrunn';
+  String get showCoverAsPlayerBackground => 'Vis tilslørt omslag som avspillerbakgrunn';
 
   @override
-  String get showCoverAsPlayerBackgroundSubtitle =>
-      'Hvorvidt tilslørt omslag skal brukes som bakgrunn på avspillerskjermen.';
+  String get showCoverAsPlayerBackgroundSubtitle => 'Hvorvidt tilslørt omslag skal brukes som bakgrunn på avspillerskjermen.';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtists =>
-      'Skjul artister for sporet hvis samme som albumsartister';
+  String get hideSongArtistsIfSameAsAlbumArtists => 'Skjul artister for sporet hvis samme som albumsartister';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      'Hvorvidt sporartister skal vises på albumsskjermen hvis forskjellig fra albumsartister.';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => 'Hvorvidt sporartister skal vises på albumsskjermen hvis forskjellig fra albumsartister.';
 
   @override
   String get disableGesture => 'Skru av håndvendinger';
@@ -648,8 +625,7 @@ class AppLocalizationsNb extends AppLocalizations {
   String get bufferDuration => 'Hurtiglagervarighet';
 
   @override
-  String get bufferDurationSubtitle =>
-      'Antall sekunder avspilleren skal mellomlagre. Krever programomstart.';
+  String get bufferDurationSubtitle => 'Antall sekunder avspilleren skal mellomlagre. Krever programomstart.';
 
   @override
   String get language => 'Språk';
@@ -658,8 +634,7 @@ class AppLocalizationsNb extends AppLocalizations {
   String get confirm => 'Bekreft';
 
   @override
-  String get showUncensoredLogMessage =>
-      'Denne loggen inneholder din innloggingsinfo. Vis?';
+  String get showUncensoredLogMessage => 'Denne loggen inneholder din innloggingsinfo. Vis?';
 
   @override
   String get resetTabs => 'Tilbakestill faner';
@@ -668,8 +643,7 @@ class AppLocalizationsNb extends AppLocalizations {
   String get noMusicLibrariesTitle => 'Ingen musikkbibliotek';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp fant ingen musikkbibliotek. Forsikre deg om at din Jellyfin-tjener inneholder minst ett bibliotek med innholdstype satt til «Musikk».';
+  String get noMusicLibrariesBody => 'Finamp fant ingen musikkbibliotek. Forsikre deg om at din Jellyfin-tjener inneholder minst ett bibliotek med innholdstype satt til «Musikk».';
 
   @override
   String get refresh => 'Gjenoppfrisk';
@@ -678,8 +652,7 @@ class AppLocalizationsNb extends AppLocalizations {
   String get swipeInsertQueueNext => 'Play Swiped Song Next';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      'Enable to insert a song as next item in queue when swiped in song list instead of appending it to the end.';
+  String get swipeInsertQueueNextSubtitle => 'Enable to insert a song as next item in queue when swiped in song list instead of appending it to the end.';
 
   @override
   String get redesignBeta => 'Try the Beta';

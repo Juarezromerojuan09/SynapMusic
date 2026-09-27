@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,8 +17,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get serverUrl => 'URL của Máy chủ';
 
   @override
-  String get internalExternalIpExplanation =>
-      'Nếu bạn muốn truy cập máy chủ Jellyfin từ xa, bạn cần phải dùng địa chỉ IP bên ngoài.\n\nNếu máy chủ của bạn đang mở cổng HTTP (cổng 80/443), bạn không cần phải chỉ rõ cổng. Đây có thể do máy chủ của bạn được set Proxy ngược.';
+  String get internalExternalIpExplanation => 'Nếu bạn muốn truy cập máy chủ Jellyfin từ xa, bạn cần phải dùng địa chỉ IP bên ngoài.\n\nNếu máy chủ của bạn đang mở cổng HTTP (cổng 80/443), bạn không cần phải chỉ rõ cổng. Đây có thể do máy chủ của bạn được set Proxy ngược.';
 
   @override
   String get emptyServerUrl => 'URL của máy chủ không thể để trống';
@@ -69,12 +68,10 @@ class AppLocalizationsVi extends AppLocalizations {
   String get startMix => 'Bắt đầu Mix';
 
   @override
-  String get startMixNoSongsArtist =>
-      'Bấm giữ một nghệ sĩ để thêm hoặc loại bỏ ra khỏi bộ Mix trước khi bắt đầu một tuyển tập Mix';
+  String get startMixNoSongsArtist => 'Bấm giữ một nghệ sĩ để thêm hoặc loại bỏ ra khỏi bộ Mix trước khi bắt đầu một tuyển tập Mix';
 
   @override
-  String get startMixNoSongsAlbum =>
-      'Bấm giữ một Album để thêm hoặc loại bỏ ra khỏi bộ Mix trước khi bắt đầu một tuyển tập Mix';
+  String get startMixNoSongsAlbum => 'Bấm giữ một Album để thêm hoặc loại bỏ ra khỏi bộ Mix trước khi bắt đầu một tuyển tập Mix';
 
   @override
   String get music => 'Nhạc';
@@ -206,8 +203,7 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -238,8 +234,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get noErrors => 'Không có lỗi!';
 
   @override
-  String get errorScreenError =>
-      'Đã có lỗi xảy ra khi lấy danh sách lỗi! Bạn nên tạo một Issue trên trang Github và xoá dữ liệu ứng dụng';
+  String get errorScreenError => 'Đã có lỗi xảy ra khi lấy danh sách lỗi! Bạn nên tạo một Issue trên trang Github và xoá dữ liệu ứng dụng';
 
   @override
   String get failedToGetSongFromDownloadId => 'Lấy bài hát từ ID tải Thất Bại';
@@ -337,8 +332,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get stackTrace => 'Dấu vết Ngăn xếp';
 
   @override
-  String get applicationLegalese =>
-      'Được cấp giấy phép Mozilla Public License 2.0. Mã nguồn tại:\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => 'Được cấp giấy phép Mozilla Public License 2.0. Mã nguồn tại:\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => 'Chuyển Mã';
@@ -362,29 +356,25 @@ class AppLocalizationsVi extends AppLocalizations {
   String get logOut => 'Đăng xuất';
 
   @override
-  String get downloadedSongsWillNotBeDeleted =>
-      'Các bài hát được tải xuống sẽ không bị xoá';
+  String get downloadedSongsWillNotBeDeleted => 'Các bài hát được tải xuống sẽ không bị xoá';
 
   @override
   String get areYouSure => 'Bạn chắc chứ?';
 
   @override
-  String get jellyfinUsesAACForTranscoding =>
-      'Jellyfin dùng codec AAC để chuyển đổi';
+  String get jellyfinUsesAACForTranscoding => 'Jellyfin dùng codec AAC để chuyển đổi';
 
   @override
   String get enableTranscoding => 'Bật chuyển đổi';
 
   @override
-  String get enableTranscodingSubtitle =>
-      'Chuyển đổi các luồng truyền phát nhạc trên phía máy chủ.';
+  String get enableTranscodingSubtitle => 'Chuyển đổi các luồng truyền phát nhạc trên phía máy chủ.';
 
   @override
   String get bitrate => 'Tốc độ bit';
 
   @override
-  String get bitrateSubtitle =>
-      'Một tốc độ bit cao hơn mang lại âm thanh tốt hơn trong khi dùng băng thông lớn hơn.';
+  String get bitrateSubtitle => 'Một tốc độ bit cao hơn mang lại âm thanh tốt hơn trong khi dùng băng thông lớn hơn.';
 
   @override
   String get customLocation => 'Vị trí tuỳ chỉnh';
@@ -402,30 +392,25 @@ class AppLocalizationsVi extends AppLocalizations {
   String get unknownError => 'Lỗi không xác định';
 
   @override
-  String get pathReturnSlashErrorMessage =>
-      'Đường dẫn mà trả về \"/\" không dùng được';
+  String get pathReturnSlashErrorMessage => 'Đường dẫn mà trả về \"/\" không dùng được';
 
   @override
   String get directoryMustBeEmpty => 'Đường dẫn phải trống';
 
   @override
-  String get customLocationsBuggy =>
-      'Vị trí tùy chỉnh khá nhiều lỗi do lỗi với việc cấp quyền. Tôi đang tìm biện pháp để sửa, hiện tại tôi không khuyến khích dùng chúng.';
+  String get customLocationsBuggy => 'Vị trí tùy chỉnh khá nhiều lỗi do lỗi với việc cấp quyền. Tôi đang tìm biện pháp để sửa, hiện tại tôi không khuyến khích dùng chúng.';
 
   @override
-  String get enterLowPriorityStateOnPause =>
-      'Vào trạng thái Ưu Tiên Thấp khi Dừng';
+  String get enterLowPriorityStateOnPause => 'Vào trạng thái Ưu Tiên Thấp khi Dừng';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      'Để thông báo được gạt đi khi dừng. Ngoài ra cho phép Android tắt dịch vụ khi dừng.';
+  String get enterLowPriorityStateOnPauseSubtitle => 'Để thông báo được gạt đi khi dừng. Ngoài ra cho phép Android tắt dịch vụ khi dừng.';
 
   @override
   String get shuffleAllSongCount => 'Trộn tất cả bài hát';
 
   @override
-  String get shuffleAllSongCountSubtitle =>
-      'Số lượng bài hát được tải khi dùng nút trộn tất cả bài hát.';
+  String get shuffleAllSongCountSubtitle => 'Số lượng bài hát được tải khi dùng nút trộn tất cả bài hát.';
 
   @override
   String get viewType => 'Loại Xem';
@@ -459,24 +444,19 @@ class AppLocalizationsVi extends AppLocalizations {
   String get showTextOnGridView => 'Hiện thông tin trong khung lưới';
 
   @override
-  String get showTextOnGridViewSubtitle =>
-      'Cho dù có hay không hiện thông tin (tiêu đề, nghệ sĩ,...) trên lưới nhạc.';
+  String get showTextOnGridViewSubtitle => 'Cho dù có hay không hiện thông tin (tiêu đề, nghệ sĩ,...) trên lưới nhạc.';
 
   @override
-  String get showCoverAsPlayerBackground =>
-      'Dùng ảnh bìa mờ làm nền trình phát';
+  String get showCoverAsPlayerBackground => 'Dùng ảnh bìa mờ làm nền trình phát';
 
   @override
-  String get showCoverAsPlayerBackgroundSubtitle =>
-      'Có hay không dùng ảnh bìa mờ làm nền trình phát trên phần phát nhạc.';
+  String get showCoverAsPlayerBackgroundSubtitle => 'Có hay không dùng ảnh bìa mờ làm nền trình phát trên phần phát nhạc.';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtists =>
-      'Ẩn tên ca sĩ bài hát nếu giống ca sĩ album';
+  String get hideSongArtistsIfSameAsAlbumArtists => 'Ẩn tên ca sĩ bài hát nếu giống ca sĩ album';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      'Có hay không hiện nghệ sĩ bài hát trên phần album nếu không khác ca sĩ album.';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => 'Có hay không hiện nghệ sĩ bài hát trên phần album nếu không khác ca sĩ album.';
 
   @override
   String get disableGesture => 'Tắt cử chỉ';
@@ -645,8 +625,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get bufferDuration => 'Thời gian bộ đệm';
 
   @override
-  String get bufferDurationSubtitle =>
-      'Trình phát nên tạo bộ đệm trong bao lâu giây. Cần khởi động lại app.';
+  String get bufferDurationSubtitle => 'Trình phát nên tạo bộ đệm trong bao lâu giây. Cần khởi động lại app.';
 
   @override
   String get language => 'Ngôn ngữ';
@@ -655,8 +634,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get confirm => 'Confirm';
 
   @override
-  String get showUncensoredLogMessage =>
-      'This log contains your login information. Show?';
+  String get showUncensoredLogMessage => 'This log contains your login information. Show?';
 
   @override
   String get resetTabs => 'Reset tabs';
@@ -665,8 +643,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get noMusicLibrariesTitle => 'No Music Libraries';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp could not find any music libraries. Please ensure that your Jellyfin server contains at least one library with the content type set to \"Music\".';
+  String get noMusicLibrariesBody => 'Finamp could not find any music libraries. Please ensure that your Jellyfin server contains at least one library with the content type set to \"Music\".';
 
   @override
   String get refresh => 'REFRESH';
@@ -675,8 +652,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get swipeInsertQueueNext => 'Play Swiped Song Next';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      'Enable to insert a song as next item in queue when swiped in song list instead of appending it to the end.';
+  String get swipeInsertQueueNextSubtitle => 'Enable to insert a song as next item in queue when swiped in song list instead of appending it to the end.';
 
   @override
   String get redesignBeta => 'Try the Beta';

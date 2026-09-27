@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,8 +17,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get serverUrl => 'Palvelimen URL';
 
   @override
-  String get internalExternalIpExplanation =>
-      'Jos haluat käyttää Jellyfin-palvelintasi etänä, sinun on käytettävä ulkoista IP-osoitettasi.\n\nJos palvelimesi käyttää HTTP-porttia (80/443), sinun ei tarvitse määrittää porttia. Näin on todennäköisesti, jos palvelimesi on reverse proxyn takana.';
+  String get internalExternalIpExplanation => 'Jos haluat käyttää Jellyfin-palvelintasi etänä, sinun on käytettävä ulkoista IP-osoitettasi.\n\nJos palvelimesi käyttää HTTP-porttia (80/443), sinun ei tarvitse määrittää porttia. Näin on todennäköisesti, jos palvelimesi on reverse proxyn takana.';
 
   @override
   String get emptyServerUrl => 'Palvelimen URL ei voi olla tyhjä';
@@ -69,12 +68,10 @@ class AppLocalizationsFi extends AppLocalizations {
   String get startMix => 'Aloita sekoitus';
 
   @override
-  String get startMixNoSongsArtist =>
-      'Paina pitkään artistia lisätäksesi tai poistaaksesi sen miksaukseen ennen miksauksen aloittamista';
+  String get startMixNoSongsArtist => 'Paina pitkään artistia lisätäksesi tai poistaaksesi sen miksaukseen ennen miksauksen aloittamista';
 
   @override
-  String get startMixNoSongsAlbum =>
-      'Paina albumia pitkään lisätäksesi tai poistaaksesi sen miksaukseen ennen miksauksen aloittamista';
+  String get startMixNoSongsAlbum => 'Paina albumia pitkään lisätäksesi tai poistaaksesi sen miksaukseen ennen miksauksen aloittamista';
 
   @override
   String get music => 'Musiikki';
@@ -206,8 +203,7 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -238,12 +234,10 @@ class AppLocalizationsFi extends AppLocalizations {
   String get noErrors => 'Ei virheitä!';
 
   @override
-  String get errorScreenError =>
-      'Virhe tapahtui virheiden luettelon hakemisessa! Tässä vaiheessa sinun pitäisi luultavasti vain luoda virheilmoitus GitHubiin ja poistaa sovelluksen tiedot';
+  String get errorScreenError => 'Virhe tapahtui virheiden luettelon hakemisessa! Tässä vaiheessa sinun pitäisi luultavasti vain luoda virheilmoitus GitHubiin ja poistaa sovelluksen tiedot';
 
   @override
-  String get failedToGetSongFromDownloadId =>
-      'Kappaleen nouto lataus ID:stä epäonnistui';
+  String get failedToGetSongFromDownloadId => 'Kappaleen nouto lataus ID:stä epäonnistui';
 
   @override
   String deleteDownloadsPrompt(String itemName, String itemType) {
@@ -338,8 +332,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get stackTrace => 'Pinon jäljitys';
 
   @override
-  String get applicationLegalese =>
-      'Lisensoitu Mozilla Public License 2.0 -lisenssillä. Lähdekoodi saatavilla osoitteessa:\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => 'Lisensoitu Mozilla Public License 2.0 -lisenssillä. Lähdekoodi saatavilla osoitteessa:\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => 'Transkoodaus';
@@ -363,29 +356,25 @@ class AppLocalizationsFi extends AppLocalizations {
   String get logOut => 'Kirjaudu ulos';
 
   @override
-  String get downloadedSongsWillNotBeDeleted =>
-      'Ladattuja kappaleita ei poisteta';
+  String get downloadedSongsWillNotBeDeleted => 'Ladattuja kappaleita ei poisteta';
 
   @override
   String get areYouSure => 'Oletko varma?';
 
   @override
-  String get jellyfinUsesAACForTranscoding =>
-      'Jellyfin käyttää AAC:tä transkoodaukseen';
+  String get jellyfinUsesAACForTranscoding => 'Jellyfin käyttää AAC:tä transkoodaukseen';
 
   @override
   String get enableTranscoding => 'Ota transkoodaus käyttöön';
 
   @override
-  String get enableTranscodingSubtitle =>
-      'Transkoodaa musiikin suoratoiston palvelimen päässä.';
+  String get enableTranscodingSubtitle => 'Transkoodaa musiikin suoratoiston palvelimen päässä.';
 
   @override
   String get bitrate => 'Bitrate';
 
   @override
-  String get bitrateSubtitle =>
-      'Suurempi bitrate antaa laadukkaamman äänen, mutta sen käyttämä kaistanleveys on suurempi.';
+  String get bitrateSubtitle => 'Suurempi bitrate antaa laadukkaamman äänen, mutta sen käyttämä kaistanleveys on suurempi.';
 
   @override
   String get customLocation => 'Mukautettu sijainti';
@@ -403,30 +392,25 @@ class AppLocalizationsFi extends AppLocalizations {
   String get unknownError => 'Tuntematon virhe';
 
   @override
-  String get pathReturnSlashErrorMessage =>
-      'Polkuja jotka palauttavat \"/\" ei voi käyttää';
+  String get pathReturnSlashErrorMessage => 'Polkuja jotka palauttavat \"/\" ei voi käyttää';
 
   @override
   String get directoryMustBeEmpty => 'Hakemiston pitää olla tyhjä';
 
   @override
-  String get customLocationsBuggy =>
-      'Mukautetut sijainnit ovat erittäin bugisia käyttöoikeusongelmien vuoksi. Mietin tapoja korjata tämä, mutta toistaiseksi en suosittele niiden käyttöä.';
+  String get customLocationsBuggy => 'Mukautetut sijainnit ovat erittäin bugisia käyttöoikeusongelmien vuoksi. Mietin tapoja korjata tämä, mutta toistaiseksi en suosittele niiden käyttöä.';
 
   @override
-  String get enterLowPriorityStateOnPause =>
-      'Siirtyminen matalan prioriteetin tilaan tauon aikana';
+  String get enterLowPriorityStateOnPause => 'Siirtyminen matalan prioriteetin tilaan tauon aikana';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      'Sallii ilmoituksen pyyhkäisemisen pois, kun toisto on pysäytetty. Antaa myös Androidin lopettaa palvelun, kun toisto on keskeytetty.';
+  String get enterLowPriorityStateOnPauseSubtitle => 'Sallii ilmoituksen pyyhkäisemisen pois, kun toisto on pysäytetty. Antaa myös Androidin lopettaa palvelun, kun toisto on keskeytetty.';
 
   @override
   String get shuffleAllSongCount => 'Kaikkien sekoitettujen kappaleiden määrä';
 
   @override
-  String get shuffleAllSongCountSubtitle =>
-      'Ladattavien kappaleiden määrä, kun käytät sekoita kaikki kappaleet painiketta.';
+  String get shuffleAllSongCountSubtitle => 'Ladattavien kappaleiden määrä, kun käytät sekoita kaikki kappaleet painiketta.';
 
   @override
   String get viewType => 'Näkymän Tyyppi';
@@ -460,24 +444,19 @@ class AppLocalizationsFi extends AppLocalizations {
   String get showTextOnGridView => 'Näytä teksti ruudukkonäkymässä';
 
   @override
-  String get showTextOnGridViewSubtitle =>
-      'Näytetäänkö teksti (nimi, artisti jne.) ruudukon musiikkinäytöllä vai ei.';
+  String get showTextOnGridViewSubtitle => 'Näytetäänkö teksti (nimi, artisti jne.) ruudukon musiikkinäytöllä vai ei.';
 
   @override
-  String get showCoverAsPlayerBackground =>
-      'Näytä sumennettu kansikuva soittimen taustakuvana';
+  String get showCoverAsPlayerBackground => 'Näytä sumennettu kansikuva soittimen taustakuvana';
 
   @override
-  String get showCoverAsPlayerBackgroundSubtitle =>
-      'Käytetäänkö sumeaa kansikuvitusta taustana soittimen näytöllä vai ei.';
+  String get showCoverAsPlayerBackgroundSubtitle => 'Käytetäänkö sumeaa kansikuvitusta taustana soittimen näytöllä vai ei.';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtists =>
-      'Piilota kappaleen artistit, jos samat kuin albumin artistit';
+  String get hideSongArtistsIfSameAsAlbumArtists => 'Piilota kappaleen artistit, jos samat kuin albumin artistit';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      'Näytetäänkö kappaleiden artistit albumin näytöllä, jos ne eivät poikkea albumin artisteista.';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => 'Näytetäänkö kappaleiden artistit albumin näytöllä, jos ne eivät poikkea albumin artisteista.';
 
   @override
   String get disableGesture => 'Poista eleet käytöstä';
@@ -646,8 +625,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get bufferDuration => 'Puskurin kesto';
 
   @override
-  String get bufferDurationSubtitle =>
-      'Kuinka paljon soittimen pitäisi puskuroida, sekunteina. Vaatii uudelleenkäynnistyksen.';
+  String get bufferDurationSubtitle => 'Kuinka paljon soittimen pitäisi puskuroida, sekunteina. Vaatii uudelleenkäynnistyksen.';
 
   @override
   String get language => 'Kieli';
@@ -656,8 +634,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get confirm => 'Vahvista';
 
   @override
-  String get showUncensoredLogMessage =>
-      'Tämä loki sisältää kirjautumistietosi. Näytä?';
+  String get showUncensoredLogMessage => 'Tämä loki sisältää kirjautumistietosi. Näytä?';
 
   @override
   String get resetTabs => 'Nollaa välilehdet';
@@ -666,8 +643,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get noMusicLibrariesTitle => 'Ei musiikkikirjastoja';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp ei löytänyt musiikkikirjastoja. Varmista, että Jellyfin-palvelimellasi on vähintään yksi kirjasto, jonka sisältötyypiksi on asetettu \"Musiikki\".';
+  String get noMusicLibrariesBody => 'Finamp ei löytänyt musiikkikirjastoja. Varmista, että Jellyfin-palvelimellasi on vähintään yksi kirjasto, jonka sisältötyypiksi on asetettu \"Musiikki\".';
 
   @override
   String get refresh => 'VIRKISTÄ';
@@ -676,19 +652,16 @@ class AppLocalizationsFi extends AppLocalizations {
   String get swipeInsertQueueNext => 'Toista Pyyhkäisty Kappale Seuraavaksi';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      'Mahdollistaa kappaleen lisäämisen jonon seuraavaksi kohteeksi, kun sitä pyyhkäistään kappaleiden luettelossa sen sijaan, että se liitettäisiin loppuun.';
+  String get swipeInsertQueueNextSubtitle => 'Mahdollistaa kappaleen lisäämisen jonon seuraavaksi kohteeksi, kun sitä pyyhkäistään kappaleiden luettelossa sen sijaan, että se liitettäisiin loppuun.';
 
   @override
   String get redesignBeta => 'Kokeile Betaa';
 
   @override
-  String get playbackOrderShuffledTooltip =>
-      'Sekoittaminen. Vaihda napauttamalla.';
+  String get playbackOrderShuffledTooltip => 'Sekoittaminen. Vaihda napauttamalla.';
 
   @override
-  String get playbackOrderLinearTooltip =>
-      'Toistaminen järjestyksessä. Vaihda napauttamalla.';
+  String get playbackOrderLinearTooltip => 'Toistaminen järjestyksessä. Vaihda napauttamalla.';
 
   @override
   String get loopModeAllTooltip => 'Toista kaikki. Vaihda napauttamalla.';

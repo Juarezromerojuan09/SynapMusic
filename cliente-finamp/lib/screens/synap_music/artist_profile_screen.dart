@@ -1,13 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+
 import '../../services/synap_api_service.dart';
 import 'album_detail_screen.dart';
+import 'artist_top_tracks_screen.dart';
 import '../../models/jellyfin_models.dart';
-import 'package:get_it/get_it.dart';
 import '../../services/audio_service_helper.dart';
 import '../../services/jellyfin_api_helper.dart';
 import '../../services/playback_download_coordinator.dart';
-
 
 class ArtistProfileScreen extends StatefulWidget {
   final String artistName;
@@ -20,7 +25,10 @@ class ArtistProfileScreen extends StatefulWidget {
 
 class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
   final SynapApiService _apiService = SynapApiService();
+  final Color _synapColor = const Color(0xFF8B93FF);
+
   bool _isLoading = true;
+  bool _isFavorite = false;
   Map<String, dynamic>? _profileData;
   StreamSubscription<LocalTrackReadyEvent>? _trackReadySubscription;
 
@@ -28,6 +36,8 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
   void initState() {
     super.initState();
     _loadProfile();
+    _checkIfFavorite();
+
     _trackReadySubscription = PlaybackDownloadCoordinator().onTrackReady.listen((event) {
       if (mounted && _profileData != null && _profileData!['top_tracks'] != null) {
         bool updated = false;
@@ -54,6 +64,82 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
     super.dispose();
   }
 
+  Future<File> _getFavoritesFile() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return File('${dir.path}/synap_favorite_artists.json');
+  }
+
+  Future<void> _checkIfFavorite() async {
+    try {
+      final file = await _getFavoritesFile();
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final List<dynamic> list = json.decode(content);
+        final found = list.any((item) =>
+            item['name']?.toString().toLowerCase() == widget.artistName.toLowerCase());
+        if (mounted) {
+          setState(() {
+            _isFavorite = found;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error al verificar favoritos: $e');
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    try {
+      final file = await _getFavoritesFile();
+      List<dynamic> list = [];
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        list = json.decode(content);
+      }
+
+      final artistInfo = _profileData?['artist'] ?? {};
+      final artistName = artistInfo['name'] ?? widget.artistName;
+      final pictureUrl = artistInfo['picture_url'] ?? '';
+      final artistId = artistInfo['id']?.toString() ?? '';
+
+      final existingIndex = list.indexWhere((item) =>
+          item['name']?.toString().toLowerCase() == artistName.toLowerCase());
+
+      if (existingIndex >= 0) {
+        list.removeAt(existingIndex);
+        _isFavorite = false;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Eliminado de tus artistas favoritos')),
+          );
+        }
+      } else {
+        list.add({
+          'id': artistId,
+          'name': artistName,
+          'picture_url': pictureUrl,
+          'fans': artistInfo['nb_fan'],
+          'added_at': DateTime.now().toIso8601String(),
+        });
+        _isFavorite = true;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Añadido a tus artistas favoritos')),
+          );
+        }
+      }
+
+      await file.writeAsString(json.encode(list));
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al modificar favoritos: $e')),
+      );
+    }
+  }
+
   Future<void> _loadProfile() async {
     final data = await _apiService.getArtistProfile(widget.artistName);
     if (mounted) {
@@ -61,7 +147,212 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
         _profileData = data;
         _isLoading = false;
       });
+      _checkLocalLibrary();
     }
+  }
+
+  Future<void> _checkLocalLibrary() async {
+    if (_profileData == null || _profileData!['top_tracks'] == null) return;
+    final topTracks = _profileData!['top_tracks'] as List<dynamic>;
+    bool anyUpdated = false;
+
+    for (var track in topTracks) {
+      if (track['local_id'] == null) {
+        final title = track['title'] ?? '';
+        final local = await _apiService.checkLocalTrack(title, widget.artistName);
+        if (local != null && local['exists'] == true) {
+          track['local_id'] = local['local_id'];
+          track['jellyfin_item'] = local['jellyfin_item'];
+          anyUpdated = true;
+        }
+      }
+    }
+
+    if (anyUpdated && mounted) {
+      setState(() {});
+    }
+  }
+
+  String _formatFans(dynamic fans) {
+    if (fans == null) return '';
+    final int count = int.tryParse(fans.toString()) ?? 0;
+    if (count >= 1000000) {
+      return '${(count / 1000000).toStringAsFixed(1)} M oyentes';
+    } else if (count >= 1000) {
+      return '${(count / 1000).toStringAsFixed(1)} K oyentes';
+    }
+    return '$count oyentes';
+  }
+
+  String _formatReleaseDate(dynamic date) {
+    if (date == null) return '';
+    final parts = date.toString().split('-');
+    return parts.isNotEmpty ? parts[0] : '';
+  }
+
+  Future<void> _shareArtist() async {
+    final artist = _profileData?['artist'];
+    final name = artist?['name'] ?? widget.artistName;
+    final id = artist?['id'];
+    final url = id != null ? 'https://www.deezer.com/artist/$id' : '';
+    await Share.share('¡Escucha a $name en SynapMusic! $url');
+  }
+
+  Future<void> _playShuffleTopTracks() async {
+    final topTracks = _profileData?['top_tracks'] as List<dynamic>? ?? [];
+    if (topTracks.isEmpty) return;
+
+    List<BaseItemDto> localTracks = [];
+    for (var t in topTracks) {
+      if (t['local_id'] != null) {
+        BaseItemDto? dto;
+        if (t['jellyfin_item'] != null) {
+          try {
+            dto = BaseItemDto.fromJson(Map<String, dynamic>.from(t['jellyfin_item']));
+          } catch (_) {}
+        }
+        if (dto != null) {
+          localTracks.add(dto);
+        } else {
+          localTracks.add(BaseItemDto(
+            id: t['local_id'],
+            name: t['title'],
+            type: 'Audio',
+            artists: [widget.artistName],
+            albumArtist: widget.artistName,
+          ));
+        }
+      }
+    }
+
+    if (localTracks.isNotEmpty) {
+      final audioHandler = GetIt.instance<AudioServiceHelper>();
+      await audioHandler.replaceQueueWithItem(itemList: localTracks, shuffle: true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reproduciendo en aleatorio...')),
+        );
+      }
+    } else {
+      // Descarga y reproduce el primero
+      _playTrack(topTracks.first);
+    }
+  }
+
+  Future<void> _playTrack(dynamic item) async {
+    if (item['local_id'] != null) {
+      BaseItemDto? track;
+      if (item['jellyfin_item'] != null) {
+        try {
+          track = BaseItemDto.fromJson(Map<String, dynamic>.from(item['jellyfin_item']));
+        } catch (_) {}
+      }
+
+      if (track == null) {
+        try {
+          final jellyfinHelper = GetIt.instance<JellyfinApiHelper>();
+          track = await jellyfinHelper.getItemById(item['local_id']);
+        } catch (_) {
+          track = BaseItemDto(
+            id: item['local_id'],
+            name: item['title'],
+            type: 'Audio',
+            artists: [widget.artistName],
+            albumArtist: widget.artistName,
+          );
+        }
+      }
+
+      final audioHandler = GetIt.instance<AudioServiceHelper>();
+      await audioHandler.replaceQueueWithItem(itemList: [track]);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reproduciendo canción...')),
+        );
+      }
+    } else {
+      PlaybackDownloadCoordinator().downloadAndAutoPlay(
+        context: context,
+        title: item['title'] ?? '',
+        artist: widget.artistName,
+        queryString: item['query_string'] ?? '${item['title']} ${widget.artistName}',
+        coverUrl: item['cover_url'] ?? (item['album'] != null ? item['album']['cover_medium'] : null),
+      );
+    }
+  }
+
+  Widget _buildTopTrackRow(int index, dynamic track) {
+    final title = track['title'] ?? 'Canción desconocida';
+    final albumTitle = track['album'] != null ? track['album']['title'] ?? '' : '';
+    final coverUrl = track['cover_url'] ?? (track['album'] != null ? track['album']['cover_medium'] : null);
+    final isLocal = track['local_id'] != null;
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      leading: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 22,
+            child: Text(
+              '${index + 1}',
+              style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(width: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: coverUrl != null
+                ? Image.network(
+                    coverUrl,
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 44,
+                      height: 44,
+                      color: const Color(0xFF1E1E1E),
+                      child: const Icon(Icons.music_note, color: Colors.white54, size: 20),
+                    ),
+                  )
+                : Container(
+                    width: 44,
+                    height: 44,
+                    color: const Color(0xFF1E1E1E),
+                    child: const Icon(Icons.music_note, color: Colors.white54, size: 20),
+                  ),
+          ),
+        ],
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        albumTitle.isNotEmpty ? albumTitle : widget.artistName,
+        style: const TextStyle(color: Colors.grey, fontSize: 12),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isLocal)
+            const Padding(
+              padding: EdgeInsets.only(right: 8.0),
+              child: Icon(Icons.check_circle, color: Color(0xFF8B93FF), size: 18),
+            ),
+          IconButton(
+            icon: const Icon(Icons.play_circle_outline, color: Colors.white),
+            onPressed: () => _playTrack(track),
+          ),
+        ],
+      ),
+      onTap: () => _playTrack(track),
+    );
   }
 
   Widget _buildSectionTitle(String title, {VoidCallback? onMore}) {
@@ -70,11 +361,11 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           if (onMore != null)
             TextButton(
               onPressed: onMore,
-              child: const Text('Más', style: TextStyle(color: Colors.blue)),
+              child: Text('Más', style: TextStyle(color: _synapColor, fontWeight: FontWeight.bold)),
             ),
         ],
       ),
@@ -98,49 +389,7 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
                   builder: (context) => AlbumDetailScreen(albumId: item['id']),
                 ));
               } else {
-                if (item['local_id'] != null) {
-                  BaseItemDto? track;
-                  if (item['jellyfin_item'] != null) {
-                    try {
-                      final dto = BaseItemDto.fromJson(Map<String, dynamic>.from(item['jellyfin_item']));
-                      if (dto.artists != null && dto.artists!.isNotEmpty) {
-                        track = dto;
-                      }
-                    } catch (e) {
-                      print('Error parseando jellyfin_item: $e');
-                    }
-                  }
-
-                  if (track == null) {
-                    try {
-                      final jellyfinHelper = GetIt.instance<JellyfinApiHelper>();
-                      track = await jellyfinHelper.getItemById(item['local_id']);
-                    } catch (e) {
-                      print('Error obteniendo item por ID: $e');
-                      track = BaseItemDto(
-                        id: item['local_id'],
-                        name: item['title'],
-                        type: 'Audio',
-                        artists: [widget.artistName],
-                        albumArtist: widget.artistName,
-                      );
-                    }
-                  }
-
-                  final audioHandler = GetIt.instance<AudioServiceHelper>();
-                  await audioHandler.replaceQueueWithItem(itemList: [track]);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reproduciendo canción...')));
-                  }
-                } else {
-                  PlaybackDownloadCoordinator().downloadAndAutoPlay(
-                    context: context,
-                    title: item['title'] ?? '',
-                    artist: widget.artistName,
-                    queryString: item['query_string'] ?? '${item['title']} ${widget.artistName}',
-                    coverUrl: item['cover_url'],
-                  );
-                }
+                _playTrack(item);
               }
             },
             child: Container(
@@ -150,15 +399,17 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                     child: Image.network(
                       item['cover_url'] ?? '',
                       width: 120,
                       height: 120,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
-                        width: 120, height: 120, color: Colors.grey[800],
-                        child: const Icon(Icons.music_note, color: Colors.white, size: 40),
+                        width: 120,
+                        height: 120,
+                        color: Colors.grey[850],
+                        child: const Icon(Icons.album, color: Colors.white, size: 40),
                       ),
                     ),
                   ),
@@ -171,7 +422,7 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
                   ),
                   if (item['release_date'] != null)
                     Text(
-                      item['release_date'].toString().split('-')[0],
+                      _formatReleaseDate(item['release_date']),
                       style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                 ],
@@ -187,14 +438,16 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text(widget.artistName)),
+        backgroundColor: const Color(0xFF0A0A0A),
+        appBar: AppBar(backgroundColor: const Color(0xFF0A0A0A), title: Text(widget.artistName)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_profileData == null || _profileData!.containsKey('error')) {
       return Scaffold(
-        appBar: AppBar(title: Text(widget.artistName)),
+        backgroundColor: const Color(0xFF0A0A0A),
+        appBar: AppBar(backgroundColor: const Color(0xFF0A0A0A), title: Text(widget.artistName)),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -210,6 +463,10 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _synapColor,
+                    foregroundColor: Colors.black,
+                  ),
                   onPressed: () {
                     setState(() {
                       _isLoading = true;
@@ -226,42 +483,133 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
       );
     }
 
-    final artist = _profileData!['artist'];
+    final artist = _profileData!['artist'] ?? {};
     final topTracks = _profileData!['top_tracks'] as List<dynamic>? ?? [];
     final albums = _profileData!['albums'] as List<dynamic>? ?? [];
     final singles = _profileData!['singles'] as List<dynamic>? ?? [];
+    final fansCount = _formatFans(artist['nb_fan']);
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 250,
+            expandedHeight: 280,
             pinned: true,
+            backgroundColor: const Color(0xFF0A0A0A),
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(artist['name'] ?? ''),
-              background: artist['picture_url'] != null
-                  ? Image.network(artist['picture_url'], fit: BoxFit.cover)
-                  : Container(color: Colors.grey[800]),
+              title: Text(
+                artist['name'] ?? widget.artistName,
+                style: const TextStyle(fontWeight: FontWeight.bold, shadows: [
+                  Shadow(color: Colors.black, blurRadius: 10),
+                ]),
+              ),
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  artist['picture_url'] != null
+                      ? Image.network(artist['picture_url'], fit: BoxFit.cover)
+                      : Container(color: Colors.grey[900]),
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.transparent, Color(0xFF0A0A0A)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (fansCount.isNotEmpty)
+                    Text(
+                      fansCount,
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      // Botón Play
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: _synapColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.play_arrow, size: 30, color: Colors.black),
+                          onPressed: topTracks.isNotEmpty ? () => _playTrack(topTracks.first) : null,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Botón Aleatorio
+                      IconButton(
+                        icon: const Icon(Icons.shuffle, size: 26, color: Colors.white),
+                        tooltip: 'Reproducción aleatoria',
+                        onPressed: _playShuffleTopTracks,
+                      ),
+                      const SizedBox(width: 16),
+                      // Botón Favorito
+                      IconButton(
+                        icon: Icon(
+                          _isFavorite ? Icons.favorite : Icons.favorite_border,
+                          size: 26,
+                          color: _isFavorite ? Colors.redAccent : Colors.white,
+                        ),
+                        tooltip: _isFavorite ? 'Remover de favoritos' : 'Añadir a favoritos',
+                        onPressed: _toggleFavorite,
+                      ),
+                      const SizedBox(width: 16),
+                      // Botón Compartir
+                      IconButton(
+                        icon: const Icon(Icons.share, size: 24, color: Colors.white),
+                        tooltip: 'Compartir artista',
+                        onPressed: _shareArtist,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
           SliverList(
             delegate: SliverChildListDelegate([
               if (topTracks.isNotEmpty) ...[
-                _buildSectionTitle('Canciones Populares'),
-                _buildHorizontalList(topTracks),
+                _buildSectionTitle(
+                  'Canciones Populares',
+                  onMore: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ArtistTopTracksScreen(
+                          artistName: widget.artistName,
+                          initialTracks: topTracks,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                ...topTracks.take(5).toList().asMap().entries.map(
+                  (entry) => _buildTopTrackRow(entry.key, entry.value),
+                ),
               ],
               if (albums.isNotEmpty) ...[
-                _buildSectionTitle('Álbumes', onMore: () {
-                  // TODO: redirect to album search
-                  Navigator.of(context).pop();
-                }),
+                _buildSectionTitle('Álbumes'),
                 _buildHorizontalList(albums, isAlbum: true),
               ],
               if (singles.isNotEmpty) ...[
                 _buildSectionTitle('Sencillos / EPs'),
                 _buildHorizontalList(singles, isAlbum: true),
               ],
-              const SizedBox(height: 40),
+              const SizedBox(height: 48),
             ]),
           ),
         ],

@@ -426,6 +426,51 @@ class MusicPlayerBackgroundTask extends BaseAudioHandler {
     }
   }
 
+  Future<void> reshuffleQueueWithCurrentFirst() async {
+    try {
+      final currentMediaItem = mediaItem.valueOrNull;
+      final currentQueue = queue.valueOrNull ?? [];
+      if (currentQueue.isEmpty) return;
+
+      List<MediaItem> newQueue = List<MediaItem>.from(currentQueue);
+      if (currentMediaItem != null) {
+        newQueue.removeWhere((item) => item.id == currentMediaItem.id);
+        newQueue.shuffle();
+        newQueue.insert(0, currentMediaItem);
+      } else {
+        newQueue.shuffle();
+      }
+
+      _audioServiceBackgroundTaskLogger.info(
+          "Queue reshuffled with current track at index 0, total items: ${newQueue.length}");
+
+      await updateQueue(newQueue);
+      if (_player.currentIndex != 0) {
+        await _player.seek(Duration.zero, index: 0);
+      }
+    } catch (e) {
+      _audioServiceBackgroundTaskLogger.severe("Error in reshuffleQueueWithCurrentFirst: $e");
+    }
+  }
+
+  Future<void> reshuffleActiveQueue() async {
+    await reshuffleQueueWithCurrentFirst();
+  }
+
+  Future<void> toggleShuffleMode() async {
+    try {
+      final currentMode = playbackState.valueOrNull?.shuffleMode ?? AudioServiceShuffleMode.none;
+      if (currentMode == AudioServiceShuffleMode.all) {
+        await setShuffleMode(AudioServiceShuffleMode.none);
+      } else {
+        await reshuffleQueueWithCurrentFirst();
+        await setShuffleMode(AudioServiceShuffleMode.all);
+      }
+    } catch (e) {
+      _audioServiceBackgroundTaskLogger.severe("Error in toggleShuffleMode: $e");
+    }
+  }
+
   @override
   Future<void> setRepeatMode(AudioServiceRepeatMode repeatMode) async {
     try {

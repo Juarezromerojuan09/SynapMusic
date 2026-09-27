@@ -1,5 +1,5 @@
-// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -17,15 +17,13 @@ class AppLocalizationsCs extends AppLocalizations {
   String get serverUrl => 'Adresa URL serveru';
 
   @override
-  String get internalExternalIpExplanation =>
-      'Pokud budete chtít vzdáleně přistupovat k vašemu serveru Jellyfin, budete muset použít vaši externí IP.\n\nPokud je váš server na portu HTTP (80/443), nemusíte specifikovat port. Toto bývá obvyklé, když máte server za reverzní proxy.';
+  String get internalExternalIpExplanation => 'Pokud budete chtít vzdáleně přistupovat k vašemu serveru Jellyfin, budete muset použít vaši externí IP.\n\nPokud je váš server na portu HTTP (80/443), nemusíte specifikovat port. Toto bývá obvyklé, když máte server za reverzní proxy.';
 
   @override
   String get emptyServerUrl => 'Adresa URL serveru nemůže být prázdná';
 
   @override
-  String get urlStartWithHttps =>
-      'Adresa URL musí začínat s http:// nebo https://';
+  String get urlStartWithHttps => 'Adresa URL musí začínat s http:// nebo https://';
 
   @override
   String get urlTrailingSlash => 'Adresa URL nesmí obsahovat koncové lomítko';
@@ -70,12 +68,10 @@ class AppLocalizationsCs extends AppLocalizations {
   String get startMix => 'Spustit mix';
 
   @override
-  String get startMixNoSongsArtist =>
-      'Dlouze podržte prst na umělci pro jeho přidání nebo odebrání z tvorby mixu před jeho spuštěním';
+  String get startMixNoSongsArtist => 'Dlouze podržte prst na umělci pro jeho přidání nebo odebrání z tvorby mixu před jeho spuštěním';
 
   @override
-  String get startMixNoSongsAlbum =>
-      'Dlouze podržte prst na albu pro jeho přidání nebo odebrání z tvorby mixu před jeho spuštěním';
+  String get startMixNoSongsAlbum => 'Dlouze podržte prst na albu pro jeho přidání nebo odebrání z tvorby mixu před jeho spuštěním';
 
   @override
   String get music => 'Hudba';
@@ -153,8 +149,7 @@ class AppLocalizationsCs extends AppLocalizations {
   String get runtime => 'Doba běhu';
 
   @override
-  String get syncDownloadedPlaylists =>
-      'Synchronizovat stažené seznamy skladeb';
+  String get syncDownloadedPlaylists => 'Synchronizovat stažené seznamy skladeb';
 
   @override
   String get downloadMissingImages => 'Stáhnout chybějící obrázky';
@@ -211,8 +206,7 @@ class AppLocalizationsCs extends AppLocalizations {
   }
 
   @override
-  String downloadedItemsImagesCount(
-      String downloadedItems, String downloadedImages) {
+  String downloadedItemsImagesCount(String downloadedItems, String downloadedImages) {
     return '$downloadedItems, $downloadedImages';
   }
 
@@ -243,12 +237,10 @@ class AppLocalizationsCs extends AppLocalizations {
   String get noErrors => 'Žádné chyby!';
 
   @override
-  String get errorScreenError =>
-      'Při načítání seznamu chyb došlo k chybě! Vytvořte prosím problém na GitHubu a vymažte data aplikace';
+  String get errorScreenError => 'Při načítání seznamu chyb došlo k chybě! Vytvořte prosím problém na GitHubu a vymažte data aplikace';
 
   @override
-  String get failedToGetSongFromDownloadId =>
-      'Error nelze sehnat skladbu s ID pro stažení';
+  String get failedToGetSongFromDownloadId => 'Error nelze sehnat skladbu s ID pro stažení';
 
   @override
   String deleteDownloadsPrompt(String itemName, String itemType) {
@@ -344,8 +336,7 @@ class AppLocalizationsCs extends AppLocalizations {
   String get stackTrace => 'Trasování';
 
   @override
-  String get applicationLegalese =>
-      'Licence Mozilla Public License 2.0. Zdrojový kód je dostupný na stránce:\n\ngithub.com/jmshrv/finamp';
+  String get applicationLegalese => 'Licence Mozilla Public License 2.0. Zdrojový kód je dostupný na stránce:\n\ngithub.com/jmshrv/finamp';
 
   @override
   String get transcoding => 'Překódování';
@@ -369,29 +360,25 @@ class AppLocalizationsCs extends AppLocalizations {
   String get logOut => 'Odhlásit se';
 
   @override
-  String get downloadedSongsWillNotBeDeleted =>
-      'Stažené skladby nebudou odstraněny';
+  String get downloadedSongsWillNotBeDeleted => 'Stažené skladby nebudou odstraněny';
 
   @override
   String get areYouSure => 'Opravdu?';
 
   @override
-  String get jellyfinUsesAACForTranscoding =>
-      'Jellyfin používá pro překódování formát AAC';
+  String get jellyfinUsesAACForTranscoding => 'Jellyfin používá pro překódování formát AAC';
 
   @override
   String get enableTranscoding => 'Zapnout překódování';
 
   @override
-  String get enableTranscodingSubtitle =>
-      'Překóduje hudební streamy na straně serveru.';
+  String get enableTranscodingSubtitle => 'Překóduje hudební streamy na straně serveru.';
 
   @override
   String get bitrate => 'Datový tok';
 
   @override
-  String get bitrateSubtitle =>
-      'Vyšší datový tok poskytuje vyšší kvalitu zvuku, ale zvýší využití internetu.';
+  String get bitrateSubtitle => 'Vyšší datový tok poskytuje vyšší kvalitu zvuku, ale zvýší využití internetu.';
 
   @override
   String get customLocation => 'Vlastní umístění';
@@ -409,31 +396,25 @@ class AppLocalizationsCs extends AppLocalizations {
   String get unknownError => 'Neznámá chyba';
 
   @override
-  String get pathReturnSlashErrorMessage =>
-      'Cesty, které vracejí „/“, nelze použít';
+  String get pathReturnSlashErrorMessage => 'Cesty, které vracejí „/“, nelze použít';
 
   @override
   String get directoryMustBeEmpty => 'Adresář musí být prázdný';
 
   @override
-  String get customLocationsBuggy =>
-      'Vlastní umístění bývají kvůli problémům s oprávněními extrémně chybové. Snažíme se tento problém opravit, do té doby ale nedoporučujeme jejich používání.';
+  String get customLocationsBuggy => 'Vlastní umístění bývají kvůli problémům s oprávněními extrémně chybové. Snažíme se tento problém opravit, do té doby ale nedoporučujeme jejich používání.';
 
   @override
-  String get enterLowPriorityStateOnPause =>
-      'Po pozastavení vstoupit do stavu nízké priority';
+  String get enterLowPriorityStateOnPause => 'Po pozastavení vstoupit do stavu nízké priority';
 
   @override
-  String get enterLowPriorityStateOnPauseSubtitle =>
-      'Umožní odstranění notifikace při pozastavení. Také umožní systému ukončit službu.';
+  String get enterLowPriorityStateOnPauseSubtitle => 'Umožní odstranění notifikace při pozastavení. Také umožní systému ukončit službu.';
 
   @override
-  String get shuffleAllSongCount =>
-      'Počet skladeb pro náhodné přehrávání všeho';
+  String get shuffleAllSongCount => 'Počet skladeb pro náhodné přehrávání všeho';
 
   @override
-  String get shuffleAllSongCountSubtitle =>
-      'Počet skladeb, které se mají načíst při použití tlačítka náhodného přehrávání všech skladeb.';
+  String get shuffleAllSongCountSubtitle => 'Počet skladeb, které se mají načíst při použití tlačítka náhodného přehrávání všech skladeb.';
 
   @override
   String get viewType => 'Typ zobrazení';
@@ -467,24 +448,19 @@ class AppLocalizationsCs extends AppLocalizations {
   String get showTextOnGridView => 'Zobrazit text v zobrazení v mřížce';
 
   @override
-  String get showTextOnGridViewSubtitle =>
-      'Zda zobrazit text (název, umělce atd.) v mřížkovém zobrazení hudební obrazovky.';
+  String get showTextOnGridViewSubtitle => 'Zda zobrazit text (název, umělce atd.) v mřížkovém zobrazení hudební obrazovky.';
 
   @override
-  String get showCoverAsPlayerBackground =>
-      'Zobrazit rozmazaný obal jako pozadí přehrávače';
+  String get showCoverAsPlayerBackground => 'Zobrazit rozmazaný obal jako pozadí přehrávače';
 
   @override
-  String get showCoverAsPlayerBackgroundSubtitle =>
-      'Zda použít rozmazaný obal alba jako pozadí na obrazovce přehrávače.';
+  String get showCoverAsPlayerBackgroundSubtitle => 'Zda použít rozmazaný obal alba jako pozadí na obrazovce přehrávače.';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtists =>
-      'Nezobrazovat umělce, pokud je totožný s umělcem alba';
+  String get hideSongArtistsIfSameAsAlbumArtists => 'Nezobrazovat umělce, pokud je totožný s umělcem alba';
 
   @override
-  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle =>
-      'Zda zobrazit umělce skladby na obrazovce alba, pokud se neliší od umělců alba.';
+  String get hideSongArtistsIfSameAsAlbumArtistsSubtitle => 'Zda zobrazit umělce skladby na obrazovce alba, pokud se neliší od umělců alba.';
 
   @override
   String get disableGesture => 'Zakázat gesta';
@@ -654,8 +630,7 @@ class AppLocalizationsCs extends AppLocalizations {
   String get bufferDuration => 'Trvání vyrovnávací paměti';
 
   @override
-  String get bufferDurationSubtitle =>
-      'Kolik sekund dopředu by měl přehrávač uložit do vyrovnávací paměti. Vyžaduje restart aplikace.';
+  String get bufferDurationSubtitle => 'Kolik sekund dopředu by měl přehrávač uložit do vyrovnávací paměti. Vyžaduje restart aplikace.';
 
   @override
   String get language => 'Jazyk';
@@ -664,8 +639,7 @@ class AppLocalizationsCs extends AppLocalizations {
   String get confirm => 'Potvrdit';
 
   @override
-  String get showUncensoredLogMessage =>
-      'Tento protokol zobrazuje vaše přihlašovací informace. Chcete jej zobrazit?';
+  String get showUncensoredLogMessage => 'Tento protokol zobrazuje vaše přihlašovací informace. Chcete jej zobrazit?';
 
   @override
   String get resetTabs => 'Obnovit karty';
@@ -674,8 +648,7 @@ class AppLocalizationsCs extends AppLocalizations {
   String get noMusicLibrariesTitle => 'Žádné hudební knihovny';
 
   @override
-  String get noMusicLibrariesBody =>
-      'Finamp nenalezl žádné hudební knihovny. Ujistěte se prosím, že váš server Jellyfin obsahuje alespoň jednu knihovnu s typem obsahu nastaveným na „Hudba“.';
+  String get noMusicLibrariesBody => 'Finamp nenalezl žádné hudební knihovny. Ujistěte se prosím, že váš server Jellyfin obsahuje alespoň jednu knihovnu s typem obsahu nastaveným na „Hudba“.';
 
   @override
   String get refresh => 'OBNOVIT';
@@ -684,8 +657,7 @@ class AppLocalizationsCs extends AppLocalizations {
   String get swipeInsertQueueNext => 'Přehrát posunutou skladbu jako další';
 
   @override
-  String get swipeInsertQueueNextSubtitle =>
-      'Zapněte pro vložení skladby jako další položku do fronty po posunutí prstem na skladbě v seznamu skladeb, místo jejího přiřazení na konec.';
+  String get swipeInsertQueueNextSubtitle => 'Zapněte pro vložení skladby jako další položku do fronty po posunutí prstem na skladbě v seznamu skladeb, místo jejího přiřazení na konec.';
 
   @override
   String get redesignBeta => 'Vyzkoušejte beta verzi';
@@ -694,8 +666,7 @@ class AppLocalizationsCs extends AppLocalizations {
   String get playbackOrderShuffledTooltip => 'Náhodně. Klepnutím přepnete.';
 
   @override
-  String get playbackOrderLinearTooltip =>
-      'Přehrávání v pořadí. Klepnutím přepnete.';
+  String get playbackOrderLinearTooltip => 'Přehrávání v pořadí. Klepnutím přepnete.';
 
   @override
   String get loopModeAllTooltip => 'Opakování všeho. Klepnutím přepnete.';

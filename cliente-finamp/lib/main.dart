@@ -385,7 +385,7 @@ class Finamp extends StatelessWidget {
                         unselectedItemColor: Color(0xFFA0A0A0),
                         elevation: 0,
                       ),
-                      cardTheme: CardThemeData(
+                      cardTheme: CardTheme(
                         color: const Color(0xFF1A1A1A),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
