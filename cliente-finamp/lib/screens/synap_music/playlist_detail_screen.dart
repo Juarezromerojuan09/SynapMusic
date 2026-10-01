@@ -363,6 +363,46 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     }
   }
 
+  Future<void> _syncMissingTracks() async {
+    if (_tracks == null || _tracks!.isEmpty) return;
+    setState(() { _isDownloading = true; });
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Descargando canciones faltantes de la playlist...')),
+      );
+
+      final syncHelper = DownloadsSyncHelper(Logger("SyncHelper"));
+      syncHelper.sync(context, widget.playlist, _tracks!);
+
+      final directory = await getApplicationDocumentsDirectory();
+      final lyricsDir = Directory('${directory.path}/lyrics');
+      if (!await lyricsDir.exists()) {
+        await lyricsDir.create(recursive: true);
+      }
+
+      final api = SynapApiService();
+      for (var item in _tracks!) {
+        if (item.name != null) {
+          final file = File('${lyricsDir.path}/${item.id}.lrc');
+          if (!await file.exists()) {
+            final artist = item.albumArtist ?? item.artists?.firstOrNull ?? '';
+            final lrc = await api.getLyrics(artist, item.name!);
+            if (lrc != null && lrc.isNotEmpty) {
+              await file.writeAsString(lrc);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al sincronizar canciones: $e')));
+    } finally {
+      if (mounted) {
+        setState(() { _isDownloading = false; });
+      }
+      _isDownloadedNotifier.value = _downloadsHelper.getDownloadedParent(widget.playlist.id) != null;
+    }
+  }
+
   Future<void> _handlePlaylistShuffle() async {
     if (_tracks == null || _tracks!.isEmpty) return;
     try {
@@ -770,83 +810,129 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                     if (index == 0) {
                       return ValueListenableBuilder<Box<DownloadedParent>>(
                         valueListenable: _downloadsHelper.downloadedParentsListenable,
-                        builder: (context, box, child) {
-                          final isDownloaded = box.containsKey(widget.playlist.id);
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                // 1. Play grande
-                                Container(
-                                  width: 56,
-                                  height: 56,
-                                  decoration: BoxDecoration(
-                                    color: _synapColor,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: IconButton(
-                                    icon: const Icon(Icons.play_arrow, size: 36, color: Colors.black),
-                                    onPressed: () async {
-                                      if (_tracks == null || _tracks!.isEmpty) return;
-                                      await GetIt.instance<AudioServiceHelper>().replaceQueueWithItem(
-                                        itemList: _tracks!,
-                                        initialIndex: 0,
-                                      );
-                                      if (mounted) {
-                                        Navigator.of(context, rootNavigator: true).pushNamed(PlayerScreen.routeName);
-                                      }
-                                    },
-                                  ),
-                                ),
-                                // 2. Aleatorio
-                                IconButton(
-                                  icon: const Icon(Icons.shuffle, size: 24, color: Colors.white),
-                                  tooltip: 'Reproducción aleatoria',
-                                  onPressed: _handlePlaylistShuffle,
-                                ),
-                                // 3. Lupa / Buscar
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.search,
-                                    size: 24,
-                                    color: Colors.white,
-                                  ),
-                                  tooltip: 'Buscar canción',
-                                  onPressed: () => _toggleSearch(true),
-                                ),
-                                // 4. Filtro
-                                IconButton(
-                                  icon: const Icon(Icons.sort, size: 24, color: Colors.white),
-                                  tooltip: 'Ordenar',
-                                  onPressed: _showSortDialog,
-                                ),
-                                // 5. Lapiz
-                                IconButton(
-                                  icon: const Icon(Icons.edit, size: 24, color: Colors.white),
-                                  tooltip: 'Modificar playlist',
-                                  onPressed: () async {
-                                    final updated = await Navigator.of(context).push<bool>(
-                                      MaterialPageRoute(
-                                        builder: (_) => EditPlaylistScreen(playlist: widget.playlist),
+                        builder: (context, parentBox, child) {
+                          final downloadedParent = parentBox.get(widget.playlist.id);
+                          final isDownloaded = downloadedParent != null;
+
+                          return ValueListenableBuilder<Box<DownloadedSong>>(
+                            valueListenable: _downloadsHelper.getDownloadedItemsListenable(),
+                            builder: (context, songBox, _) {
+                              final bool hasMissingSongs = isDownloaded &&
+                                  (_tracks != null && _tracks!.isNotEmpty) &&
+                                  _tracks!.any((t) => !songBox.containsKey(t.id));
+
+                              Widget downloadIcon;
+                              VoidCallback? downloadAction;
+                              String downloadTooltip;
+
+                              if (_isDownloading) {
+                                downloadIcon = const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                );
+                                downloadAction = null;
+                                downloadTooltip = 'Descargando...';
+                              } else if (hasMissingSongs) {
+                                downloadIcon = Icon(
+                                  Icons.sync,
+                                  size: 26,
+                                  color: _synapColor,
+                                );
+                                downloadAction = () => _syncMissingTracks();
+                                downloadTooltip = 'Descargar canciones faltantes';
+                              } else if (isDownloaded) {
+                                downloadIcon = Icon(
+                                  Icons.download_for_offline,
+                                  size: 24,
+                                  color: _synapColor,
+                                );
+                                downloadAction = () => _toggleDownload(false, _tracks!);
+                                downloadTooltip = 'Eliminar descargas de la playlist';
+                              } else {
+                                downloadIcon = const Icon(
+                                  Icons.download_for_offline,
+                                  size: 24,
+                                  color: Colors.white,
+                                );
+                                downloadAction = () => _toggleDownload(true, _tracks!);
+                                downloadTooltip = 'Descargar playlist';
+                              }
+
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    // 1. Play grande
+                                    Container(
+                                      width: 56,
+                                      height: 56,
+                                      decoration: BoxDecoration(
+                                        color: _synapColor,
+                                        shape: BoxShape.circle,
                                       ),
-                                    );
-                                    if (updated == true && mounted) {
-                                      _loadItems();
-                                    }
-                                  },
+                                      child: IconButton(
+                                        icon: const Icon(Icons.play_arrow, size: 36, color: Colors.black),
+                                        onPressed: () async {
+                                          if (_tracks == null || _tracks!.isEmpty) return;
+                                          await GetIt.instance<AudioServiceHelper>().replaceQueueWithItem(
+                                            itemList: _tracks!,
+                                            initialIndex: 0,
+                                          );
+                                          if (mounted) {
+                                            Navigator.of(context, rootNavigator: true).pushNamed(PlayerScreen.routeName);
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                    // 2. Aleatorio
+                                    IconButton(
+                                      icon: const Icon(Icons.shuffle, size: 24, color: Colors.white),
+                                      tooltip: 'Reproducción aleatoria',
+                                      onPressed: _handlePlaylistShuffle,
+                                    ),
+                                    // 3. Lupa / Buscar
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.search,
+                                        size: 24,
+                                        color: Colors.white,
+                                      ),
+                                      tooltip: 'Buscar canción',
+                                      onPressed: () => _toggleSearch(true),
+                                    ),
+                                    // 4. Filtro
+                                    IconButton(
+                                      icon: const Icon(Icons.sort, size: 24, color: Colors.white),
+                                      tooltip: 'Ordenar',
+                                      onPressed: _showSortDialog,
+                                    ),
+                                    // 5. Lapiz
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, size: 24, color: Colors.white),
+                                      tooltip: 'Modificar playlist',
+                                      onPressed: () async {
+                                        final updated = await Navigator.of(context).push<bool>(
+                                          MaterialPageRoute(
+                                            builder: (_) => EditPlaylistScreen(playlist: widget.playlist),
+                                          ),
+                                        );
+                                        if (updated == true && mounted) {
+                                          _loadItems();
+                                        }
+                                      },
+                                    ),
+                                    // 6. Descargar / Sincronizar
+                                    IconButton(
+                                      icon: downloadIcon,
+                                      tooltip: downloadTooltip,
+                                      onPressed: downloadAction,
+                                    ),
+                                  ],
                                 ),
-                                // 6. Descargar
-                                IconButton(
-                                  icon: Icon(
-                                    Icons.download_for_offline,
-                                    size: 24,
-                                    color: isDownloaded ? _synapColor : Colors.white,
-                                  ),
-                                  onPressed: _isDownloading ? null : () => _toggleDownload(!isDownloaded, _tracks!),
-                                ),
-                              ],
-                            ),
+                              );
+                            },
                           );
                         },
                       );

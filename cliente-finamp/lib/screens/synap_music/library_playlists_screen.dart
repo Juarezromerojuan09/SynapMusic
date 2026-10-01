@@ -436,6 +436,10 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
                       final isSelected = _selectedIds.contains(playlist.id);
                       final isDownloaded = playlist.id != null && _downloadsHelper.getDownloadedParent(playlist.id!) != null;
                       final downloadedParent = isDownloaded ? _downloadsHelper.getDownloadedParent(playlist.id!) : null;
+                      final bool hasMissingSongs = isDownloaded &&
+                          playlist.childCount != null &&
+                          downloadedParent != null &&
+                          playlist.childCount! > downloadedParent.downloadedChildren.length;
                       final downloadedImage = isDownloaded ? _downloadsHelper.getDownloadedImage(playlist) : null;
                       final songCount = (downloadedParent != null && downloadedParent.downloadedChildren.isNotEmpty)
                           ? downloadedParent.downloadedChildren.length
@@ -514,7 +518,7 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
                                             shape: BoxShape.circle,
                                             border: Border.all(color: _synapColor, width: 1.2),
                                           ),
-                                          child: Icon(Icons.download_done, color: _synapColor, size: 14),
+                                          child: Icon(hasMissingSongs ? Icons.sync : Icons.download_done, color: _synapColor, size: 14),
                                         ),
                                       ),
                                     if (isSelected)

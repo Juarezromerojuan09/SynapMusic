@@ -44,6 +44,9 @@ class _DownloadScreenState extends State<DownloadScreen> {
   List<dynamic> _artistResults = [];
   
   int _deezerOffset = 0;
+  int _youtubeOffset = 0;
+  bool _isLoadingMoreYoutube = false;
+  bool _hasMoreYoutube = true;
 
   // States for Discovery & Recommendations
   List<BaseItemDto>? _recommendations;
@@ -185,6 +188,8 @@ class _DownloadScreenState extends State<DownloadScreen> {
         _isAlbumLoading = true;
         _isArtistLoading = true;
         _deezerOffset = 0;
+        _youtubeOffset = 0;
+        _hasMoreYoutube = true;
         _youtubeResults.clear();
       });
     }
@@ -254,10 +259,12 @@ class _DownloadScreenState extends State<DownloadScreen> {
   Future<void> _loadYoutubeResults() async {
     setState(() {
       _isLoadingYoutube = true;
+      _youtubeOffset = 0;
+      _hasMoreYoutube = true;
     });
     
     try {
-      final responseMap = await _apiService.searchExternal(_searchController.text, source: 'youtube', limit: 15);
+      final responseMap = await _apiService.searchExternal(_searchController.text, source: 'youtube', limit: 10, offset: 0);
       if (responseMap != null) {
         final List<dynamic> remoteResults = responseMap['remote_results'] ?? [];
         setState(() {
@@ -266,6 +273,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
             map['source'] ??= 'youtube';
             return SynapSearchResult.fromJson(map);
           }).toList();
+          _hasMoreYoutube = remoteResults.length >= 10;
         });
       }
     } catch (e) {
@@ -275,6 +283,39 @@ class _DownloadScreenState extends State<DownloadScreen> {
     } finally {
       setState(() {
         _isLoadingYoutube = false;
+      });
+    }
+  }
+
+  Future<void> _loadMoreYoutube() async {
+    if (_isLoadingMoreYoutube || !_hasMoreYoutube) return;
+    setState(() {
+      _isLoadingMoreYoutube = true;
+      _youtubeOffset += 10;
+    });
+
+    try {
+      final responseMap = await _apiService.searchExternal(_searchController.text, source: 'youtube', limit: 10, offset: _youtubeOffset);
+      if (responseMap != null) {
+        final List<dynamic> remoteResults = responseMap['remote_results'] ?? [];
+        final newItems = remoteResults.map((json) {
+          final map = Map<String, dynamic>.from(json);
+          map['source'] ??= 'youtube';
+          return SynapSearchResult.fromJson(map);
+        }).toList();
+
+        setState(() {
+          _youtubeResults.addAll(newItems);
+          _hasMoreYoutube = remoteResults.length >= 10;
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al cargar más resultados de YouTube: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoadingMoreYoutube = false;
       });
     }
   }
@@ -464,6 +505,23 @@ class _DownloadScreenState extends State<DownloadScreen> {
               child: Text('Resultados de YouTube', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red)),
             ),
             ..._youtubeResults.map((item) => _buildExternalResultTile(item)).toList(),
+            if (_hasMoreYoutube)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20.0),
+                child: Center(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoadingMoreYoutube ? null : _loadMoreYoutube,
+                    icon: _isLoadingMoreYoutube 
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.add, color: Colors.white),
+                    label: const Text('Más', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                  ),
+                ),
+              ),
           ]
         ] else if (_localJellyfinDataList.isEmpty) ...[
           const Center(child: Text('No se encontraron resultados')),

@@ -138,6 +138,14 @@ class DownloadsHelper {
           downloadBaseDir: Directory(downloadLocation.path),
           useHumanReadableNames: useHumanReadableNames,
         );
+        final songTitle = (item.name != null && item.name!.isNotEmpty) ? item.name! : item.id;
+        final songArtist = (item.artists != null && item.artists!.isNotEmpty)
+            ? item.artists!.join(', ')
+            : (item.albumArtist ?? '');
+        final safeTitle = songTitle.replaceAll(RegExp(r'[/?<>\\:*|"]'), '_').trim();
+        final safeArtist = songArtist.replaceAll(RegExp(r'[/?<>\\:*|"]'), '_').trim();
+        final ext = mediaSourceInfo?[0].container ?? 'mp3';
+
         if (useHumanReadableNames) {
           if (mediaSourceInfo == null) {
             _downloadsLogger.warning(
@@ -145,10 +153,17 @@ class DownloadsHelper {
           }
           // We use a regex to filter out bad characters from song/album names.
           fileName =
-              "${item.album?.replaceAll(RegExp('[/?<>\\:*|"]'), "_")} - ${item.indexNumber ?? 0} - ${item.name?.replaceAll(RegExp('[/?<>\\:*|"]'), "_")}.${mediaSourceInfo?[0].container}";
+              "${item.album?.replaceAll(RegExp('[/?<>\\:*|"]'), "_")} - ${item.indexNumber ?? 0} - $safeTitle.$ext";
         } else {
-          fileName = "${item.id}.${mediaSourceInfo?[0].container}";
+          // Nombre legible: Título - Autor para que la notificación de Android muestre la canción
+          final displayName = safeArtist.isNotEmpty ? "$safeTitle - $safeArtist" : safeTitle;
           downloadDir = Directory(downloadLocation.path);
+          fileName = "$displayName.$ext";
+          final candidate = File(path_helper.join(downloadDir.path, fileName));
+          if (candidate.existsSync() && !_downloadedItemsBox.containsKey(item.id)) {
+            final shortId = item.id.substring(0, item.id.length > 5 ? 5 : item.id.length);
+            fileName = "$displayName [$shortId].$ext";
+          }
         }
 
         String authHeader = await getAuthHeader();
@@ -1141,7 +1156,7 @@ class DownloadsHelper {
       },
       fileName: fileName,
       openFileFromNotification: false,
-      showNotification: true,
+      showNotification: false,
     );
 
     if (imageDownloadId == null) {

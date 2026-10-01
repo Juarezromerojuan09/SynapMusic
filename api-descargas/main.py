@@ -1132,12 +1132,19 @@ async def search_music(q: str, source: str = "deezer", limit: int = 15, offset: 
         except Exception as e:
             print(f"Error buscando en Deezer: {repr(e)}")
             
-    else: # YouTube (yt-dlp fallback)
-        print(f"Buscando externamente con yt-dlp: {q}")
+    else: # YouTube (yt-dlp fallback con paginación)
+        import shutil
+        yt_bin = shutil.which("yt-dlp") or "/home/juarezromerojuan09/servicios/synapmusic/venv/bin/yt-dlp" or "yt-dlp"
+        start_idx = max(1, offset + 1)
+        end_idx = offset + limit
+        print(f"Buscando externamente con yt-dlp: {q} (offset: {offset}, limit: {limit}, start: {start_idx}, end: {end_idx})")
         command = [
-            "yt-dlp",
+            yt_bin,
             "-J",
-            f"ytsearch7:{q}"
+            "--flat-playlist",
+            "--playlist-start", str(start_idx),
+            "--playlist-end", str(end_idx),
+            f"ytsearch{end_idx}:{q}"
         ]
         
         process = await asyncio.create_subprocess_exec(
@@ -1154,7 +1161,7 @@ async def search_music(q: str, source: str = "deezer", limit: int = 15, offset: 
                 entries = data.get("entries", [])
                 for entry in entries:
                     raw_title = entry.get("title", "Unknown Title")
-                    uploader = entry.get("uploader", "Unknown Artist")
+                    uploader = entry.get("uploader") or entry.get("channel") or "Unknown Artist"
                     
                     parsed_artist = uploader
                     parsed_title = raw_title
@@ -1165,14 +1172,27 @@ async def search_music(q: str, source: str = "deezer", limit: int = 15, offset: 
                         parsed_title = t_parts[1].strip()
                         
                     video_url = entry.get("webpage_url") or entry.get("url") or ""
+                    if not video_url and entry.get("id"):
+                        video_url = f"https://www.youtube.com/watch?v={entry.get('id')}"
+
+                    dur = entry.get("duration")
+                    if isinstance(dur, (int, float)):
+                        duration_str = f"{int(dur) // 60}:{int(dur) % 60:02d}"
+                    else:
+                        duration_str = entry.get("duration_string", "")
+
+                    cover_url = entry.get("thumbnail") or ""
+                    if not cover_url and entry.get("thumbnails"):
+                        cover_url = entry["thumbnails"][-1].get("url", "")
+
                     results.append({
                         "title": parsed_title,
                         "artist": parsed_artist,
                         "raw_title": raw_title,
-                        "duration": entry.get("duration_string", ""),
+                        "duration": duration_str,
                         "url": video_url,
                         "query_string": video_url,
-                        "cover_url": entry.get("thumbnail", ""),
+                        "cover_url": cover_url,
                         "source": "youtube"
                     })
             except Exception as e:
@@ -2636,10 +2656,10 @@ async def download_apk():
 async def get_app_version():
     return {
         "app_name": "SynapMusic",
-        "version": "0.6.34",
-        "version_code": 59,
+        "version": "0.6.35",
+        "version_code": 60,
         "download_url": "/synapmusic/download",
         "release_date": "2026-09-30",
         "min_android_version": "Android 8.0+",
-        "changelog": "Deduplicación de descargas concurrentes por clave única (título+artista+query), bloqueo de clics repetidos durante descarga y resolución del indicador de carga por canción individual."
+        "changelog": "Paginación en búsqueda de YouTube ('Más'), sincronización de canciones faltantes en playlists descargadas, y nombres legibles (título - artista) en notificaciones de descarga."
     }
