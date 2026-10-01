@@ -625,11 +625,20 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                     if (item['local_id'] != null) {
                       _playTrack(item);
                     } else {
+                      final query = item['query_string'] ?? '${item['title']} ${item['artist']}';
+                      final trackKey = PlaybackDownloadCoordinator.buildKey(
+                        title: item['title'] ?? '',
+                        artist: item['artist'] ?? '',
+                        queryString: query,
+                      );
+                      if (PlaybackDownloadCoordinator().isDownloading(trackKey)) {
+                        return;
+                      }
                       PlaybackDownloadCoordinator().downloadAndAutoPlay(
                         context: context,
                         title: item['title'] ?? '',
                         artist: item['artist'] ?? '',
-                        queryString: item['query_string'] ?? '${item['title']} ${item['artist']}',
+                        queryString: query,
                         coverUrl: item['cover_url'],
                       );
                     }

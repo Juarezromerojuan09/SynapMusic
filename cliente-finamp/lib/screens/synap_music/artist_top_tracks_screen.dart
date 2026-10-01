@@ -164,11 +164,20 @@ class _ArtistTopTracksScreenState extends State<ArtistTopTracksScreen> {
         );
       }
     } else {
+      final query = item['query_string'] ?? '${item['title']} ${widget.artistName}';
+      final trackKey = PlaybackDownloadCoordinator.buildKey(
+        title: item['title'] ?? '',
+        artist: widget.artistName,
+        queryString: query,
+      );
+      if (PlaybackDownloadCoordinator().isDownloading(trackKey)) {
+        return;
+      }
       PlaybackDownloadCoordinator().downloadAndAutoPlay(
         context: context,
         title: item['title'] ?? '',
         artist: widget.artistName,
-        queryString: item['query_string'] ?? '${item['title']} ${widget.artistName}',
+        queryString: query,
         coverUrl: item['cover_url'] ?? (item['album'] != null ? item['album']['cover_medium'] : null),
       );
     }

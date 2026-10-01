@@ -35,21 +35,58 @@ class PlaybackDownloadCoordinator {
       StreamController<LocalTrackReadyEvent>.broadcast();
   Stream<LocalTrackReadyEvent> get onTrackReady => _trackReadyController.stream;
 
-  // Títulos en proceso de descarga
+  // Claves únicas o títulos en proceso de descarga
   final Set<String> _activeDownloads = {};
   final ValueNotifier<Set<String>> activeDownloadsNotifier = ValueNotifier<Set<String>>({});
 
-  bool isDownloading(String title) => _activeDownloads.contains(normalize(title));
+  // Registro de playlists a las que debe agregarse una canción cuando finalice la descarga
+  final Map<String, Set<String>> _pendingPlaylistTargets = {};
+
+  static String buildKey({
+    required String title,
+    String? artist,
+    String? queryString,
+    String? trackId,
+  }) {
+    if (queryString != null && queryString.trim().isNotEmpty) {
+      return queryString.trim().toLowerCase();
+    }
+    if (trackId != null && trackId.trim().isNotEmpty) {
+      return trackId.trim().toLowerCase();
+    }
+    final t = title.trim().toLowerCase();
+    final a = (artist ?? '').trim().toLowerCase();
+    if (a.isNotEmpty) {
+      return '$t - $a';
+    }
+    return t;
+  }
+
+  bool isDownloading(String keyOrTitle) {
+    final k = keyOrTitle.trim().toLowerCase();
+    return _activeDownloads.contains(k);
+  }
+
+  bool isDownloadingTrack({
+    required String title,
+    String? artist,
+    String? queryString,
+    String? trackId,
+  }) {
+    final key = buildKey(title: title, artist: artist, queryString: queryString, trackId: trackId);
+    return _activeDownloads.contains(key);
+  }
+
   String normalize(String text) => text.toLowerCase().trim();
   String _normalize(String text) => normalize(text);
 
-  void _addActiveDownload(String normTitle) {
-    _activeDownloads.add(normTitle);
+  void _addActiveDownload(String key) {
+    _activeDownloads.add(key.trim().toLowerCase());
     activeDownloadsNotifier.value = Set.from(_activeDownloads);
   }
 
-  void _removeActiveDownload(String normTitle) {
-    _activeDownloads.remove(normTitle);
+  void _removeActiveDownload(String key) {
+    _activeDownloads.remove(key.trim().toLowerCase());
     activeDownloadsNotifier.value = Set.from(_activeDownloads);
   }
 
@@ -60,67 +97,88 @@ class PlaybackDownloadCoordinator {
     String? queryString,
     String? coverUrl,
   }) async {
+    final trackKey = buildKey(title: title, artist: artist, queryString: queryString);
+
+    // Evitar descargas o reproducciones duplicadas si la canción ya se está procesando
+    if (_activeDownloads.contains(trackKey)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Descargando "$title"... Se reproducirá en breve.',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white),
+            ),
+            duration: const Duration(seconds: 3),
+            backgroundColor: const Color(0xFF1E1E1E),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
+    _addActiveDownload(trackKey);
+
     final cleanQuery = (queryString != null && queryString.isNotEmpty)
         ? queryString
         : '$title $artist';
     final currentJob = ++_latestJobId;
-    final normTitle = _normalize(title);
 
     // Notificación visual al usuario
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Descargando "$title"... Se reproducirá en breve.',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white),
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Descargando "$title"... Se reproducirá en breve.',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 10),
+          backgroundColor: const Color(0xFF1E1E1E),
+          behavior: SnackBarBehavior.floating,
         ),
-        duration: const Duration(seconds: 10),
-        backgroundColor: const Color(0xFF1E1E1E),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-
-    // Disparar descarga en backend y sondeo únicamente si no se ha iniciado ya
-    final bool isAlreadyPolling = _activeDownloads.contains(normTitle);
-    if (!isAlreadyPolling) {
-      _addActiveDownload(normTitle);
-      _apiService.downloadMedia(cleanQuery).then((success) {
-        if (!success) {
-          print('Fallo al solicitar descarga para $title');
-        }
-      });
-
-      // Iniciar sondeo en segundo plano
-      _pollAndPlayWhenReady(
-        jobId: currentJob,
-        title: title,
-        artist: artist,
-        normTitle: normTitle,
-        coverUrl: coverUrl,
-        context: context,
       );
     }
+
+    _apiService.downloadMedia(cleanQuery).then((success) {
+      if (!success) {
+        print('Fallo al solicitar descarga para $title');
+      }
+    });
+
+    // Iniciar sondeo en segundo plano
+    _pollAndPlayWhenReady(
+      jobId: currentJob,
+      title: title,
+      artist: artist,
+      trackKey: trackKey,
+      coverUrl: coverUrl,
+      context: context,
+    );
   }
 
   Future<void> _pollAndPlayWhenReady({
     required int jobId,
     required String title,
     required String artist,
-    required String normTitle,
+    required String trackKey,
     String? coverUrl,
     required BuildContext context,
   }) async {
@@ -140,7 +198,7 @@ class PlaybackDownloadCoordinator {
             continue;
           }
 
-          _removeActiveDownload(normTitle);
+          _removeActiveDownload(trackKey);
 
           final localId = check['local_id'].toString();
           final jellyfinItem = check['jellyfin_item'];
@@ -152,6 +210,23 @@ class PlaybackDownloadCoordinator {
             localId: localId,
             jellyfinItem: jellyfinItem,
           ));
+
+          // Si había solicitudes de agregar a playlist mientras se descargaba, procesarlas exactamente una vez
+          final pendingPlaylists = _pendingPlaylistTargets.remove(trackKey);
+          if (pendingPlaylists != null && pendingPlaylists.isNotEmpty) {
+            final jellyfin = GetIt.instance<JellyfinApiHelper>();
+            for (final pid in pendingPlaylists) {
+              try {
+                await jellyfin.addItemstoPlaylist(
+                  playlistId: pid,
+                  ids: [localId],
+                );
+              } catch (e) {
+                print('Error al agregar a playlist pendiente ($pid): $e');
+              }
+            }
+            SynapEvents.fireLibraryRefresh();
+          }
 
           // Solo reproducir si esta pista sigue siendo la última seleccionada por el usuario
           if (_latestJobId == jobId) {
@@ -239,7 +314,8 @@ class PlaybackDownloadCoordinator {
       }
     }
 
-    _removeActiveDownload(normTitle);
+    _removeActiveDownload(trackKey);
+    _pendingPlaylistTargets.remove(trackKey);
     if (_latestJobId == jobId && context.mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -260,12 +336,12 @@ class PlaybackDownloadCoordinator {
     String? coverUrl,
     BuildContext? context,
   }) async {
+    final trackKey = buildKey(title: title, artist: artist, queryString: queryString);
     final cleanQuery = (queryString != null && queryString.isNotEmpty)
         ? queryString
         : '$title $artist';
-    final normTitle = _normalize(title);
 
-    if (context != null) {
+    if (context != null && context.mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -294,20 +370,21 @@ class PlaybackDownloadCoordinator {
       );
     }
 
-    final bool isAlreadyPolling = _activeDownloads.contains(normTitle);
-    if (!isAlreadyPolling) {
-      _addActiveDownload(normTitle);
-      _apiService.downloadMedia(cleanQuery).then((success) {
-        if (!success) {
-          print('Fallo al solicitar descarga para My likes de $title');
-        }
-      });
+    if (_activeDownloads.contains(trackKey)) {
+      return;
     }
+
+    _addActiveDownload(trackKey);
+    _apiService.downloadMedia(cleanQuery).then((success) {
+      if (!success) {
+        print('Fallo al solicitar descarga para My likes de $title');
+      }
+    });
 
     _pollAndAddToLikesWhenReady(
       title: title,
       artist: artist,
-      normTitle: normTitle,
+      trackKey: trackKey,
       context: context,
     );
   }
@@ -315,7 +392,7 @@ class PlaybackDownloadCoordinator {
   Future<void> _pollAndAddToLikesWhenReady({
     required String title,
     required String artist,
-    required String normTitle,
+    required String trackKey,
     BuildContext? context,
   }) async {
     const int maxAttempts = 75; // hasta ~150 segundos máximo
@@ -332,7 +409,7 @@ class PlaybackDownloadCoordinator {
             continue;
           }
 
-          _removeActiveDownload(normTitle);
+          _removeActiveDownload(trackKey);
           final localId = check['local_id'].toString();
           final jellyfinItem = check['jellyfin_item'];
 
@@ -366,7 +443,7 @@ class PlaybackDownloadCoordinator {
       }
     }
 
-    _removeActiveDownload(normTitle);
+    _removeActiveDownload(trackKey);
     final key = LikesPlaylistHelper.normalizeKey(title, artist);
     LikesPlaylistHelper.pendingLikeKeys.remove(key);
     final updatedKeys = Set<String>.from(LikesPlaylistHelper.likedSongKeys.value)..remove(key);
@@ -392,52 +469,55 @@ class PlaybackDownloadCoordinator {
     String? queryString,
     String? coverUrl,
   }) async {
+    final trackKey = buildKey(title: title, artist: artist, queryString: queryString);
     final cleanQuery = (queryString != null && queryString.isNotEmpty)
         ? queryString
         : '$title $artist';
-    final normTitle = _normalize(title);
 
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF8B93FF)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Agregando "$title" a Reproducir siguiente (descargando)...',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white),
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF8B93FF)),
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Agregando "$title" a Reproducir siguiente (descargando)...',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 4),
+          backgroundColor: const Color(0xFF1E1E1E),
+          behavior: SnackBarBehavior.floating,
         ),
-        duration: const Duration(seconds: 4),
-        backgroundColor: const Color(0xFF1E1E1E),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-
-    final bool isAlreadyPolling = _activeDownloads.contains(normTitle);
-    if (!isAlreadyPolling) {
-      _addActiveDownload(normTitle);
-      _apiService.downloadMedia(cleanQuery).then((success) {
-        if (!success) {
-          print('Fallo al solicitar descarga para PlayNext de $title');
-        }
-      });
+      );
     }
+
+    if (_activeDownloads.contains(trackKey)) {
+      return;
+    }
+
+    _addActiveDownload(trackKey);
+    _apiService.downloadMedia(cleanQuery).then((success) {
+      if (!success) {
+        print('Fallo al solicitar descarga para PlayNext de $title');
+      }
+    });
 
     _pollAndPlayNextWhenReady(
       title: title,
       artist: artist,
-      normTitle: normTitle,
+      trackKey: trackKey,
       coverUrl: coverUrl,
       context: context,
     );
@@ -446,7 +526,7 @@ class PlaybackDownloadCoordinator {
   Future<void> _pollAndPlayNextWhenReady({
     required String title,
     required String artist,
-    required String normTitle,
+    required String trackKey,
     String? coverUrl,
     required BuildContext context,
   }) async {
@@ -464,7 +544,7 @@ class PlaybackDownloadCoordinator {
             continue;
           }
 
-          _removeActiveDownload(normTitle);
+          _removeActiveDownload(trackKey);
           final localId = check['local_id'].toString();
           final jellyfinItem = check['jellyfin_item'];
 
@@ -554,7 +634,7 @@ class PlaybackDownloadCoordinator {
       }
     }
 
-    _removeActiveDownload(normTitle);
+    _removeActiveDownload(trackKey);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -576,10 +656,8 @@ class PlaybackDownloadCoordinator {
     String? coverUrl,
     BuildContext? context,
   }) async {
-    final cleanQuery = (queryString != null && queryString.isNotEmpty)
-        ? queryString
-        : '$title $artist';
-    final normTitle = _normalize(title);
+    final trackKey = buildKey(title: title, artist: artist, queryString: queryString);
+    _pendingPlaylistTargets.putIfAbsent(trackKey, () => <String>{}).add(playlistId);
 
     if (context != null && context.mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -610,22 +688,29 @@ class PlaybackDownloadCoordinator {
       );
     }
 
-    final bool isAlreadyPolling = _activeDownloads.contains(normTitle);
-    if (!isAlreadyPolling) {
-      _addActiveDownload(normTitle);
-      _apiService.downloadMedia(cleanQuery).then((success) {
-        if (!success) {
-          print('Fallo al solicitar descarga para $title');
-        }
-      });
+    if (_activeDownloads.contains(trackKey)) {
+      // Ya se encuentra en proceso de descarga; se agregará a la playlist automáticamente al finalizar.
+      return;
     }
+
+    _addActiveDownload(trackKey);
+
+    final cleanQuery = (queryString != null && queryString.isNotEmpty)
+        ? queryString
+        : '$title $artist';
+
+    _apiService.downloadMedia(cleanQuery).then((success) {
+      if (!success) {
+        print('Fallo al solicitar descarga para $title');
+      }
+    });
 
     _pollAndAddToPlaylistWhenReady(
       playlistId: playlistId,
       playlistName: playlistName,
       title: title,
       artist: artist,
-      normTitle: normTitle,
+      trackKey: trackKey,
       context: context,
     );
   }
@@ -635,7 +720,7 @@ class PlaybackDownloadCoordinator {
     required String playlistName,
     required String title,
     required String artist,
-    required String normTitle,
+    required String trackKey,
     BuildContext? context,
   }) async {
     const int maxAttempts = 75;
@@ -652,7 +737,7 @@ class PlaybackDownloadCoordinator {
             continue;
           }
 
-          _removeActiveDownload(normTitle);
+          _removeActiveDownload(trackKey);
           final localId = check['local_id'].toString();
           final jellyfinItem = check['jellyfin_item'];
 
@@ -664,10 +749,17 @@ class PlaybackDownloadCoordinator {
           ));
 
           final jellyfin = GetIt.instance<JellyfinApiHelper>();
-          await jellyfin.addItemstoPlaylist(
-            playlistId: playlistId,
-            ids: [localId],
-          );
+          final targetPlaylists = _pendingPlaylistTargets.remove(trackKey) ?? {playlistId};
+          for (final pid in targetPlaylists) {
+            try {
+              await jellyfin.addItemstoPlaylist(
+                playlistId: pid,
+                ids: [localId],
+              );
+            } catch (e) {
+              print('Error agregando pista a playlist ($pid): $e');
+            }
+          }
           SynapEvents.fireLibraryRefresh();
 
           if (context != null && context.mounted) {
@@ -687,7 +779,8 @@ class PlaybackDownloadCoordinator {
       }
     }
 
-    _removeActiveDownload(normTitle);
+    _removeActiveDownload(trackKey);
+    _pendingPlaylistTargets.remove(trackKey);
     if (context != null && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

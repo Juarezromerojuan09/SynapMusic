@@ -124,6 +124,14 @@ class _DownloadScreenState extends State<DownloadScreen> {
     final query = result.url.isNotEmpty 
         ? result.url 
         : (result.queryString ?? (isYoutube ? result.title : '${result.artist} ${result.title}'));
+    final trackKey = PlaybackDownloadCoordinator.buildKey(
+      title: result.title,
+      artist: result.artist,
+      queryString: query,
+    );
+    if (PlaybackDownloadCoordinator().isDownloading(trackKey)) {
+      return;
+    }
 
     PlaybackDownloadCoordinator().downloadAndAutoPlay(
       context: context,
@@ -866,9 +874,12 @@ class _DownloadScreenState extends State<DownloadScreen> {
               ValueListenableBuilder<Set<String>>(
                 valueListenable: PlaybackDownloadCoordinator().activeDownloadsNotifier,
                 builder: (context, activeDownloads, _) {
-                  final isDownloading = activeDownloads.contains(
-                    PlaybackDownloadCoordinator().normalize(result.title),
+                  final trackKey = PlaybackDownloadCoordinator.buildKey(
+                    title: result.title,
+                    artist: result.artist,
+                    queryString: query,
                   );
+                  final isDownloading = activeDownloads.contains(trackKey);
                   if (isDownloading) {
                     return const Padding(
                       padding: EdgeInsets.all(8.0),
@@ -902,7 +913,14 @@ class _DownloadScreenState extends State<DownloadScreen> {
             ],
           ),
           onTap: () {
-            _startAutoPlay(result);
+            final trackKey = PlaybackDownloadCoordinator.buildKey(
+              title: result.title,
+              artist: result.artist,
+              queryString: query,
+            );
+            if (!PlaybackDownloadCoordinator().isDownloading(trackKey)) {
+              _startAutoPlay(result);
+            }
           },
         ),
       ),

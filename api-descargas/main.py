@@ -375,12 +375,31 @@ async def update_jellyfin_library():
         except httpx.HTTPError as e:
             print(f"Error al actualizar la biblioteca de Jellyfin: {e}")
 
+_active_download_queries = set()
+_active_download_lock = asyncio.Lock()
+
+def _run_dual_download_wrapper(queries: List[str]):
+    try:
+        run_dual_download(queries)
+    finally:
+        for q in queries:
+            _active_download_queries.discard(q.strip().lower())
+
 @app.post("/download", dependencies=[Depends(get_api_key)])
 async def download_music(request: DownloadRequest, background_tasks: BackgroundTasks):
     """
-    Recibe una petición de descarga y la encola en segundo plano.
+    Recibe una petición de descarga y la encola en segundo plano deduplicando peticiones concurrentes.
     """
-    background_tasks.add_task(run_dual_download, [request.query])
+    query_key = request.query.strip().lower()
+    async with _active_download_lock:
+        if query_key in _active_download_queries:
+            return {
+                "status": "already_in_progress",
+                "message": f"Descarga de '{request.query}' ya se encuentra en proceso."
+            }
+        _active_download_queries.add(query_key)
+
+    background_tasks.add_task(_run_dual_download_wrapper, [request.query])
     return {
         "status": "success",
         "message": f"Descarga de '{request.query}' iniciada en segundo plano."
@@ -776,10 +795,24 @@ async def download_music_bulk(request: BulkDownloadRequest, background_tasks: Ba
     if not request.queries:
         return {"status": "error", "message": "No se enviaron canciones para descargar."}
         
-    background_tasks.add_task(run_dual_download, request.queries)
+    queries_to_download = []
+    async with _active_download_lock:
+        for q in request.queries:
+            qk = q.strip().lower()
+            if qk not in _active_download_queries:
+                _active_download_queries.add(qk)
+                queries_to_download.append(q)
+
+    if not queries_to_download:
+        return {
+            "status": "in_progress",
+            "message": "Todas las pistas solicitadas ya se encuentran en proceso de descarga."
+        }
+
+    background_tasks.add_task(_run_dual_download_wrapper, queries_to_download)
     return {
         "status": "success",
-        "message": f"Descarga de {len(request.queries)} pistas iniciada en segundo plano."
+        "message": f"Descarga de {len(queries_to_download)} pistas iniciada en segundo plano."
     }
 
 @app.post("/playlist", dependencies=[Depends(get_api_key)])
@@ -2603,10 +2636,10 @@ async def download_apk():
 async def get_app_version():
     return {
         "app_name": "SynapMusic",
-        "version": "0.6.33",
-        "version_code": 58,
+        "version": "0.6.34",
+        "version_code": 59,
         "download_url": "/synapmusic/download",
         "release_date": "2026-09-30",
         "min_android_version": "Android 8.0+",
-        "changelog": "Fondo oscuro unificado en tarjetas de Biblioteca, reproducción en pausa persistente en segundo plano sin cierre por batería, y resolución individual exacta de perfiles de artistas homónimos."
+        "changelog": "Deduplicación de descargas concurrentes por clave única (título+artista+query), bloqueo de clics repetidos durante descarga y resolución del indicador de carga por canción individual."
     }

@@ -376,12 +376,16 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                               ? localMatch['jellyfin_data']['Id']?.toString()
                               : null;
 
+                          final trackKey = PlaybackDownloadCoordinator.buildKey(
+                            title: track['title'] ?? '',
+                            artist: track['artist'] ?? _albumData?['artist'] ?? '',
+                            queryString: track['query_string'],
+                          );
+
                           Widget actionButton = ValueListenableBuilder<Set<String>>(
                             valueListenable: PlaybackDownloadCoordinator().activeDownloadsNotifier,
                             builder: (context, activeDownloads, _) {
-                              final isDownloading = activeDownloads.contains(
-                                PlaybackDownloadCoordinator().normalize(track['title'] ?? ''),
-                              );
+                              final isDownloading = activeDownloads.contains(trackKey);
                               if (isDownloading) {
                                 return const Padding(
                                   padding: EdgeInsets.all(12.0),
@@ -439,6 +443,9 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                             trailingWidget: actionButton,
                             onPlayPressed: () async {
                               if (!existsLocal) {
+                                if (PlaybackDownloadCoordinator().isDownloading(trackKey)) {
+                                  return;
+                                }
                                 PlaybackDownloadCoordinator().downloadAndAutoPlay(
                                   context: context,
                                   title: track['title'] ?? '',
