@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'admin_dashboard_screen.dart';
+import 'metadata_requests_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
@@ -245,6 +246,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
       final url = Uri.parse('${currentUser.baseUrl}/Users/${currentUser.id}');
       final response = await http.get(url, headers: {
         'X-Emby-Token': currentUser.accessToken,
+        'Authorization': 'MediaBrowser Token="${currentUser.accessToken}"',
       });
       
       if (response.statusCode == 200) {
@@ -535,6 +537,10 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                   Navigator.of(context, rootNavigator: true).push(
                     MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
                   );
+                } else if (value == 'metadata_requests') {
+                  Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(builder: (context) => const MetadataRequestsScreen()),
+                  );
                 } else if (value == 'help') {
                   Navigator.of(context, rootNavigator: true).push(
                     MaterialPageRoute(builder: (context) => HelpFeedbackScreen(isAdmin: _isAdmin)),
@@ -586,8 +592,10 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
               itemBuilder: (context) => [
                 const PopupMenuItem(value: 'profile', child: Text('Perfil', style: TextStyle(color: Colors.white))),
                 const PopupMenuItem(value: 'settings', child: Text('Configuración', style: TextStyle(color: Colors.white))),
-                if (_isAdmin)
+                if (_isAdmin) ...[
                   const PopupMenuItem(value: 'admin', child: Text('Admin', style: TextStyle(color: Colors.white))),
+                  const PopupMenuItem(value: 'metadata_requests', child: Text('Modificaciones de metadatos', style: TextStyle(color: Colors.white))),
+                ],
                 const PopupMenuItem(value: 'help', child: Text('Ayuda y comentarios', style: TextStyle(color: Colors.white))),
                 const PopupMenuDivider(height: 1),
                 const PopupMenuItem(value: 'logout', child: Text('Cerrar sesión', style: TextStyle(color: Colors.redAccent))),
@@ -652,7 +660,10 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
               (item, index) {
                 return _buildCard(item['cover_url'] ?? '', item['name'] ?? '', '', isCircular: true, onTap: () {
                   Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => ArtistProfileScreen(artistName: item['name']),
+                    builder: (context) => ArtistProfileScreen(
+                      artistName: item['name'],
+                      artistId: item['id']?.toString(),
+                    ),
                   ));
                 });
               },

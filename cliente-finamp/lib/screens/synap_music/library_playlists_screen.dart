@@ -18,6 +18,7 @@ import 'package:path_provider/path_provider.dart';
 import 'album_detail_screen.dart';
 import 'artist_profile_screen.dart';
 import '../../services/likes_playlist_helper.dart';
+import '../../components/add_to_playlist_sheet.dart';
 
 class LibraryPlaylistsScreen extends StatefulWidget {
   const LibraryPlaylistsScreen({Key? key}) : super(key: key);
@@ -165,6 +166,7 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
         }
 
         _sortPlaylists(playlists);
+        AddToPlaylistSheet.updateCachedPlaylists(playlists);
 
         // Guardar en caché local para persistencia offline
         try {
@@ -458,6 +460,8 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
                           }
                         },
                         child: Card(
+                          color: const Color(0xFF1E1E1E),
+                          surfaceTintColor: Colors.transparent,
                           elevation: isSelected ? 8 : 2,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -533,14 +537,14 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
                                   children: [
                                     Text(
                                       playlist.name ?? 'Sin nombre',
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       '$songCount canciones',
-                                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                      style: const TextStyle(color: Color(0xFFA0A0A0), fontSize: 12),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -595,9 +599,11 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
 
                       return GestureDetector(
                         onTap: () {
+                          final artistId = (artist is Map) ? (artist['id']?.toString()) : null;
                           Navigator.of(context).push(MaterialPageRoute(
                             builder: (_) => ArtistProfileScreen(
                               artistName: name,
+                              artistId: artistId,
                             ),
                           )).then((_) => _loadFavoriteArtists());
                         },
@@ -677,6 +683,8 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
                           )).then((_) => _loadFavoriteAlbums());
                         },
                         child: Card(
+                          color: const Color(0xFF1E1E1E),
+                          surfaceTintColor: Colors.transparent,
                           elevation: 2,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           child: Column(
@@ -700,14 +708,14 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
                                   children: [
                                     Text(
                                       album['title'] ?? 'Sin nombre',
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       '${album['artist'] ?? ''}',
-                                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                      style: const TextStyle(color: Color(0xFFA0A0A0), fontSize: 12),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),

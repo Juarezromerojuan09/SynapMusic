@@ -385,9 +385,10 @@ class SynapApiService {
   }
 
 
-  Future<Map<String, dynamic>?> getArtistProfile(String artistName) async {
+  Future<Map<String, dynamic>?> getArtistProfile(String artistName, {String? artistId}) async {
     try {
-      final uri = Uri.parse('$_baseUrl/artist/${Uri.encodeComponent(artistName)}/profile');
+      final queryParam = (artistId != null && artistId.isNotEmpty) ? '?artist_id=${Uri.encodeComponent(artistId)}' : '';
+      final uri = Uri.parse('$_baseUrl/artist/${Uri.encodeComponent(artistName)}/profile$queryParam');
       final request = await HttpClient().getUrl(uri);
       request.headers.add('X-API-Key', _apiKey);
       final response = await request.close();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../services/synap_api_service.dart';
+import 'metadata_requests_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({Key? key}) : super(key: key);
@@ -102,6 +103,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         backgroundColor: const Color(0xFF1A1A1A),
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_fix_high, color: Color(0xFF8B93FF)),
+            tooltip: 'Solicitudes de Metadatos',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MetadataRequestsScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _fetchPendingUsers,

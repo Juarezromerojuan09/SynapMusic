@@ -56,6 +56,7 @@ class _HelpFeedbackScreenState extends State<HelpFeedbackScreen> with SingleTick
       final url = Uri.parse('${currentUser.baseUrl}/Users/${currentUser.id}');
       final response = await http.get(url, headers: {
         'X-Emby-Token': currentUser.accessToken,
+        'Authorization': 'MediaBrowser Token="${currentUser.accessToken}"',
       });
 
       if (response.statusCode == 200) {
@@ -148,7 +149,10 @@ class _HelpFeedbackScreenState extends State<HelpFeedbackScreen> with SingleTick
     try {
       if (currentUser != null) {
         final url = Uri.parse('${currentUser.baseUrl}/Users/${currentUser.id}');
-        final res = await http.get(url, headers: {'X-Emby-Token': currentUser.accessToken});
+        final res = await http.get(url, headers: {
+          'X-Emby-Token': currentUser.accessToken,
+          'Authorization': 'MediaBrowser Token="${currentUser.accessToken}"',
+        });
         if (res.statusCode == 200) {
           final d = json.decode(res.body);
           userName = d['Name'] ?? 'Usuario';

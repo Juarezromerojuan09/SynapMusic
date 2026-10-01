@@ -8,16 +8,19 @@ import '../../services/jellyfin_api_helper.dart';
 import '../../services/playback_download_coordinator.dart';
 import '../../services/synap_api_service.dart';
 import '../../components/track_options_menu_sheet.dart';
+import '../../services/likes_playlist_helper.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class ArtistTopTracksScreen extends StatefulWidget {
   final String artistName;
+  final String? artistId;
   final List<dynamic>? initialTracks;
 
   const ArtistTopTracksScreen({
     Key? key,
     required this.artistName,
+    this.artistId,
     this.initialTracks,
   }) : super(key: key);
 
@@ -39,6 +42,7 @@ class _ArtistTopTracksScreenState extends State<ArtistTopTracksScreen> {
   @override
   void initState() {
     super.initState();
+    _dzArtistId = widget.artistId;
     if (widget.initialTracks != null && widget.initialTracks!.isNotEmpty) {
       _tracks = List<dynamic>.from(widget.initialTracks!);
       _nextIndex = _tracks.length;
@@ -72,7 +76,7 @@ class _ArtistTopTracksScreenState extends State<ArtistTopTracksScreen> {
 
     try {
       if (_dzArtistId == null) {
-        final profile = await _apiService.getArtistProfile(widget.artistName);
+        final profile = await _apiService.getArtistProfile(widget.artistName, artistId: widget.artistId);
         if (profile != null && profile['artist'] != null) {
           _dzArtistId = profile['artist']['id']?.toString();
         }
@@ -175,6 +179,8 @@ class _ArtistTopTracksScreenState extends State<ArtistTopTracksScreen> {
     final albumTitle = track['album'] != null ? track['album']['title'] ?? '' : '';
     final coverUrl = track['cover_url'] ?? (track['album'] != null ? track['album']['cover_medium'] : null);
     final isLocal = track['local_id'] != null;
+    final trackId = track['local_id']?.toString();
+    final queryString = track['query_string'] ?? '$title ${widget.artistName}';
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -229,14 +235,62 @@ class _ArtistTopTracksScreenState extends State<ArtistTopTracksScreen> {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (isLocal)
-            const Padding(
-              padding: EdgeInsets.only(right: 8.0),
-              child: Icon(Icons.check_circle, color: Color(0xFF8B93FF), size: 18),
-            ),
+          ValueListenableBuilder<Set<String>>(
+            valueListenable: LikesPlaylistHelper.likedSongKeys,
+            builder: (context, likedKeys, _) {
+              return ValueListenableBuilder<Set<String>>(
+                valueListenable: LikesPlaylistHelper.likedSongIds,
+                builder: (context, likedIds, _) {
+                  final isLiked = LikesPlaylistHelper.isSongLiked(
+                    trackId: trackId,
+                    title: title,
+                    artist: widget.artistName,
+                  );
+
+                  return IconButton(
+                    icon: Icon(
+                      isLiked ? Icons.favorite : Icons.favorite_border,
+                      color: isLiked ? _synapColor : const Color(0xFFA0A0A0),
+                      size: 22,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+                    tooltip: isLiked ? 'Eliminar de canciones que me gustan' : 'Me gusta',
+                    onPressed: () {
+                      LikesPlaylistHelper.toggleLike(
+                        trackId: isLocal ? trackId : null,
+                        title: title,
+                        artist: widget.artistName,
+                        queryString: queryString,
+                        coverUrl: coverUrl,
+                        context: context,
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          ),
           IconButton(
-            icon: const Icon(Icons.play_circle_outline, color: Colors.white),
-            onPressed: () => _playTrack(index),
+            icon: const Icon(Icons.more_vert, color: Color(0xFFA0A0A0)),
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: Colors.transparent,
+                isScrollControlled: true,
+                builder: (_) => TrackOptionsMenuSheet(
+                  itemId: isLocal ? trackId : null,
+                  title: title,
+                  artist: widget.artistName,
+                  queryString: queryString,
+                  coverUrl: coverUrl,
+                  currentArtist: widget.artistName,
+                  showArtistProfile: false,
+                ),
+              );
+            },
           ),
         ],
       ),

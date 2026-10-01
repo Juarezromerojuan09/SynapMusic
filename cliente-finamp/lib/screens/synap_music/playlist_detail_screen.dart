@@ -745,6 +745,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                                 backgroundColor: Colors.transparent,
                                 builder: (_) => TrackOptionsMenuSheet(
                                   itemId: track.id!,
+                                  title: track.name,
+                                  artist: artist,
+                                  coverUrl: trackImageUrl,
                                   playlistId: widget.playlist.id,
                                   playlistItemId: track.playlistItemId,
                                   onTrackRemoved: () {
@@ -887,6 +890,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                           backgroundColor: Colors.transparent,
                           builder: (_) => TrackOptionsMenuSheet(
                             itemId: track.id!,
+                            title: track.name,
+                            artist: artist,
+                            coverUrl: trackImageUrl,
                             playlistId: widget.playlist.id,
                             playlistItemId: track.playlistItemId,
                             onTrackRemoved: () {

@@ -1915,13 +1915,19 @@ async def get_top_artists(user_id: str):
                         await asyncio.sleep(0.04)
                         dz_res = await client.get(
                             "https://api.deezer.com/search/artist",
-                            params={"q": artist_name, "limit": 1},
+                            params={"q": artist_name, "limit": 5},
                             timeout=5.0
                         )
                         if dz_res.status_code == 200:
                             dz_data = dz_res.json().get("data", [])
                             if dz_data:
-                                dz_artist = dz_data[0]
+                                exact = [a for a in dz_data if a.get("name", "").strip().lower() == artist_name.strip().lower()]
+                                if exact:
+                                    exact.sort(key=lambda x: x.get("nb_fan", 0), reverse=True)
+                                    dz_artist = exact[0]
+                                else:
+                                    dz_data.sort(key=lambda x: x.get("nb_fan", 0), reverse=True)
+                                    dz_artist = dz_data[0]
                                 pic = dz_artist.get("picture_medium") or dz_artist.get("picture_big")
                                 if pic and "artist//" not in pic and "//250x250" not in pic:
                                     return {
@@ -2130,38 +2136,63 @@ async def get_global_artists():
 async def get_top_mexico():
     return await sync_top_mexico(auto_download=True)
 @app.get("/artist/{artist_name}/profile", dependencies=[Depends(get_api_key)])
-async def get_artist_profile(artist_name: str):
+async def get_artist_profile(artist_name: str, artist_id: Optional[str] = None):
     import asyncio
     try:
         async with httpx.AsyncClient() as client:
-            # 1. Search artist
-            dz_res = await client.get("https://api.deezer.com/search/artist", params={"q": artist_name, "limit": 1})
-            dz_res.raise_for_status()
-            dz_data = dz_res.json().get("data", [])
-            if not dz_data:
-                # Fallback: if collaboration or delimiter present, try individual candidates
-                candidates = split_artist_names(artist_name)
-                for cand in candidates:
-                    if cand.lower() != artist_name.lower():
-                        try:
-                            cand_res = await client.get("https://api.deezer.com/search/artist", params={"q": cand, "limit": 1})
-                            if cand_res.status_code == 200:
-                                cand_data = cand_res.json().get("data", [])
-                                if cand_data:
-                                    dz_data = cand_data
-                                    break
-                        except Exception:
-                            pass
-            if not dz_data:
+            artist = None
+            if artist_id:
+                try:
+                    dz_res = await client.get(f"https://api.deezer.com/artist/{artist_id}")
+                    if dz_res.status_code == 200:
+                        data = dz_res.json()
+                        if "id" in data and not data.get("error"):
+                            artist = data
+                except Exception as e:
+                    print(f"Error fetching artist by id {artist_id}: {e}")
+
+            if not artist:
+                # 1. Search artist
+                dz_res = await client.get("https://api.deezer.com/search/artist", params={"q": artist_name, "limit": 10})
+                dz_res.raise_for_status()
+                dz_data = dz_res.json().get("data", [])
+                if dz_data:
+                    exact = [a for a in dz_data if a.get("name", "").strip().lower() == artist_name.strip().lower()]
+                    if exact:
+                        exact.sort(key=lambda x: x.get("nb_fan", 0), reverse=True)
+                        artist = exact[0]
+                    else:
+                        dz_data.sort(key=lambda x: x.get("nb_fan", 0), reverse=True)
+                        artist = dz_data[0]
+                else:
+                    # Fallback: if collaboration or delimiter present, try individual candidates
+                    candidates = split_artist_names(artist_name)
+                    for cand in candidates:
+                        if cand.lower() != artist_name.lower():
+                            try:
+                                cand_res = await client.get("https://api.deezer.com/search/artist", params={"q": cand, "limit": 10})
+                                if cand_res.status_code == 200:
+                                    cand_data = cand_res.json().get("data", [])
+                                    if cand_data:
+                                        exact = [a for a in cand_data if a.get("name", "").strip().lower() == cand.strip().lower()]
+                                        if exact:
+                                            exact.sort(key=lambda x: x.get("nb_fan", 0), reverse=True)
+                                            artist = exact[0]
+                                        else:
+                                            cand_data.sort(key=lambda x: x.get("nb_fan", 0), reverse=True)
+                                            artist = cand_data[0]
+                                        break
+                            except Exception:
+                                pass
+            if not artist:
                 return {"error": "Artista no encontrado en Deezer"}
             
-            artist = dz_data[0]
-            artist_id = artist.get("id")
+            target_artist_id = artist.get("id")
             
             # 2. Concurrently fetch top tracks and albums
             top_res, alb_res = await asyncio.gather(
-                client.get(f"https://api.deezer.com/artist/{artist_id}/top", params={"limit": 15}),
-                client.get(f"https://api.deezer.com/artist/{artist_id}/albums", params={"limit": 50})
+                client.get(f"https://api.deezer.com/artist/{target_artist_id}/top", params={"limit": 15}),
+                client.get(f"https://api.deezer.com/artist/{target_artist_id}/albums", params={"limit": 50})
             )
             
             top_tracks = top_res.json().get("data", []) if top_res.status_code == 200 else []
@@ -2220,9 +2251,10 @@ async def get_artist_profile(artist_name: str):
                 
             return {
                 "artist": {
-                    "id": str(artist_id),
+                    "id": str(target_artist_id),
                     "name": artist.get("name"),
-                    "picture_url": artist.get("picture_xl") or artist.get("picture_medium")
+                    "picture_url": artist.get("picture_xl") or artist.get("picture_medium"),
+                    "nb_fan": artist.get("nb_fan")
                 },
                 "latest_release": latest_release,
                 "top_tracks": formatted_tracks,
@@ -2336,6 +2368,7 @@ async def edit_metadata(item_id: str, request: MetadataEditRequest):
                     pass
                     
             if cover_bytes:
+                import base64
                 from mutagen.mp3 import MP3
                 from mutagen.id3 import ID3, APIC
                 audio = MP3(path, ID3=ID3)
@@ -2351,15 +2384,16 @@ async def edit_metadata(item_id: str, request: MetadataEditRequest):
                 )
                 audio.save(v2_version=3)
                 
+                b64_cover = base64.b64encode(cover_bytes)
                 headers_post = jf_headers({"Content-Type": "image/jpeg"})
                 post_url = f"{JELLYFIN_URL}/Items/{item_id}/Images/Primary"
                 async with httpx.AsyncClient() as c2:
-                    await c2.post(post_url, headers=headers_post, content=cover_bytes)
+                    await c2.post(post_url, headers=headers_post, content=b64_cover)
                     album_id = items[0].get("AlbumId") or items[0].get("ParentPrimaryImageItemId")
                     if album_id and album_id != item_id:
                         try:
                             post_url_album = f"{JELLYFIN_URL}/Items/{album_id}/Images/Primary"
-                            await c2.post(post_url_album, headers=headers_post, content=cover_bytes)
+                            await c2.post(post_url_album, headers=headers_post, content=b64_cover)
                         except Exception as e_alb:
                             print(f"No se pudo sincronizar portada en el álbum Jellyfin: {e_alb}")
                     
@@ -2453,6 +2487,8 @@ async def apply_metadata_request(request_id: str):
         manual_lyrics=req.get("proposed_lyrics")
     )
     res = await edit_metadata(req["item_id"], edit_req)
+    if res.get("status") != "success":
+        raise HTTPException(status_code=500, detail=res.get("message", "Error al aplicar metadatos"))
 
     requests_list = [r for r in requests_list if r.get("id") != request_id]
     with open(METADATA_REQUESTS_FILE, "w", encoding="utf-8") as f:
@@ -2464,10 +2500,34 @@ async def apply_metadata_request(request_id: str):
 async def preview_metadata(query: str):
     if not query:
         return {}
+    # 1. First try iTunes Search API (highly reliable for original worldwide songs & artists)
+    try:
+        async with httpx.AsyncClient() as client:
+            it_res = await client.get(
+                "https://itunes.apple.com/search",
+                params={"term": query, "entity": "song", "limit": 1},
+                timeout=5
+            )
+            if it_res.status_code == 200:
+                results = it_res.json().get("results", [])
+                if results:
+                    t = results[0]
+                    art_100 = t.get("artworkUrl100", "")
+                    cover_hd = art_100.replace("100x100bb", "1000x1000bb") if art_100 else None
+                    return {
+                        "title": t.get("trackName"),
+                        "artist": t.get("artistName"),
+                        "album": t.get("collectionName"),
+                        "cover_url": cover_hd
+                    }
+    except Exception as e_it:
+        print(f"Error preview_metadata iTunes: {e_it}")
+
+    # 2. Fallback to Deezer
     try:
         url = "https://api.deezer.com/search"
         async with httpx.AsyncClient() as client:
-            res = await client.get(url, params={"q": query, "limit": 1})
+            res = await client.get(url, params={"q": query, "limit": 1}, timeout=5)
             data = res.json().get("data", [])
             if data:
                 t = data[0]
@@ -2478,7 +2538,7 @@ async def preview_metadata(query: str):
                     "cover_url": t.get("album", {}).get("cover_xl") or t.get("album", {}).get("cover_big")
                 }
     except Exception as e:
-        print(f"Error preview_metadata: {e}")
+        print(f"Error preview_metadata Deezer: {e}")
     return {}
 
 @app.get("/music/check-local", dependencies=[Depends(get_api_key)])
@@ -2543,10 +2603,10 @@ async def download_apk():
 async def get_app_version():
     return {
         "app_name": "SynapMusic",
-        "version": "0.6.31",
-        "version_code": 56,
+        "version": "0.6.33",
+        "version_code": 58,
         "download_url": "/synapmusic/download",
-        "release_date": "2026-09-27",
+        "release_date": "2026-09-30",
         "min_android_version": "Android 8.0+",
-        "changelog": "Rediseño completo de perfiles de artistas Deezer, buscador con pestaña de Artistas Populares, botón aleatorio inteligente con preservación de reproducción activa, edición y recorte 1:1 de carátulas de playlists, nuevo logotipo e iconos adaptativos y sistema de reporte y revisión de metadatos."
+        "changelog": "Fondo oscuro unificado en tarjetas de Biblioteca, reproducción en pausa persistente en segundo plano sin cierre por batería, y resolución individual exacta de perfiles de artistas homónimos."
     }

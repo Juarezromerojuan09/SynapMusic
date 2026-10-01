@@ -200,9 +200,9 @@ Future<void> setupHive() async {
     finampSettingsBox.put("FinampSettings", await FinampSettings.create());
   }
 
-  // If no ThemeMode is set, we set it to the default (system)
+  // If no ThemeMode is set, we set it to the default (dark for SynapMusic)
   Box<ThemeMode> themeModeBox = Hive.box("ThemeMode");
-  if (themeModeBox.isEmpty) ThemeModeHelper.setThemeMode(ThemeMode.system);
+  if (themeModeBox.isEmpty) ThemeModeHelper.setThemeMode(ThemeMode.dark);
 }
 
 Future<void> _setupAudioServiceHelper() async {
@@ -211,9 +211,9 @@ Future<void> _setupAudioServiceHelper() async {
 
   final audioHandler = await AudioService.init(
     builder: () => MusicPlayerBackgroundTask(),
-    config: AudioServiceConfig(
-      androidStopForegroundOnPause:
-          FinampSettingsHelper.finampSettings.androidStopForegroundOnPause,
+    config: const AudioServiceConfig(
+      androidStopForegroundOnPause: false,
+      androidNotificationOngoing: false,
       androidNotificationChannelName: "Playback",
       androidNotificationIcon: "mipmap/white",
       androidNotificationChannelId: "com.unicornsonlsd.finamp.audio",
@@ -347,13 +347,26 @@ class Finamp extends StatelessWidget {
                     },
                     initialRoute: SplashScreen.routeName,
                     theme: ThemeData(
-                      brightness: Brightness.light,
+                      brightness: Brightness.dark,
                       fontFamily: 'Roboto',
-                      colorScheme: lightColorScheme,
+                      colorScheme: darkColorScheme,
+                      scaffoldBackgroundColor: const Color(0xFF0A0A0A),
+                      canvasColor: const Color(0xFF0A0A0A),
+                      cardColor: const Color(0xFF1E1E1E),
+                      dialogBackgroundColor: const Color(0xFF1E1E1E),
+                      cardTheme: CardTheme(
+                        color: const Color(0xFF1E1E1E),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                       appBarTheme: const AppBarTheme(
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
                         systemOverlayStyle: SystemUiOverlayStyle(
-                          statusBarBrightness: Brightness.light,
-                          statusBarIconBrightness: Brightness.dark,
+                          statusBarBrightness: Brightness.dark,
+                          statusBarIconBrightness: Brightness.light,
                         ),
                       ),
                     ),
@@ -363,8 +376,8 @@ class Finamp extends StatelessWidget {
                       colorScheme: darkColorScheme,
                       scaffoldBackgroundColor: const Color(0xFF0A0A0A),
                       canvasColor: const Color(0xFF0A0A0A),
-                      cardColor: const Color(0xFF1A1A1A),
-                      dialogBackgroundColor: const Color(0xFF1A1A1A),
+                      cardColor: const Color(0xFF1E1E1E),
+                      dialogBackgroundColor: const Color(0xFF1E1E1E),
                       appBarTheme: const AppBarTheme(
                         backgroundColor: Colors.transparent,
                         elevation: 0,
@@ -386,14 +399,14 @@ class Finamp extends StatelessWidget {
                         elevation: 0,
                       ),
                       cardTheme: CardTheme(
-                        color: const Color(0xFF1A1A1A),
+                        color: const Color(0xFF1E1E1E),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
-                    themeMode: box.get("ThemeMode"),
+                    themeMode: box.get("ThemeMode") ?? ThemeMode.dark,
                     localizationsDelegates: const [
                       AppLocalizations.delegate,
                       GlobalMaterialLocalizations.delegate,

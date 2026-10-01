@@ -639,6 +639,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => ArtistProfileScreen(
             artistName: name,
+            artistId: artist['id']?.toString(),
           ),
         ));
       },

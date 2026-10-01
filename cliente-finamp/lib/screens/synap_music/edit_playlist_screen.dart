@@ -121,7 +121,10 @@ class _EditPlaylistScreenState extends State<EditPlaylistScreen> with SingleTick
       if (newName != widget.playlist.name) {
         final updated = BaseItemDto.fromJson(widget.playlist.toJson());
         updated.name = newName;
-        await jellyfinHelper.updateItem(updated);
+        await jellyfinHelper.updateItem(
+          itemId: widget.playlist.id!,
+          newItem: updated,
+        );
       }
 
       // 2. Actualizar imagen si se seleccionó una
@@ -368,7 +371,7 @@ class _EditPlaylistScreenState extends State<EditPlaylistScreen> with SingleTick
                   fillColor: const Color(0xFF161616),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: Border.none,
+                    borderSide: BorderSide.none,
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),

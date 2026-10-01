@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:chopper/chopper.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logging/logging.dart';
@@ -384,5 +387,51 @@ class JellyfinApiHelper {
           if (maxWidth != null) "MaxWidth": maxWidth.toString(),
           if (maxHeight != null) "MaxHeight": maxHeight.toString(),
         });
+  }
+
+  /// Updates the primary image for an item in Jellyfin.
+  Future<void> updateItemImage({
+    required String? itemId,
+    required Uint8List imageBytes,
+    String mimeType = 'image/png',
+  }) async {
+    if (itemId == null || _finampUserHelper.currentUser == null) return;
+
+    final parsedBaseUrl = Uri.parse(_finampUserHelper.currentUser!.baseUrl);
+    List<String> builtPath = List<String>.from(parsedBaseUrl.pathSegments);
+    builtPath.addAll([
+      "Items",
+      itemId,
+      "Images",
+      "Primary",
+    ]);
+
+    final url = Uri(
+      host: parsedBaseUrl.host,
+      port: parsedBaseUrl.port,
+      scheme: parsedBaseUrl.scheme,
+      userInfo: parsedBaseUrl.userInfo,
+      pathSegments: builtPath,
+    );
+
+    try {
+      final authHeader = await getAuthHeader();
+      final client = HttpClient();
+      try {
+        final request = await client.postUrl(url);
+        request.headers.set('Authorization', authHeader);
+        request.headers.set('Content-Type', mimeType);
+        request.add(imageBytes);
+        final response = await request.close();
+        if (response.statusCode >= 400) {
+          _jellyfinApiHelperLogger.warning(
+              "Failed to update item image: ${response.statusCode}");
+        }
+      } finally {
+        client.close();
+      }
+    } catch (e, stackTrace) {
+      _jellyfinApiHelperLogger.warning("Error uploading item image", e, stackTrace);
+    }
   }
 }

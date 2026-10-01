@@ -12,6 +12,7 @@ import '../../services/music_player_background_task.dart';
 import '../../screens/album_screen.dart';
 import '../../screens/synap_music/artist_profile_screen.dart';
 import '../add_to_playlist_sheet.dart';
+import '../request_metadata_sheet.dart';
 import '../AlbumScreen/download_dialog.dart';
 import 'sleep_timer_dialog.dart';
 import 'sleep_timer_cancel_dialog.dart';
@@ -141,12 +142,12 @@ class PlayerOptionsMenuSheet extends StatelessWidget {
 
               const Divider(color: Color(0xFF262626), height: 16, thickness: 1),
 
-              // 1. Agregar a la playlist
+              // 1. Agregar a playlist
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
                 leading: const Icon(Icons.playlist_add, color: Colors.white, size: 24),
                 title: const Text(
-                  'Agregar a la playlist',
+                  'Agregar a playlist',
                   style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
                 ),
                 trailing: const Icon(Icons.chevron_right, color: Color(0xFFA0A0A0), size: 20),
@@ -184,12 +185,12 @@ class PlayerOptionsMenuSheet extends StatelessWidget {
                 },
               ),
 
-              // 3. Ver artista
+              // 3. Perfil del artista
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
                 leading: const Icon(Icons.person_outline, color: Colors.white, size: 24),
                 title: const Text(
-                  'Ver artista',
+                  'Perfil del artista',
                   style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
                 ),
                 subtitle: artistName.isNotEmpty
@@ -306,12 +307,15 @@ class PlayerOptionsMenuSheet extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right, color: Color(0xFFA0A0A0), size: 20),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Solicitud de modificación: Próximamente disponible'),
-                      duration: Duration(seconds: 3),
-                      backgroundColor: Color(0xFF1E1E1E),
-                      behavior: SnackBarBehavior.floating,
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => RequestMetadataSheet(
+                      trackId: trackId,
+                      initialTitle: title,
+                      initialArtist: artistName,
+                      initialAlbum: albumName,
                     ),
                   );
                 },

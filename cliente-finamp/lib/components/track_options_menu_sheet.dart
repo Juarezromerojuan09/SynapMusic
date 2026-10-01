@@ -7,6 +7,7 @@ import 'add_to_playlist_sheet.dart';
 import 'request_metadata_sheet.dart';
 import '../services/synap_api_service.dart';
 import 'fix_metadata_dialog.dart';
+import '../screens/synap_music/artist_profile_screen.dart';
 
 class TrackOptionsMenuSheet extends StatefulWidget {
   final String? itemId;
@@ -17,6 +18,8 @@ class TrackOptionsMenuSheet extends StatefulWidget {
   final String? artist;
   final String? queryString;
   final String? coverUrl;
+  final String? currentArtist;
+  final bool showArtistProfile;
 
   const TrackOptionsMenuSheet({
     Key? key,
@@ -28,6 +31,8 @@ class TrackOptionsMenuSheet extends StatefulWidget {
     this.artist,
     this.queryString,
     this.coverUrl,
+    this.currentArtist,
+    this.showArtistProfile = true,
   }) : super(key: key);
 
   @override
@@ -37,11 +42,31 @@ class TrackOptionsMenuSheet extends StatefulWidget {
 class _TrackOptionsMenuSheetState extends State<TrackOptionsMenuSheet> {
   bool _isEditable = false;
   bool _isLoadingEditable = true;
+  String? _loadedTitle;
+  String? _loadedArtist;
 
   @override
   void initState() {
     super.initState();
     _checkEditable();
+    _loadTrackDetailsIfNeeded();
+  }
+
+  Future<void> _loadTrackDetailsIfNeeded() async {
+    if ((widget.artist == null || widget.artist!.isEmpty) && widget.itemId != null) {
+      try {
+        final jellyfin = GetIt.instance<JellyfinApiHelper>();
+        final item = await jellyfin.getItemById(widget.itemId!);
+        if (item != null && mounted) {
+          setState(() {
+            _loadedTitle ??= item.name;
+            _loadedArtist ??= (item.artists?.isNotEmpty == true)
+                ? item.artists![0]
+                : (item.albumArtist ?? '');
+          });
+        }
+      } catch (_) {}
+    }
   }
 
   Future<void> _checkEditable() async {
@@ -99,6 +124,21 @@ class _TrackOptionsMenuSheetState extends State<TrackOptionsMenuSheet> {
     final bool isInsidePlaylist = widget.playlistId != null && widget.playlistItemId != null;
     final bool isLocal = widget.itemId != null;
 
+    final String? effectiveTitle = widget.title ?? _loadedTitle;
+    final String effectiveArtist = (widget.artist ?? _loadedArtist ?? '').trim();
+    final bool hasArtist = effectiveArtist.isNotEmpty &&
+        effectiveArtist.toLowerCase() != 'desconocido' &&
+        effectiveArtist.toLowerCase() != 'unknown' &&
+        effectiveArtist.toLowerCase() != 'unknown artist';
+
+    final bool isSameArtist = widget.currentArtist != null &&
+        widget.currentArtist!.trim().isNotEmpty &&
+        (widget.currentArtist!.trim().toLowerCase() == effectiveArtist.toLowerCase() ||
+            effectiveArtist.toLowerCase().contains(widget.currentArtist!.trim().toLowerCase()) ||
+            widget.currentArtist!.trim().toLowerCase().contains(effectiveArtist.toLowerCase()));
+
+    final bool shouldShowArtist = widget.showArtistProfile && hasArtist && !isSameArtist;
+
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFF1A1A1A), // Tema oscuro para el modal
@@ -120,13 +160,13 @@ class _TrackOptionsMenuSheetState extends State<TrackOptionsMenuSheet> {
               ),
             ),
 
-            if (widget.title != null && widget.title!.isNotEmpty)
+            if (effectiveTitle != null && effectiveTitle.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                 child: Column(
                   children: [
                     Text(
-                      widget.title!,
+                      effectiveTitle,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -136,10 +176,10 @@ class _TrackOptionsMenuSheetState extends State<TrackOptionsMenuSheet> {
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                     ),
-                    if (widget.artist != null && widget.artist!.isNotEmpty) ...[
+                    if (effectiveArtist.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
-                        widget.artist!,
+                        effectiveArtist,
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.7),
                           fontSize: 13,
@@ -168,7 +208,7 @@ class _TrackOptionsMenuSheetState extends State<TrackOptionsMenuSheet> {
                     context: context,
                     builder: (context) => FixMetadataDialog(
                       itemId: widget.itemId!,
-                      currentTitle: widget.title ?? '',
+                      currentTitle: effectiveTitle ?? '',
                     ),
                   );
                 },
@@ -193,8 +233,33 @@ class _TrackOptionsMenuSheetState extends State<TrackOptionsMenuSheet> {
                     backgroundColor: Colors.transparent,
                     builder: (_) => RequestMetadataSheet(
                       trackId: widget.itemId!,
-                      initialTitle: widget.title ?? '',
-                      initialArtist: widget.artist ?? '',
+                      initialTitle: effectiveTitle ?? '',
+                      initialArtist: effectiveArtist,
+                    ),
+                  );
+                },
+              ),
+
+            if (shouldShowArtist)
+              ListTile(
+                leading: const Icon(Icons.person_outline, color: Colors.white70),
+                title: const Text(
+                  'Perfil del artista',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+                subtitle: effectiveArtist.isNotEmpty
+                    ? Text(
+                        effectiveArtist,
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    : null,
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ArtistProfileScreen(artistName: effectiveArtist),
                     ),
                   );
                 },
@@ -202,9 +267,9 @@ class _TrackOptionsMenuSheetState extends State<TrackOptionsMenuSheet> {
 
             ListTile(
               leading: Icon(Icons.playlist_add, color: synapColor),
-              title: Text(
-                isLocal ? 'Agregar a otra playlist' : 'Agregar a playlist',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              title: const Text(
+                'Agregar a playlist',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
               ),
               onTap: () {
                 Navigator.pop(context); // Cierra este modal
@@ -213,8 +278,8 @@ class _TrackOptionsMenuSheetState extends State<TrackOptionsMenuSheet> {
                   backgroundColor: Colors.transparent,
                   builder: (_) => AddToPlaylistSheet(
                     itemId: widget.itemId,
-                    title: widget.title,
-                    artist: widget.artist,
+                    title: effectiveTitle,
+                    artist: effectiveArtist,
                     queryString: widget.queryString,
                     coverUrl: widget.coverUrl,
                   ),
@@ -258,8 +323,8 @@ class _TrackOptionsMenuSheetState extends State<TrackOptionsMenuSheet> {
                   // Canción remota: descargar y luego agregar como siguiente
                   await PlaybackDownloadCoordinator().downloadAndPlayNext(
                     context: context,
-                    title: widget.title ?? '',
-                    artist: widget.artist ?? '',
+                    title: effectiveTitle ?? '',
+                    artist: effectiveArtist,
                     queryString: widget.queryString,
                     coverUrl: widget.coverUrl,
                   );
@@ -278,11 +343,11 @@ class _TrackOptionsMenuSheetState extends State<TrackOptionsMenuSheet> {
                   Navigator.pop(context);
                   final cleanQuery = (widget.queryString != null && widget.queryString!.isNotEmpty)
                       ? widget.queryString!
-                      : '${widget.title ?? ''} ${widget.artist ?? ''}';
+                      : '${effectiveTitle ?? ''} $effectiveArtist'.trim();
                   SynapApiService().downloadMedia(cleanQuery);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Descargando "${widget.title ?? 'canción'}" a la biblioteca...'),
+                      content: Text('Descargando "${effectiveTitle ?? 'canción'}" a la biblioteca...'),
                       duration: const Duration(seconds: 3),
                       backgroundColor: const Color(0xFF1E1E1E),
                       behavior: SnackBarBehavior.floating,
@@ -291,28 +356,15 @@ class _TrackOptionsMenuSheetState extends State<TrackOptionsMenuSheet> {
                 },
               ),
 
-            if (isLocal)
-              if (isInsidePlaylist)
-                ListTile(
-                  leading: const Icon(Icons.remove_circle_outline, color: Colors.orange),
-                  title: const Text(
-                    'Quitar de esta playlist',
-                    style: TextStyle(color: Colors.orange),
-                  ),
-                  onTap: () => _removeFromPlaylist(context),
-                )
-              else
-                ListTile(
-                  leading: const Icon(Icons.delete, color: Colors.white70),
-                  title: const Text(
-                    'Eliminar',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    print('TODO: Implementar Eliminar Global');
-                  },
+            if (isInsidePlaylist)
+              ListTile(
+                leading: const Icon(Icons.remove_circle_outline, color: Colors.orange),
+                title: const Text(
+                  'Quitar de esta playlist',
+                  style: TextStyle(color: Colors.orange),
                 ),
+                onTap: () => _removeFromPlaylist(context),
+              ),
             const SizedBox(height: 16),
           ],
         ),

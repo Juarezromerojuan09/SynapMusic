@@ -62,6 +62,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final url = Uri.parse('$_serverUrl/Users/$_userId');
       final response = await http.get(url, headers: {
         'X-Emby-Token': currentUser.accessToken,
+        'Authorization': 'MediaBrowser Token="${currentUser.accessToken}"',
       });
 
       String name = 'Usuario';
@@ -146,6 +147,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             url,
             headers: {
               'X-Emby-Token': currentUser.accessToken,
+              'Authorization': 'MediaBrowser Token="${currentUser.accessToken}"',
               'Content-Type': mimeType,
             },
             body: bytes,
@@ -260,7 +262,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         if (currentUser != null) {
           try {
             final getUrl = Uri.parse('${currentUser.baseUrl}/Users/${currentUser.id}');
-            final getResp = await http.get(getUrl, headers: {'X-Emby-Token': currentUser.accessToken});
+            final getResp = await http.get(getUrl, headers: {
+              'X-Emby-Token': currentUser.accessToken,
+              'Authorization': 'MediaBrowser Token="${currentUser.accessToken}"',
+            });
             if (getResp.statusCode == 200) {
               final userData = json.decode(getResp.body);
               userData['Name'] = newName;
@@ -268,6 +273,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 getUrl,
                 headers: {
                   'X-Emby-Token': currentUser.accessToken,
+                  'Authorization': 'MediaBrowser Token="${currentUser.accessToken}"',
                   'Content-Type': 'application/json',
                 },
                 body: json.encode(userData),

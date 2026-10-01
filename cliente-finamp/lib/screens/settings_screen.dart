@@ -63,6 +63,7 @@ class SettingsScreen extends StatelessWidget {
                   final url = Uri.parse('${currentUser.baseUrl}/Users/${currentUser.id}');
                   final response = await http.get(url, headers: {
                     'X-Emby-Token': currentUser.accessToken,
+                    'Authorization': 'MediaBrowser Token="${currentUser.accessToken}"',
                   });
                   
                   if (response.statusCode == 200) {
