@@ -3529,10 +3529,10 @@ async def download_apk():
 async def get_app_version():
     return {
         "app_name": "SynapMusic",
-        "version": "0.6.38",
-        "version_code": 63,
+        "version": "0.6.39",
+        "version_code": 64,
         "download_url": "/synapmusic/download",
         "release_date": "2026-10-03",
         "min_android_version": "Android 8.0+",
-        "changelog": "Corrección de visualización de portadas y alineación en listas, miniaturas optimizadas y estado activo garantizado de corazones en My likes."
+        "changelog": "Agregar álbum completo a playlists con deduplicación inteligente, soporte para creación directa de playlists y optimizaciones de sincronización."
     }

@@ -180,18 +180,35 @@ Future<void> setupHive() async {
   Hive.registerAdapter(ThemeModeAdapter());
   Hive.registerAdapter(LocaleAdapter());
   Hive.registerAdapter(OfflineListenAdapter());
+
+  Future<Box<T>> openBoxSafely<T>(String name) async {
+    try {
+      return await Hive.openBox<T>(name);
+    } catch (e, stack) {
+      final logger = Logger("Hive");
+      logger.severe("Error opening Hive box $name: $e. Recreating box...", e, stack);
+      try {
+        await Hive.deleteBoxFromDisk(name);
+        return await Hive.openBox<T>(name);
+      } catch (e2, stack2) {
+        logger.severe("Failed to recreate Hive box $name: $e2", e2, stack2);
+        rethrow;
+      }
+    }
+  }
+
   await Future.wait([
-    Hive.openBox<DownloadedParent>("DownloadedParents"),
-    Hive.openBox<DownloadedSong>("DownloadedItems"),
-    Hive.openBox<DownloadedSong>("DownloadIds"),
-    Hive.openBox<FinampUser>("FinampUsers"),
-    Hive.openBox<String>("CurrentUserId"),
-    Hive.openBox<FinampSettings>("FinampSettings"),
-    Hive.openBox<DownloadedImage>("DownloadedImages"),
-    Hive.openBox<String>("DownloadedImageIds"),
-    Hive.openBox<ThemeMode>("ThemeMode"),
-    Hive.openBox<Locale?>(LocaleHelper.boxName),
-    Hive.openBox<OfflineListen>("OfflineListens")
+    openBoxSafely<DownloadedParent>("DownloadedParents"),
+    openBoxSafely<DownloadedSong>("DownloadedItems"),
+    openBoxSafely<DownloadedSong>("DownloadIds"),
+    openBoxSafely<FinampUser>("FinampUsers"),
+    openBoxSafely<String>("CurrentUserId"),
+    openBoxSafely<FinampSettings>("FinampSettings"),
+    openBoxSafely<DownloadedImage>("DownloadedImages"),
+    openBoxSafely<String>("DownloadedImageIds"),
+    openBoxSafely<ThemeMode>("ThemeMode"),
+    openBoxSafely<Locale?>(LocaleHelper.boxName),
+    openBoxSafely<OfflineListen>("OfflineListens")
   ]);
 
   // If the settings box is empty, we add an initial settings value here.
@@ -454,17 +471,81 @@ class FinampErrorApp extends StatelessWidget {
   }
 }
 
-class ErrorScreen extends StatelessWidget {
+class ErrorScreen extends StatefulWidget {
   const ErrorScreen({super.key, this.error});
 
   final dynamic error;
 
   @override
+  State<ErrorScreen> createState() => _ErrorScreenState();
+}
+
+class _ErrorScreenState extends State<ErrorScreen> {
+  bool _isResetting = false;
+
+  Future<void> _resetAppData() async {
+    setState(() => _isResetting = true);
+    try {
+      await Hive.deleteFromDisk();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Datos restablecidos. Reinicia la aplicación.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al restablecer: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isResetting = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Text(
-          AppLocalizations.of(context)!.startupError(error.toString()),
+      backgroundColor: const Color(0xFF0A0A0A),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(Icons.warning_amber_rounded, size: 72, color: Color(0xFF8B93FF)),
+                const SizedBox(height: 24),
+                Text(
+                  AppLocalizations.of(context)!.startupError(widget.error.toString()),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.5),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8B93FF),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: _isResetting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                        )
+                      : const Icon(Icons.refresh),
+                  label: Text(
+                    _isResetting ? 'Restableciendo...' : 'Restablecer datos locales',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  onPressed: _isResetting ? null : _resetAppData,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -74,17 +74,18 @@ for html_file in ["index.html", "synapmusic.html"]:
             print(f"Subiendo {html_file} a {remote_html}...")
             sftp.put(local_html, remote_html)
 
-# Sincronizar api-descargas/main.py
+# Sincronizar api-descargas/main.py en ambas rutas del servidor
 local_main = os.path.join("api-descargas", "main.py")
 if os.path.exists(local_main):
     print("Sincronizando api-descargas/main.py...")
+    sftp.put(local_main, "/home/juarezromerojuan09/servicios/synapmusic/main.py")
     sftp.put(local_main, "/home/juarezromerojuan09/servicios/synapmusic/api-descargas/main.py")
 
 sftp.close()
 
-# Reiniciar servicio synapmusic-api
+# Reiniciar servicio synapmusic-api (User Service)
 print("Reiniciando servicio synapmusic-api en ThinkCentre...")
-stdin, stdout, stderr = ssh.exec_command("echo 'peluso160311' | sudo -S systemctl restart synapmusic-api.service")
+stdin, stdout, stderr = ssh.exec_command("systemctl --user restart synapmusic-api.service")
 exit_status = stdout.channel.recv_exit_status()
 if exit_status == 0:
     print("Servicio synapmusic-api reiniciado exitosamente.")

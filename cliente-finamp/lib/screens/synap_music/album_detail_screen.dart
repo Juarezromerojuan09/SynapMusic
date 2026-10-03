@@ -1,21 +1,17 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
-import '../../services/media_state_stream.dart';
-import '../../services/synap_api_service.dart';
-import '../../services/synap_events.dart';
 import 'package:get_it/get_it.dart';
+import '../../services/synap_api_service.dart';
 import '../../services/audio_service_helper.dart';
 import '../../models/jellyfin_models.dart';
 import '../player_screen.dart';
 import '../../components/track_list_item.dart';
 import '../../components/track_options_menu_sheet.dart';
 import '../../services/playback_download_coordinator.dart';
-import 'dart:io';
-import 'dart:convert';
-import 'dart:math';
-import 'package:path_provider/path_provider.dart';
 import '../../components/synap_fast_scroller.dart';
 import '../../services/synap_favorites_helper.dart';
+import '../../components/add_album_to_playlist_sheet.dart';
 
 class AlbumDetailScreen extends StatefulWidget {
   final String albumId;
@@ -202,6 +198,19 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
     );
   }
 
+  void _openAddAlbumToPlaylist() {
+    if (_albumData == null || _tracks.isEmpty) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AddAlbumToPlaylistSheet.fromAlbumData(
+        albumData: _albumData!,
+        tracks: _tracks,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -219,6 +228,13 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                     SliverAppBar(
                       expandedHeight: 300,
                       pinned: true,
+                      actions: [
+                        IconButton(
+                          icon: const Icon(Icons.playlist_add, color: Colors.white, size: 28),
+                          tooltip: 'Agregar álbum a playlist',
+                          onPressed: _openAddAlbumToPlaylist,
+                        ),
+                      ],
                       flexibleSpace: FlexibleSpaceBar(
                         background: Image.network(
                           _albumData!['cover_url'] ?? '',
@@ -311,6 +327,12 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                                       onPressed: _downloadFullAlbum,
                                     );
                                   }
+                                ),
+                                // 5. Add to Playlist
+                                IconButton(
+                                  icon: const Icon(Icons.playlist_add, size: 26, color: Colors.white),
+                                  tooltip: 'Agregar álbum a playlist',
+                                  onPressed: _openAddAlbumToPlaylist,
                                 ),
                               ],
                             ),

@@ -13,6 +13,7 @@ import 'album_screen_content_flexible_space_bar.dart';
 import 'delete_button.dart';
 import 'song_list_tile.dart';
 import 'playlist_name_edit_button.dart';
+import '../add_album_to_playlist_sheet.dart';
 
 typedef BaseItemDtoCallback = void Function(BaseItemDto item);
 
@@ -80,6 +81,23 @@ class _AlbumScreenContentState extends State<AlbumScreenContent> {
                   !FinampSettingsHelper.finampSettings.isOffline)
                 PlaylistNameEditButton(playlist: widget.parent),
               FavoriteButton(item: widget.parent),
+              if (widget.parent.type != "Playlist" &&
+                  !FinampSettingsHelper.finampSettings.isOffline)
+                IconButton(
+                  icon: const Icon(Icons.playlist_add),
+                  tooltip: 'Agregar álbum a playlist',
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => AddAlbumToPlaylistSheet.fromBaseItemDto(
+                        album: widget.parent,
+                        tracks: widget.children,
+                      ),
+                    );
+                  },
+                ),
               if (GetIt.instance<DownloadsHelper>().isAlbumDownloaded(widget.parent.id))
                 DeleteButton(parent: widget.parent, items: widget.children),
               if (!FinampSettingsHelper.finampSettings.isOffline)

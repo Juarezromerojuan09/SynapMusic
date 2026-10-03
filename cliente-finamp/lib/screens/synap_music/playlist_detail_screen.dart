@@ -171,6 +171,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     _isDownloadedNotifier = ValueNotifier(_downloadsHelper.getDownloadedParent(widget.playlist.id) != null);
     _refreshSub = SynapEvents.onLibraryRefresh.listen((_) {
       if (mounted) {
+        final u = GetIt.instance<FinampUserHelper>().currentUser;
+        final bUrl = u?.baseUrl ?? 'http://100.64.134.104:8096';
+        setState(() {
+          _imageUrl = '$bUrl/Items/${widget.playlist.id}/Images/Primary?t=${DateTime.now().millisecondsSinceEpoch}';
+        });
         _loadItems();
       }
     });
@@ -1009,6 +1014,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                                           ),
                                         );
                                         if (updated == true && mounted) {
+                                          final u = GetIt.instance<FinampUserHelper>().currentUser;
+                                          final bUrl = u?.baseUrl ?? 'http://100.64.134.104:8096';
+                                          setState(() {
+                                            _imageUrl = '$bUrl/Items/${widget.playlist.id}/Images/Primary?t=${DateTime.now().millisecondsSinceEpoch}';
+                                          });
                                           _loadItems();
                                         }
                                       },

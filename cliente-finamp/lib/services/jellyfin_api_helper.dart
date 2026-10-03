@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -421,17 +422,21 @@ class JellyfinApiHelper {
         final request = await client.postUrl(url);
         request.headers.set('Authorization', authHeader);
         request.headers.set('Content-Type', mimeType);
-        request.add(imageBytes);
+        final base64String = base64Encode(imageBytes);
+        request.write(base64String);
         final response = await request.close();
         if (response.statusCode >= 400) {
+          final errorBody = await response.transform(utf8.decoder).join();
           _jellyfinApiHelperLogger.warning(
-              "Failed to update item image: ${response.statusCode}");
+              "Failed to update item image: ${response.statusCode} - $errorBody");
+          throw Exception("Error al actualizar la imagen (${response.statusCode}): $errorBody");
         }
       } finally {
         client.close();
       }
     } catch (e, stackTrace) {
       _jellyfinApiHelperLogger.warning("Error uploading item image", e, stackTrace);
+      rethrow;
     }
   }
 }

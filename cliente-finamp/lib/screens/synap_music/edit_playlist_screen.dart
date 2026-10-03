@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:get_it/get_it.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../models/jellyfin_models.dart';
 import '../../services/jellyfin_api_helper.dart';
 import '../../services/downloads_helper.dart';
+import '../../services/synap_events.dart';
 import 'crop_cover_screen.dart';
 
 class EditPlaylistScreen extends StatefulWidget {
@@ -92,7 +92,8 @@ class _EditPlaylistScreenState extends State<EditPlaylistScreen> with SingleTick
     try {
       final boundary = _previewKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return null;
-      final image = await boundary.toImage(pixelRatio: 2.0);
+      final pixelRatio = 512.0 / 170.0;
+      final image = await boundary.toImage(pixelRatio: pixelRatio);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       return byteData?.buffer.asUint8List();
     } catch (e) {
@@ -122,7 +123,7 @@ class _EditPlaylistScreenState extends State<EditPlaylistScreen> with SingleTick
         final updated = BaseItemDto.fromJson(widget.playlist.toJson());
         updated.name = newName;
         await jellyfinHelper.updateItem(
-          itemId: widget.playlist.id!,
+          itemId: widget.playlist.id,
           newItem: updated,
         );
       }
@@ -141,6 +142,9 @@ class _EditPlaylistScreenState extends State<EditPlaylistScreen> with SingleTick
           imageBytes: imageBytes,
           mimeType: 'image/png',
         );
+        PaintingBinding.instance.imageCache.clear();
+        PaintingBinding.instance.imageCache.clearLiveImages();
+        SynapEvents.fireLibraryRefresh();
       }
 
       if (mounted) {
@@ -208,24 +212,28 @@ class _EditPlaylistScreenState extends State<EditPlaylistScreen> with SingleTick
     return Column(
       children: [
         Center(
-          child: RepaintBoundary(
-            key: _previewKey,
-            child: Container(
-              width: 170,
-              height: 170,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.5),
-                    blurRadius: 16,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: coverWidget,
+          child: Container(
+            width: 170,
+            height: 170,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: RepaintBoundary(
+                key: _previewKey,
+                child: SizedBox(
+                  width: 170,
+                  height: 170,
+                  child: coverWidget,
+                ),
               ),
             ),
           ),
@@ -242,48 +250,45 @@ class _EditPlaylistScreenState extends State<EditPlaylistScreen> with SingleTick
   }
 
   Widget _buildDevicePickerTab() {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFF161616),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white10),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 18.0),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161616),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.add_photo_alternate_outlined, size: 52, color: Color(0xFF8B93FF)),
+            const SizedBox(height: 12),
+            const Text(
+              'Elige una foto de tu biblioteca',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
-            child: Column(
-              children: [
-                const Icon(Icons.add_photo_alternate_outlined, size: 64, color: Color(0xFF8B93FF)),
-                const SizedBox(height: 16),
-                const Text(
-                  'Elige una foto de tu biblioteca',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Podrás recortarla y centrarla perfectamente antes de guardarla.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8B93FF),
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  icon: const Icon(Icons.photo_library),
-                  label: const Text('Elegir de la Galería', style: TextStyle(fontWeight: FontWeight.bold)),
-                  onPressed: _pickImageFromDevice,
-                ),
-              ],
+            const SizedBox(height: 6),
+            const Text(
+              'Podrás recortarla y centrarla perfectamente antes de guardarla.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey, fontSize: 13),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8B93FF),
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.photo_library),
+              label: const Text('Elegir de la Galería', style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: _pickImageFromDevice,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -391,7 +396,7 @@ class _EditPlaylistScreenState extends State<EditPlaylistScreen> with SingleTick
               ],
             ),
             SizedBox(
-              height: 280,
+              height: 300,
               child: TabBarView(
                 controller: _tabController,
                 children: [

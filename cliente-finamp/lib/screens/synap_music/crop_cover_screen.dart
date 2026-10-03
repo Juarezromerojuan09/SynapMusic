@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 
 class CropCoverScreen extends StatefulWidget {
@@ -15,44 +15,14 @@ class CropCoverScreen extends StatefulWidget {
 
 class _CropCoverScreenState extends State<CropCoverScreen> {
   final TransformationController _controller = TransformationController();
-  ui.Image? _loadedImage;
-  bool _isLoading = true;
-  int _rotationQuarterTurns = 0;
   final GlobalKey _cropAreaKey = GlobalKey();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadImageInfo();
-  }
+  int _rotationQuarterTurns = 0;
+  bool _isCropping = false;
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadImageInfo() async {
-    try {
-      final bytes = await widget.imageFile.readAsBytes();
-      final codec = await ui.instantiateImageCodec(bytes);
-      final frame = await codec.getNextFrame();
-      if (mounted) {
-        setState(() {
-          _loadedImage = frame.image;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error cargando imagen: $e')),
-        );
-      }
-    }
   }
 
   void _resetPosition() {
@@ -68,10 +38,23 @@ class _CropCoverScreenState extends State<CropCoverScreen> {
     });
   }
 
-  void _applyZoom(double zoom) {
+  void _applyZoom(double factor) {
     final matrix = _controller.value.clone();
-    matrix.scale(zoom);
-    _controller.value = matrix;
+    final currentScale = matrix.getMaxScaleOnAxis();
+    if (currentScale * factor < 0.5 || currentScale * factor > 6.0) return;
+
+    final cropSize = _calculateCropSize(context);
+    final focalPoint = Offset(cropSize / 2, cropSize / 2);
+
+    final translation = matrix.getTranslation();
+    final newScale = currentScale * factor;
+
+    final newX = focalPoint.dx - (focalPoint.dx - translation.x) * factor;
+    final newY = focalPoint.dy - (focalPoint.dy - translation.y) * factor;
+
+    _controller.value = Matrix4.identity()
+      ..translate(newX, newY)
+      ..scale(newScale);
   }
 
   double _calculateCropSize(BuildContext context) {
@@ -81,50 +64,25 @@ class _CropCoverScreenState extends State<CropCoverScreen> {
   }
 
   Future<void> _applyCrop() async {
-    if (_loadedImage == null) return;
+    if (_isCropping) return;
+
+    final cropSize = _calculateCropSize(context);
+
+    setState(() {
+      _isCropping = true;
+    });
 
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
-      );
+      await Future.delayed(const Duration(milliseconds: 50));
 
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder);
-      const cropOutputSize = 512.0;
-
-      final paint = Paint()..isAntiAlias = true;
-
-      final matrix = _controller.value;
-      final scale = matrix.getMaxScaleOnAxis();
-      final translationX = matrix.getTranslation().x;
-      final translationY = matrix.getTranslation().y;
-
-      final cropBoxSize = _calculateCropSize(context);
-      final imgW = (_rotationQuarterTurns % 2 == 0) ? _loadedImage!.width.toDouble() : _loadedImage!.height.toDouble();
-      final imgH = (_rotationQuarterTurns % 2 == 0) ? _loadedImage!.height.toDouble() : _loadedImage!.width.toDouble();
-
-      final scaleRatio = cropOutputSize / cropBoxSize;
-
-      canvas.save();
-      canvas.scale(scaleRatio);
-      canvas.translate(translationX, translationY);
-
-      canvas.scale(scale);
-
-      if (_rotationQuarterTurns != 0) {
-        canvas.translate(imgW / 2, imgH / 2);
-        canvas.rotate(_rotationQuarterTurns * 3.141592653589793 / 2);
-        canvas.translate(-_loadedImage!.width / 2, -_loadedImage!.height / 2);
+      final boundary = _cropAreaKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) {
+        throw Exception('No se pudo acceder al área de recorte');
       }
 
-      canvas.drawImage(_loadedImage!, Offset.zero, paint);
-      canvas.restore();
-
-      final picture = recorder.endRecording();
-      final img = await picture.toImage(cropOutputSize.toInt(), cropOutputSize.toInt());
-      final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+      final pixelRatio = 512.0 / cropSize;
+      final image = await boundary.toImage(pixelRatio: pixelRatio);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
 
       if (byteData == null) {
         throw Exception('Error al codificar imagen a PNG');
@@ -136,12 +94,13 @@ class _CropCoverScreenState extends State<CropCoverScreen> {
       await croppedFile.writeAsBytes(croppedBytes);
 
       if (mounted) {
-        Navigator.of(context).pop(); // Cierra el spinner
-        Navigator.of(context).pop(croppedFile); // Retorna el archivo recortado
+        Navigator.of(context).pop(croppedFile);
       }
     } catch (e) {
       if (mounted) {
-        Navigator.of(context).pop(); // Cierra el spinner
+        setState(() {
+          _isCropping = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al recortar la imagen: $e')),
         );
@@ -162,59 +121,78 @@ class _CropCoverScreenState extends State<CropCoverScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Reiniciar',
-            onPressed: _resetPosition,
+            onPressed: _isCropping ? null : _resetPosition,
           ),
           IconButton(
             icon: const Icon(Icons.rotate_90_degrees_ccw),
             tooltip: 'Rotar',
-            onPressed: _rotate90,
+            onPressed: _isCropping ? null : _rotate90,
           ),
           IconButton(
-            icon: const Icon(Icons.check, color: Color(0xFF8B93FF)),
+            icon: _isCropping
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF8B93FF)),
+                  )
+                : const Icon(Icons.check, color: Color(0xFF8B93FF)),
             tooltip: 'Aplicar',
-            onPressed: _applyCrop,
+            onPressed: _isCropping ? null : _applyCrop,
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Center(
-              child: SizedBox(
-                width: cropSize,
-                height: cropSize,
-                child: Stack(
-                  clipBehavior: Clip.hardEdge,
-                  key: _cropAreaKey,
-                  children: [
-                    InteractiveViewer(
+      body: Center(
+        child: SizedBox(
+          width: cropSize,
+          height: cropSize,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              RepaintBoundary(
+                key: _cropAreaKey,
+                child: ClipRect(
+                  child: Container(
+                    color: Colors.black,
+                    width: cropSize,
+                    height: cropSize,
+                    child: InteractiveViewer(
                       transformationController: _controller,
                       minScale: 0.5,
-                      maxScale: 4.0,
-                      boundaryMargin: const EdgeInsets.all(double.infinity),
-                      child: RotatedBox(
-                        quarterTurns: _rotationQuarterTurns,
-                        child: RawImage(
-                          image: _loadedImage,
-                          fit: BoxFit.cover,
+                      maxScale: 6.0,
+                      boundaryMargin: EdgeInsets.all(cropSize),
+                      child: SizedBox(
+                        width: cropSize,
+                        height: cropSize,
+                        child: RotatedBox(
+                          quarterTurns: _rotationQuarterTurns,
+                          child: Center(
+                            child: Image.file(
+                              widget.imageFile,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                    IgnorePointer(
-                      child: CustomPaint(
-                        size: Size(cropSize, cropSize),
-                        painter: _GridGuidePainter(),
-                      ),
-                    ),
-                    IgnorePointer(
-                      child: CustomPaint(
-                        size: Size(cropSize, cropSize),
-                        painter: _CornerAccentsPainter(),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+              IgnorePointer(
+                child: CustomPaint(
+                  size: Size(cropSize, cropSize),
+                  painter: _GridGuidePainter(),
+                ),
+              ),
+              IgnorePointer(
+                child: CustomPaint(
+                  size: Size(cropSize, cropSize),
+                  painter: _CornerAccentsPainter(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       bottomNavigationBar: Container(
         color: const Color(0xFF141414),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -223,20 +201,26 @@ class _CropCoverScreenState extends State<CropCoverScreen> {
           children: [
             IconButton(
               icon: const Icon(Icons.zoom_out, color: Colors.white70),
-              onPressed: () => _applyZoom(0.85),
+              onPressed: _isCropping ? null : () => _applyZoom(0.85),
             ),
             IconButton(
               icon: const Icon(Icons.zoom_in, color: Colors.white70),
-              onPressed: () => _applyZoom(1.15),
+              onPressed: _isCropping ? null : () => _applyZoom(1.15),
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF8B93FF),
                 foregroundColor: Colors.black,
               ),
-              icon: const Icon(Icons.check),
-              label: const Text('Recortar'),
-              onPressed: _applyCrop,
+              icon: _isCropping
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                    )
+                  : const Icon(Icons.check),
+              label: Text(_isCropping ? 'Guardando...' : 'Recortar'),
+              onPressed: _isCropping ? null : _applyCrop,
             ),
           ],
         ),
