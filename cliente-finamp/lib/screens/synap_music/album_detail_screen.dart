@@ -15,6 +15,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:path_provider/path_provider.dart';
 import '../../components/synap_fast_scroller.dart';
+import '../../services/synap_favorites_helper.dart';
 
 class AlbumDetailScreen extends StatefulWidget {
   final String albumId;
@@ -77,69 +78,27 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
         _isLoading = false;
       });
     }
-    await _checkIfFavorite();
+    _checkIfFavorite();
   }
 
-  Future<File> _getFavoritesFile() async {
-    final directory = await getApplicationDocumentsDirectory();
-    return File('${directory.path}/synap_favorite_albums.json');
-  }
-
-  Future<void> _checkIfFavorite() async {
-    try {
-      final file = await _getFavoritesFile();
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        final List<dynamic> favorites = json.decode(content);
-        if (mounted) {
-          setState(() {
-            _isFavorite = favorites.any((a) => a['id'] == widget.albumId);
-          });
-        }
-      }
-    } catch (e) {
-      print('Error al cargar favoritos: $e');
+  void _checkIfFavorite() {
+    if (mounted) {
+      setState(() {
+        _isFavorite = SynapFavoritesHelper.isAlbumFavorite(widget.albumId);
+      });
     }
   }
 
   Future<void> _toggleFavorite() async {
     if (_albumData == null) return;
-    
-    try {
-      final file = await _getFavoritesFile();
-      List<dynamic> favorites = [];
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        favorites = json.decode(content);
-      }
-      
-      if (_isFavorite) {
-        favorites.removeWhere((a) => a['id'] == widget.albumId);
-      } else {
-        favorites.add({
-          'id': widget.albumId,
-          'title': _albumData!['title'],
-          'artist': _albumData!['artist'],
-          'cover_url': _albumData!['cover_url'],
-          'year': _albumData!['year']
-        });
-      }
-      
-      await file.writeAsString(json.encode(favorites));
-      
-      SynapEvents.fireLibraryRefresh();
-
-      if (mounted) {
-        setState(() {
-          _isFavorite = !_isFavorite;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_isFavorite ? 'Álbum añadido a favoritos' : 'Álbum removido de favoritos')),
-        );
-      }
-    } catch (e) {
-      print('Error al guardar favorito: $e');
-    }
+    await SynapFavoritesHelper.toggleAlbumFavorite(context, {
+      'id': widget.albumId,
+      'title': _albumData!['title'],
+      'artist': _albumData!['artist'],
+      'cover_url': _albumData!['cover_url'],
+      'year': _albumData!['year']
+    });
+    _checkIfFavorite();
   }
 
   void _downloadFullAlbum() {

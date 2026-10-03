@@ -10,7 +10,7 @@ from playlist_migrator import run_migration_task
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import sqlite3
 import uuid
 import json
@@ -67,6 +67,50 @@ def init_feedback_db():
         print(f"Error inicializando feedback.db: {e}")
 
 init_feedback_db()
+
+# Configuración de Favoritos (Álbumes y Artistas) por Usuario
+FAVORITES_DB = os.getenv("FAVORITES_DB", os.path.join(os.path.dirname(__file__), "user_favorites.db"))
+
+def init_favorites_db():
+    try:
+        conn = sqlite3.connect(FAVORITES_DB)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS favorite_albums (
+                user_id TEXT,
+                album_id TEXT,
+                title TEXT,
+                artist TEXT,
+                cover_url TEXT,
+                year TEXT,
+                added_at TEXT,
+                PRIMARY KEY (user_id, album_id)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS favorite_artists (
+                user_id TEXT,
+                artist_id TEXT,
+                name TEXT,
+                picture_url TEXT,
+                picture_medium TEXT,
+                fans TEXT,
+                added_at TEXT,
+                PRIMARY KEY (user_id, name)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users_metadata (
+                user_id TEXT PRIMARY KEY,
+                created_at TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error inicializando user_favorites.db: {e}")
+
+init_favorites_db()
 
 def patch_deemix_libraries():
     """
@@ -1475,6 +1519,15 @@ async def register_user(req: RegisterRequest):
             print(f"Error actualizando política: {policy_resp.text}")
             raise HTTPException(status_code=500, detail="Error enviando a sala de espera")
             
+        try:
+            conn = sqlite3.connect(FAVORITES_DB)
+            cur = conn.cursor()
+            cur.execute("INSERT OR REPLACE INTO users_metadata (user_id, created_at) VALUES (?, ?)", (user_id, datetime.datetime.now().isoformat()))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"Error guardando fecha de creación para usuario {user_id}: {e}")
+
         return {"status": "success", "message": "Cuenta creada. Esperando aprobación."}
 
 @app.get("/users/pending")
@@ -1557,7 +1610,797 @@ async def update_user_avatar(user_id: str, request: Request):
         resp = await client.post(avatar_url, headers=headers, content=body)
         if resp.status_code not in [200, 204]:
             raise HTTPException(status_code=500, detail="Error subiendo avatar a Jellyfin")
-        return {"status": "success", "message": "Avatar actualizado"}
+
+# ==========================================
+# ENDPOINTS DE ADMINISTRACIÓN DE USUARIOS
+# ==========================================
+
+class CreateAdminUserRequest(BaseModel):
+    username: str
+    password: Optional[str] = ""
+    is_active: bool = True
+    is_admin: bool = False
+
+class UpdateUserStatusRequest(BaseModel):
+    is_active: bool
+
+class UpdateUserRoleRequest(BaseModel):
+    is_admin: bool
+
+class UpdateUserPasswordRequest(BaseModel):
+    new_password: str
+
+@app.get("/admin/users", dependencies=[Depends(get_api_key)])
+async def get_admin_users():
+    """Retorna la lista de todos los usuarios de Jellyfin con su estado y metadatos."""
+    headers = jf_headers()
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(f"{JELLYFIN_URL}/Users", headers=headers)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=500, detail="Error obteniendo usuarios de Jellyfin")
+        users = resp.json()
+        
+    creation_dates = {}
+    try:
+        conn = sqlite3.connect(FAVORITES_DB)
+        cursor = conn.cursor()
+        cursor.execute("SELECT user_id, created_at FROM users_metadata")
+        for row in cursor.fetchall():
+            creation_dates[row[0]] = row[1]
+        conn.close()
+    except Exception as e:
+        print(f"Error consultando users_metadata: {e}")
+        
+    result = []
+    for u in users:
+        uid = u.get("Id")
+        policy = u.get("Policy", {})
+        is_disabled = policy.get("IsDisabled", False)
+        is_admin = policy.get("IsAdministrator", False)
+        created_at = creation_dates.get(uid)
+        
+        result.append({
+            "id": uid,
+            "name": u.get("Name", "Desconocido"),
+            "is_active": not is_disabled,
+            "is_admin": is_admin,
+            "primary_image_tag": u.get("PrimaryImageTag"),
+            "last_login_date": u.get("LastLoginDate"),
+            "last_activity_date": u.get("LastActivityDate"),
+            "created_at": created_at,
+        })
+    return result
+
+@app.post("/admin/users", dependencies=[Depends(get_api_key)])
+async def create_admin_user(req: CreateAdminUserRequest):
+    """Crea un nuevo usuario en Jellyfin con contraseña y rol configurables."""
+    headers = jf_headers()
+    async with httpx.AsyncClient() as client:
+        create_resp = await client.post(
+            f"{JELLYFIN_URL}/Users/New",
+            headers=headers,
+            json={"Name": req.username, "Password": req.password or ""}
+        )
+        if create_resp.status_code not in [200, 201]:
+            raise HTTPException(status_code=400, detail=f"Error creando usuario: {create_resp.text}")
+            
+        user_data = create_resp.json()
+        user_id = user_data.get("Id")
+        if not user_id:
+            raise HTTPException(status_code=500, detail="No se obtuvo el ID del usuario")
+            
+        user_resp = await client.get(f"{JELLYFIN_URL}/Users/{user_id}", headers=headers)
+        if user_resp.status_code == 200:
+            policy = user_resp.json().get("Policy", {})
+            policy["IsDisabled"] = not req.is_active
+            policy["IsAdministrator"] = req.is_admin
+            policy["EnableAllFolders"] = True
+            await client.post(f"{JELLYFIN_URL}/Users/{user_id}/Policy", headers=headers, json=policy)
+            
+    now = datetime.datetime.now().isoformat()
+    try:
+        conn = sqlite3.connect(FAVORITES_DB)
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR REPLACE INTO users_metadata (user_id, created_at) VALUES (?, ?)", (user_id, now))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error guardando fecha de creación: {e}")
+        
+    return {"status": "success", "id": user_id, "name": req.username, "created_at": now}
+
+@app.get("/admin/users/{user_id}", dependencies=[Depends(get_api_key)])
+async def get_admin_user_details(user_id: str):
+    """Retorna información detallada de un usuario, incluyendo playlists, likes y favoritos."""
+    headers = jf_headers()
+    async with httpx.AsyncClient() as client:
+        u_resp = await client.get(f"{JELLYFIN_URL}/Users/{user_id}", headers=headers)
+        if u_resp.status_code != 200:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        u = u_resp.json()
+        
+        pl_resp = await client.get(
+            f"{JELLYFIN_URL}/Users/{user_id}/Items",
+            headers=headers,
+            params={"includeItemTypes": "Playlist", "recursive": "true"}
+        )
+        playlists = []
+        likes_count = 0
+        likes_playlist_id = None
+        if pl_resp.status_code == 200:
+            for item in pl_resp.json().get("Items", []):
+                pl_id = item.get("Id")
+                pl_name = item.get("Name", "")
+                count_resp = await client.get(
+                    f"{JELLYFIN_URL}/Playlists/{pl_id}/Items",
+                    headers=headers,
+                    params={"userId": user_id, "limit": 0}
+                )
+                item_count = 0
+                if count_resp.status_code == 200:
+                    item_count = count_resp.json().get("TotalRecordCount", 0)
+                
+                is_likes = pl_name.strip().lower() in ["my likes", "mis me gusta", "likes"]
+                if is_likes:
+                    likes_count = item_count
+                    likes_playlist_id = pl_id
+                else:
+                    playlists.append({
+                        "id": pl_id,
+                        "name": pl_name,
+                        "song_count": item_count,
+                        "primary_image_tag": item.get("ImageTags", {}).get("Primary")
+                    })
+                    
+        audio_count_resp = await client.get(
+            f"{JELLYFIN_URL}/Users/{user_id}/Items",
+            headers=headers,
+            params={"includeItemTypes": "Audio", "recursive": "true", "limit": 0}
+        )
+        total_audio_count = 0
+        if audio_count_resp.status_code == 200:
+            total_audio_count = audio_count_resp.json().get("TotalRecordCount", 0)
+
+    fav_albums_count = 0
+    fav_artists_count = 0
+    created_at = None
+    try:
+        conn = sqlite3.connect(FAVORITES_DB)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM favorite_albums WHERE user_id = ?", (user_id,))
+        fav_albums_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM favorite_artists WHERE user_id = ?", (user_id,))
+        fav_artists_count = cursor.fetchone()[0]
+        cursor.execute("SELECT created_at FROM users_metadata WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        if row:
+            created_at = row[0]
+        conn.close()
+    except Exception as e:
+        print(f"Error consultando SQLite para usuario {user_id}: {e}")
+
+    policy = u.get("Policy", {})
+    return {
+        "id": user_id,
+        "name": u.get("Name", "Desconocido"),
+        "is_active": not policy.get("IsDisabled", False),
+        "is_admin": policy.get("IsAdministrator", False),
+        "primary_image_tag": u.get("PrimaryImageTag"),
+        "last_login_date": u.get("LastLoginDate"),
+        "last_activity_date": u.get("LastActivityDate"),
+        "created_at": created_at,
+        "likes_count": likes_count,
+        "likes_playlist_id": likes_playlist_id,
+        "playlists": playlists,
+        "playlists_count": len(playlists),
+        "favorite_albums_count": fav_albums_count,
+        "favorite_artists_count": fav_artists_count,
+        "total_audio_count": total_audio_count,
+    }
+
+@app.post("/admin/users/{user_id}/status", dependencies=[Depends(get_api_key)])
+async def update_user_status(user_id: str, req: UpdateUserStatusRequest):
+    """Activa o desactiva un usuario."""
+    headers = jf_headers()
+    async with httpx.AsyncClient() as client:
+        get_user_url = f"{JELLYFIN_URL}/Users/{user_id}"
+        user_resp = await client.get(get_user_url, headers=headers)
+        if user_resp.status_code != 200:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        policy = user_resp.json().get("Policy", {})
+        policy["IsDisabled"] = not req.is_active
+        if req.is_active:
+            policy["EnableAllFolders"] = True
+        policy_resp = await client.post(f"{JELLYFIN_URL}/Users/{user_id}/Policy", headers=headers, json=policy)
+        if policy_resp.status_code not in [200, 204]:
+            raise HTTPException(status_code=500, detail="Error actualizando estado del usuario")
+    return {"status": "success", "is_active": req.is_active}
+
+@app.post("/admin/users/{user_id}/role", dependencies=[Depends(get_api_key)])
+async def update_user_role(user_id: str, req: UpdateUserRoleRequest):
+    """Actualiza si el usuario es administrador."""
+    headers = jf_headers()
+    async with httpx.AsyncClient() as client:
+        get_user_url = f"{JELLYFIN_URL}/Users/{user_id}"
+        user_resp = await client.get(get_user_url, headers=headers)
+        if user_resp.status_code != 200:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        policy = user_resp.json().get("Policy", {})
+        policy["IsAdministrator"] = req.is_admin
+        policy_resp = await client.post(f"{JELLYFIN_URL}/Users/{user_id}/Policy", headers=headers, json=policy)
+        if policy_resp.status_code not in [200, 204]:
+            raise HTTPException(status_code=500, detail="Error actualizando rol del usuario")
+    return {"status": "success", "is_admin": req.is_admin}
+
+@app.post("/admin/users/{user_id}/password", dependencies=[Depends(get_api_key)])
+async def update_user_password(user_id: str, req: UpdateUserPasswordRequest):
+    """Cambia o restablece la contraseña de un usuario."""
+    headers = jf_headers()
+    async with httpx.AsyncClient() as client:
+        pw_url = f"{JELLYFIN_URL}/Users/{user_id}/Password"
+        pw_resp = await client.post(
+            pw_url,
+            headers=headers,
+            json={"Id": user_id, "NewPw": req.new_password, "ResetPassword": False}
+        )
+        if pw_resp.status_code not in [200, 204]:
+            raise HTTPException(status_code=500, detail="Error actualizando contraseña")
+    return {"status": "success", "message": "Contraseña actualizada correctamente"}
+
+@app.delete("/admin/users/{user_id}", dependencies=[Depends(get_api_key)])
+async def delete_admin_user(user_id: str):
+    """
+    Elimina por completo la cuenta del usuario en Jellyfin y sus favoritos en la BD.
+    Las canciones descargadas en el servidor PERMANECEN INTACTAS en media/.
+    """
+    headers = jf_headers()
+    async with httpx.AsyncClient() as client:
+        del_resp = await client.delete(f"{JELLYFIN_URL}/Users/{user_id}", headers=headers)
+        if del_resp.status_code not in [200, 204]:
+            raise HTTPException(status_code=500, detail=f"Error eliminando usuario en Jellyfin: {del_resp.text}")
+            
+    try:
+        conn = sqlite3.connect(FAVORITES_DB)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM favorite_albums WHERE user_id = ?", (user_id,))
+        cursor.execute("DELETE FROM favorite_artists WHERE user_id = ?", (user_id,))
+        cursor.execute("DELETE FROM users_metadata WHERE user_id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error limpiando favoritos del usuario {user_id}: {e}")
+        
+    return {"status": "success", "message": f"Usuario {user_id} eliminado exitosamente."}
+
+# ==========================================
+# ENDPOINTS DE ADMINISTRACIÓN DE BIBLIOTECA GLOBAL
+# ==========================================
+
+import shutil
+
+def format_bytes(size: int) -> str:
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if size < 1024.0:
+            return f"{size:.1f} {unit}"
+        size /= 1024.0
+    return f"{size:.1f} PB"
+
+def format_seconds(seconds: float) -> str:
+    total_sec = int(seconds)
+    hours = total_sec // 3600
+    minutes = (total_sec % 3600) // 60
+    if hours >= 24:
+        days = hours / 24.0
+        return f"{hours}h {minutes}m (~{days:.1f} días)"
+    elif hours > 0:
+        return f"{hours}h {minutes}m"
+    else:
+        return f"{minutes}m"
+
+def resolve_media_path(jf_path: str) -> Optional[str]:
+    """Convierte la ruta de Jellyfin (/data/media/...) en la ruta física local."""
+    if not jf_path:
+        return None
+    base = os.path.basename(jf_path)
+    p1 = os.path.join(MEDIA_DIR, base)
+    if os.path.exists(p1):
+        return p1
+    p2 = jf_path.replace("/data/media", MEDIA_DIR)
+    if os.path.exists(p2):
+        return p2
+    return p1
+
+class UpdateSongMetadataRequest(BaseModel):
+    title: Optional[str] = None
+    artist: Optional[str] = None
+    album: Optional[str] = None
+
+@app.get("/admin/library/stats", dependencies=[Depends(get_api_key)])
+async def get_admin_library_stats():
+    """Retorna métricas globales del servidor y de la biblioteca musical."""
+    headers = jf_headers()
+    total_songs = 0
+    total_duration_sec = 0.0
+    total_playbacks = 0
+    recent_activity = []
+
+    async with httpx.AsyncClient() as client:
+        # 1. Total canciones y duración
+        try:
+            items_resp = await client.get(
+                f"{JELLYFIN_URL}/Items",
+                headers=headers,
+                params={
+                    "IncludeItemTypes": "Audio",
+                    "Recursive": "true",
+                    "Fields": "RunTimeTicks",
+                    "Limit": 10000,
+                },
+                timeout=10
+            )
+            if items_resp.status_code == 200:
+                data = items_resp.json()
+                total_songs = data.get("TotalRecordCount", 0)
+                items = data.get("Items", [])
+                total_ticks = sum(i.get("RunTimeTicks", 0) for i in items if i.get("RunTimeTicks"))
+                total_duration_sec = total_ticks / 10000000.0
+        except Exception as e:
+            print(f"Error consultando items para estadísticas: {e}")
+
+        # 2. Actividad histórica y reciente
+        try:
+            activity_resp = await client.get(
+                f"{JELLYFIN_URL}/System/ActivityLog/Entries",
+                headers=headers,
+                params={"limit": 50},
+                timeout=5
+            )
+            if activity_resp.status_code == 200:
+                act_data = activity_resp.json()
+                total_playbacks = act_data.get("TotalRecordCount", 0)
+                items = act_data.get("Items", [])
+                playback_events = [it for it in items if "AudioPlayback" in it.get("Type", "")]
+                for act in playback_events[:5]:
+                    recent_activity.append({
+                        "id": act.get("Id"),
+                        "name": act.get("Name"),
+                        "date": act.get("Date"),
+                        "user_id": act.get("UserId"),
+                        "item_id": act.get("ItemId"),
+                    })
+        except Exception as e:
+            print(f"Error consultando actividad de Jellyfin: {e}")
+
+    # 3. Almacenamiento en disco
+    disk_total = 0
+    disk_used = 0
+    disk_free = 0
+    media_folder_size = 0
+    try:
+        usage = shutil.disk_usage(MEDIA_DIR)
+        disk_total = usage.total
+        disk_used = usage.used
+        disk_free = usage.free
+        for entry in os.scandir(MEDIA_DIR):
+            if entry.is_file():
+                media_folder_size += entry.stat().st_size
+    except Exception as e:
+        print(f"Error calculando uso de disco: {e}")
+
+    return {
+        "total_songs": total_songs,
+        "total_duration_seconds": total_duration_sec,
+        "total_duration_formatted": format_seconds(total_duration_sec),
+        "disk_total_bytes": disk_total,
+        "disk_used_bytes": disk_used,
+        "disk_free_bytes": disk_free,
+        "media_folder_bytes": media_folder_size,
+        "disk_total_formatted": format_bytes(disk_total),
+        "disk_used_formatted": format_bytes(disk_used),
+        "disk_free_formatted": format_bytes(disk_free),
+        "media_folder_formatted": format_bytes(media_folder_size),
+        "total_playbacks": total_playbacks,
+        "recent_activity": recent_activity,
+    }
+
+@app.get("/admin/library/songs", dependencies=[Depends(get_api_key)])
+async def get_admin_library_songs(
+    search: Optional[str] = None,
+    sort_by: str = "date_added",
+    limit: int = 30,
+    start_index: int = 0
+):
+    """Explorador y buscador paginado de canciones globales en el servidor."""
+    headers = jf_headers()
+    
+    jf_sort_by = "DateCreated"
+    jf_sort_order = "Descending"
+    if sort_by == "title":
+        jf_sort_by = "SortName"
+        jf_sort_order = "Ascending"
+    elif sort_by == "artist":
+        jf_sort_by = "Artist,SortName"
+        jf_sort_order = "Ascending"
+    elif sort_by == "duration_desc":
+        jf_sort_by = "Runtime"
+        jf_sort_order = "Descending"
+    elif sort_by == "duration_asc":
+        jf_sort_by = "Runtime"
+        jf_sort_order = "Ascending"
+    elif sort_by == "date_added":
+        jf_sort_by = "DateCreated"
+        jf_sort_order = "Descending"
+
+    params = {
+        "IncludeItemTypes": "Audio",
+        "Recursive": "true",
+        "Fields": "Path,RunTimeTicks,DateCreated,Album,Artists,MediaSources",
+        "SortBy": jf_sort_by,
+        "SortOrder": jf_sort_order,
+        "StartIndex": start_index,
+        "Limit": limit,
+    }
+    if search and search.strip():
+        params["SearchTerm"] = search.strip()
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(f"{JELLYFIN_URL}/Items", headers=headers, params=params)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=500, detail="Error consultando canciones en Jellyfin")
+        data = resp.json()
+        total_count = data.get("TotalRecordCount", 0)
+        raw_items = data.get("Items", [])
+
+    results = []
+    for item in raw_items:
+        sid = item.get("Id")
+        ticks = item.get("RunTimeTicks", 0) or 0
+        sec = int(ticks / 10000000)
+        m = sec // 60
+        s = sec % 60
+        duration_fmt = f"{m}:{s:02d}"
+        artists = item.get("Artists", [])
+        artist_name = artists[0] if artists else (item.get("AlbumArtist") or "Desconocido")
+
+        results.append({
+            "id": sid,
+            "name": item.get("Name", "Desconocido"),
+            "artist": artist_name,
+            "artists": artists,
+            "album": item.get("Album", ""),
+            "duration_seconds": sec,
+            "duration_formatted": duration_fmt,
+            "primary_image_tag": item.get("ImageTags", {}).get("Primary"),
+            "date_created": item.get("DateCreated"),
+            "path": item.get("Path", ""),
+        })
+
+    return {
+        "total_count": total_count,
+        "items": results,
+    }
+
+@app.post("/admin/library/songs/{song_id}/metadata", dependencies=[Depends(get_api_key)])
+async def update_song_metadata(song_id: str, req: UpdateSongMetadataRequest):
+    """Actualiza metadatos en el archivo físico (.mp3/.flac) y en Jellyfin."""
+    headers = jf_headers()
+    async with httpx.AsyncClient() as client:
+        get_resp = await client.get(f"{JELLYFIN_URL}/Items/{song_id}?Fields=Path", headers=headers)
+        if get_resp.status_code != 200:
+            raise HTTPException(status_code=404, detail="Canción no encontrada en Jellyfin")
+        item = get_resp.json()
+        jf_path = item.get("Path", "")
+        host_path = resolve_media_path(jf_path)
+
+        # 1. Escribir tags físicos con mutagen si existe el archivo
+        if host_path and os.path.exists(host_path):
+            try:
+                ext = os.path.splitext(host_path)[1].lower()
+                if ext == ".mp3":
+                    from mutagen.id3 import ID3, TIT2, TPE1, TALB, ID3NoHeaderError
+                    try:
+                        tags = ID3(host_path)
+                    except ID3NoHeaderError:
+                        tags = ID3()
+                    if req.title is not None and req.title.strip():
+                        tags["TIT2"] = TIT2(encoding=3, text=req.title.strip())
+                    if req.artist is not None and req.artist.strip():
+                        tags["TPE1"] = TPE1(encoding=3, text=req.artist.strip())
+                    if req.album is not None and req.album.strip():
+                        tags["TALB"] = TALB(encoding=3, text=req.album.strip())
+                    tags.save(host_path)
+                elif ext == ".flac":
+                    from mutagen.flac import FLAC
+                    audio = FLAC(host_path)
+                    if req.title is not None and req.title.strip():
+                        audio["title"] = req.title.strip()
+                    if req.artist is not None and req.artist.strip():
+                        audio["artist"] = req.artist.strip()
+                    if req.album is not None and req.album.strip():
+                        audio["album"] = req.album.strip()
+                    audio.save()
+                elif ext in [".m4a", ".mp4"]:
+                    from mutagen.mp4 import MP4
+                    audio = MP4(host_path)
+                    if req.title is not None and req.title.strip():
+                        audio["\xa9nam"] = req.title.strip()
+                    if req.artist is not None and req.artist.strip():
+                        audio["\xa9ART"] = req.artist.strip()
+                    if req.album is not None and req.album.strip():
+                        audio["\xa9alb"] = req.album.strip()
+                    audio.save()
+            except Exception as e:
+                print(f"Error escribiendo tags físicos en {host_path}: {e}")
+
+        # 2. Actualizar en Jellyfin
+        update_payload = dict(item)
+        if req.title is not None and req.title.strip():
+            update_payload["Name"] = req.title.strip()
+        if req.artist is not None and req.artist.strip():
+            update_payload["Artists"] = [req.artist.strip()]
+        if req.album is not None and req.album.strip():
+            update_payload["Album"] = req.album.strip()
+            
+        await client.post(f"{JELLYFIN_URL}/Items/{song_id}", headers=headers, json=update_payload)
+        await client.post(f"{JELLYFIN_URL}/Items/{song_id}/Refresh", headers=headers, params={"MetadataRefreshMode": "FullRefresh"})
+
+    return {
+        "status": "success",
+        "title": req.title,
+        "artist": req.artist,
+        "album": req.album,
+    }
+
+@app.post("/admin/library/songs/{song_id}/cover", dependencies=[Depends(get_api_key)])
+async def update_song_cover(song_id: str, request: Request):
+    """Actualiza la portada de la canción incrustándola en el archivo físico y subiéndola a Jellyfin."""
+    headers = jf_headers()
+    img_bytes = b""
+    content_type = request.headers.get("content-type", "")
+
+    if "application/json" in content_type:
+        body = await request.json()
+        url = body.get("image_url")
+        if url:
+            async with httpx.AsyncClient() as dl_client:
+                img_resp = await dl_client.get(url, timeout=15)
+                if img_resp.status_code == 200:
+                    img_bytes = img_resp.content
+    elif "image/" in content_type:
+        img_bytes = await request.body()
+    else:
+        try:
+            form = await request.form()
+            file = form.get("file")
+            url = form.get("image_url")
+            if file and hasattr(file, "read"):
+                img_bytes = await file.read()
+            elif url:
+                async with httpx.AsyncClient() as dl_client:
+                    img_resp = await dl_client.get(str(url), timeout=15)
+                    if img_resp.status_code == 200:
+                        img_bytes = img_resp.content
+        except Exception as e:
+            print(f"Error procesando formulario de carátula: {e}")
+
+    if not img_bytes:
+        raise HTTPException(status_code=400, detail="No se recibieron datos de imagen válidos")
+
+    # 1. Incrustar en archivo físico con mutagen si existe
+    async with httpx.AsyncClient() as client:
+        get_resp = await client.get(f"{JELLYFIN_URL}/Items/{song_id}?Fields=Path", headers=headers)
+        if get_resp.status_code == 200:
+            item = get_resp.json()
+            host_path = resolve_media_path(item.get("Path", ""))
+            if host_path and os.path.exists(host_path):
+                try:
+                    ext = os.path.splitext(host_path)[1].lower()
+                    if ext == ".mp3":
+                        from mutagen.id3 import ID3, APIC
+                        tags = ID3(host_path)
+                        tags.delall("APIC")
+                        tags.add(APIC(
+                            encoding=3,
+                            mime="image/jpeg",
+                            type=3, # Front cover
+                            desc="Cover",
+                            data=img_bytes
+                        ))
+                        tags.save(host_path)
+                    elif ext == ".flac":
+                        from mutagen.flac import FLAC, Picture
+                        audio = FLAC(host_path)
+                        audio.clear_pictures()
+                        pic = Picture()
+                        pic.type = 3
+                        pic.mime = "image/jpeg"
+                        pic.desc = "Front Cover"
+                        pic.data = img_bytes
+                        audio.add_picture(pic)
+                        audio.save()
+                except Exception as e:
+                    print(f"Error incrustando carátula en {host_path}: {e}")
+
+        # 2. Subir a Jellyfin como Primary Image
+        jf_img_headers = jf_headers({"Content-Type": "image/jpeg"})
+        await client.post(
+            f"{JELLYFIN_URL}/Items/{song_id}/Images/Primary",
+            headers=jf_img_headers,
+            content=img_bytes
+        )
+        await client.post(f"{JELLYFIN_URL}/Items/{song_id}/Refresh", headers=headers)
+
+    return {"status": "success", "message": "Portada actualizada correctamente"}
+
+@app.delete("/admin/library/songs/{song_id}", dependencies=[Depends(get_api_key)])
+async def delete_library_song(song_id: str):
+    """Elimina una canción físicamente del disco duro y de la base de datos de Jellyfin."""
+    headers = jf_headers()
+    async with httpx.AsyncClient() as client:
+        get_resp = await client.get(f"{JELLYFIN_URL}/Items/{song_id}?Fields=Path", headers=headers)
+        if get_resp.status_code == 200:
+            item = get_resp.json()
+            host_path = resolve_media_path(item.get("Path", ""))
+            if host_path and os.path.exists(host_path):
+                try:
+                    os.remove(host_path)
+                    print(f"Archivo físico eliminado del servidor: {host_path}")
+                except Exception as e:
+                    print(f"Error eliminando archivo físico {host_path}: {e}")
+
+        del_resp = await client.delete(f"{JELLYFIN_URL}/Items/{song_id}", headers=headers)
+        if del_resp.status_code not in [200, 204]:
+            raise HTTPException(status_code=500, detail="Error eliminando canción en Jellyfin")
+
+    return {"status": "success", "message": f"Canción {song_id} eliminada permanentemente"}
+
+@app.post("/admin/library/scan", dependencies=[Depends(get_api_key)])
+async def trigger_library_scan():
+    """Fuerza a Jellyfin a escanear todas las bibliotecas para indexar archivos nuevos."""
+    headers = jf_headers()
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(f"{JELLYFIN_URL}/Library/Refresh", headers=headers)
+        if resp.status_code not in [200, 204]:
+            raise HTTPException(status_code=500, detail="Error iniciando escaneo de biblioteca")
+    return {"status": "success", "message": "Escaneo de biblioteca iniciado"}
+
+# ==========================================
+# ENDPOINTS DE FAVORITOS (ÁLBUMES Y ARTISTAS)
+# ==========================================
+
+class SyncFavoritesRequest(BaseModel):
+    albums: Optional[List[Dict[str, Any]]] = None
+    artists: Optional[List[Dict[str, Any]]] = None
+
+@app.get("/users/{user_id}/favorites", dependencies=[Depends(get_api_key)])
+async def get_user_favorites(user_id: str):
+    """Obtiene todos los álbumes y artistas favoritos de un usuario."""
+    conn = sqlite3.connect(FAVORITES_DB)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT album_id as id, title, artist, cover_url, year, added_at FROM favorite_albums WHERE user_id = ? ORDER BY added_at DESC", (user_id,))
+    albums = [dict(row) for row in cursor.fetchall()]
+    cursor.execute("SELECT artist_id as id, name, picture_url, picture_medium, fans, added_at FROM favorite_artists WHERE user_id = ? ORDER BY added_at DESC", (user_id,))
+    artists = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return {"albums": albums, "artists": artists}
+
+@app.post("/users/{user_id}/favorites/sync", dependencies=[Depends(get_api_key)])
+async def sync_user_favorites(user_id: str, req: SyncFavoritesRequest):
+    """Sincroniza y fusiona favoritos locales con la nube, retornando la lista completa actualizada."""
+    conn = sqlite3.connect(FAVORITES_DB)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    now_str = datetime.datetime.now().isoformat()
+    if req.albums:
+        for a in req.albums:
+            aid = str(a.get("id") or "").strip()
+            if not aid:
+                continue
+            cursor.execute("""
+                INSERT OR IGNORE INTO favorite_albums (user_id, album_id, title, artist, cover_url, year, added_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                user_id,
+                aid,
+                a.get("title") or "",
+                a.get("artist") or "",
+                a.get("cover_url") or "",
+                str(a.get("year") or ""),
+                a.get("added_at") or now_str
+            ))
+            
+    if req.artists:
+        for art in req.artists:
+            name = str(art.get("name") or "").strip()
+            if not name:
+                continue
+            cursor.execute("""
+                INSERT OR IGNORE INTO favorite_artists (user_id, artist_id, name, picture_url, picture_medium, fans, added_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                user_id,
+                str(art.get("id") or ""),
+                name,
+                art.get("picture_url") or art.get("picture") or "",
+                art.get("picture_medium") or art.get("picture_url") or "",
+                str(art.get("fans") or ""),
+                art.get("added_at") or now_str
+            ))
+            
+    conn.commit()
+    
+    cursor.execute("SELECT album_id as id, title, artist, cover_url, year, added_at FROM favorite_albums WHERE user_id = ? ORDER BY added_at DESC", (user_id,))
+    albums = [dict(row) for row in cursor.fetchall()]
+    cursor.execute("SELECT artist_id as id, name, picture_url, picture_medium, fans, added_at FROM favorite_artists WHERE user_id = ? ORDER BY added_at DESC", (user_id,))
+    artists = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return {"albums": albums, "artists": artists}
+
+@app.post("/users/{user_id}/favorites/albums", dependencies=[Depends(get_api_key)])
+async def add_user_favorite_album(user_id: str, album: Dict[str, Any]):
+    aid = str(album.get("id") or "").strip()
+    if not aid:
+        raise HTTPException(status_code=400, detail="ID de álbum requerido")
+    conn = sqlite3.connect(FAVORITES_DB)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT OR REPLACE INTO favorite_albums (user_id, album_id, title, artist, cover_url, year, added_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (
+        user_id,
+        aid,
+        album.get("title") or "",
+        album.get("artist") or "",
+        album.get("cover_url") or "",
+        str(album.get("year") or ""),
+        album.get("added_at") or datetime.datetime.now().isoformat()
+    ))
+    conn.commit()
+    conn.close()
+    return {"status": "ok"}
+
+@app.delete("/users/{user_id}/favorites/albums/{album_id}", dependencies=[Depends(get_api_key)])
+async def delete_user_favorite_album(user_id: str, album_id: str):
+    conn = sqlite3.connect(FAVORITES_DB)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM favorite_albums WHERE user_id = ? AND album_id = ?", (user_id, str(album_id).strip()))
+    conn.commit()
+    conn.close()
+    return {"status": "ok"}
+
+@app.post("/users/{user_id}/favorites/artists", dependencies=[Depends(get_api_key)])
+async def add_user_favorite_artist(user_id: str, artist: Dict[str, Any]):
+    name = str(artist.get("name") or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Nombre de artista requerido")
+    conn = sqlite3.connect(FAVORITES_DB)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT OR REPLACE INTO favorite_artists (user_id, artist_id, name, picture_url, picture_medium, fans, added_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (
+        user_id,
+        str(artist.get("id") or ""),
+        name,
+        artist.get("picture_url") or artist.get("picture") or "",
+        artist.get("picture_medium") or artist.get("picture_url") or "",
+        str(artist.get("fans") or ""),
+        artist.get("added_at") or datetime.datetime.now().isoformat()
+    ))
+    conn.commit()
+    conn.close()
+    return {"status": "ok"}
+
+@app.delete("/users/{user_id}/favorites/artists/{artist_name}", dependencies=[Depends(get_api_key)])
+async def delete_user_favorite_artist(user_id: str, artist_name: str):
+    conn = sqlite3.connect(FAVORITES_DB)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM favorite_artists WHERE user_id = ? AND LOWER(name) = LOWER(?)", (user_id, str(artist_name).strip()))
+    conn.commit()
+    conn.close()
+    return {"status": "ok"}
 
 
 @app.post("/feedback", dependencies=[Depends(get_api_key)])
@@ -2242,30 +3085,60 @@ async def get_artist_profile(artist_name: str, artist_id: Optional[str] = None):
             
             target_artist_id = artist.get("id")
             
-            # 2. Concurrently fetch top tracks and albums
-            top_res, alb_res = await asyncio.gather(
-                client.get(f"https://api.deezer.com/artist/{target_artist_id}/top", params={"limit": 15}),
-                client.get(f"https://api.deezer.com/artist/{target_artist_id}/albums", params={"limit": 50})
+            # 2. Concurrently fetch top tracks and all albums (with pagination up to 500)
+            top_task = client.get(f"https://api.deezer.com/artist/{target_artist_id}/top", params={"limit": 15})
+            
+            async def _fetch_all_artist_albums():
+                albums_list = []
+                url = f"https://api.deezer.com/artist/{target_artist_id}/albums"
+                params = {"limit": 100}
+                for _ in range(5):  # Hasta 500 álbumes/sencillos
+                    try:
+                        res = await client.get(url, params=params)
+                        if res.status_code != 200:
+                            break
+                        res_json = res.json()
+                        items = res_json.get("data", [])
+                        albums_list.extend(items)
+                        if res_json.get("next"):
+                            url = res_json["next"]
+                            params = {}
+                        else:
+                            break
+                    except Exception as e:
+                        print(f"Error paginando álbumes de artista {target_artist_id}: {e}")
+                        break
+                return albums_list
+
+            top_res, all_albums = await asyncio.gather(
+                top_task,
+                _fetch_all_artist_albums()
             )
             
             top_tracks = top_res.json().get("data", []) if top_res.status_code == 200 else []
-            all_albums = alb_res.json().get("data", []) if alb_res.status_code == 200 else []
             
-            # 3. Categorize albums and singles
+            # 3. Categorize all albums and singles
             albums = []
             singles = []
+            seen_ids = set()
             for a in all_albums:
-                record_type = a.get("record_type", "")
+                aid = str(a.get("id"))
+                if aid in seen_ids:
+                    continue
+                seen_ids.add(aid)
+                record_type = (a.get("record_type") or "").lower()
                 item = {
-                    "id": str(a.get("id")),
+                    "id": aid,
                     "title": a.get("title"),
-                    "cover_url": a.get("cover_medium"),
+                    "cover_url": a.get("cover_medium") or a.get("cover_big") or a.get("cover"),
                     "release_date": a.get("release_date", "")
                 }
                 if record_type == "album":
-                    if len(albums) < 3: albums.append(item)
-                elif record_type == "single" or record_type == "ep":
-                    if len(singles) < 5: singles.append(item)
+                    albums.append(item)
+                elif record_type in ("single", "ep", "compile"):
+                    singles.append(item)
+                else:
+                    albums.append(item)
                     
             latest_release = None
             if all_albums:
@@ -2656,10 +3529,10 @@ async def download_apk():
 async def get_app_version():
     return {
         "app_name": "SynapMusic",
-        "version": "0.6.35",
-        "version_code": 60,
+        "version": "0.6.36",
+        "version_code": 61,
         "download_url": "/synapmusic/download",
-        "release_date": "2026-09-30",
+        "release_date": "2026-10-03",
         "min_android_version": "Android 8.0+",
-        "changelog": "Paginación en búsqueda de YouTube ('Más'), sincronización de canciones faltantes en playlists descargadas, y nombres legibles (título - artista) en notificaciones de descarga."
+        "changelog": "Panel de administración: gestión de usuarios y biblioteca global, edición de metadatos/carátula, métricas del servidor en tiempo real y correcciones visuales."
     }

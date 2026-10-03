@@ -413,6 +413,13 @@ class PlaybackDownloadCoordinator {
           final localId = check['local_id'].toString();
           final jellyfinItem = check['jellyfin_item'];
 
+          final key = LikesPlaylistHelper.normalizeKey(title, artist);
+          final rawKey = '${title.toLowerCase().trim()}||${artist.toLowerCase().trim()}';
+          final shouldAdd = LikesPlaylistHelper.pendingLikeKeys.remove(key) ||
+              LikesPlaylistHelper.pendingLikeKeys.remove(rawKey) ||
+              LikesPlaylistHelper.likedSongKeys.value.contains(key) ||
+              LikesPlaylistHelper.likedSongKeys.value.contains(rawKey);
+
           _trackReadyController.add(LocalTrackReadyEvent(
             title: title,
             artist: artist,
@@ -420,11 +427,8 @@ class PlaybackDownloadCoordinator {
             jellyfinItem: jellyfinItem,
           ));
 
-          final key = LikesPlaylistHelper.normalizeKey(title, artist);
-          if (LikesPlaylistHelper.pendingLikeKeys.contains(key) ||
-              LikesPlaylistHelper.likedSongKeys.value.contains(key)) {
+          if (shouldAdd) {
             await LikesPlaylistHelper.addSongToLikes(localId, title: title, artist: artist);
-            LikesPlaylistHelper.pendingLikeKeys.remove(key);
             if (context != null && context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -752,10 +756,15 @@ class PlaybackDownloadCoordinator {
           final targetPlaylists = _pendingPlaylistTargets.remove(trackKey) ?? {playlistId};
           for (final pid in targetPlaylists) {
             try {
-              await jellyfin.addItemstoPlaylist(
-                playlistId: pid,
-                ids: [localId],
-              );
+              final plDto = BaseItemDto(id: pid, type: 'Playlist');
+              final existing = await jellyfin.getItems(parentItem: plDto, isGenres: false) ?? [];
+              final alreadyIn = existing.any((i) => i.id == localId);
+              if (!alreadyIn) {
+                await jellyfin.addItemstoPlaylist(
+                  playlistId: pid,
+                  ids: [localId],
+                );
+              }
             } catch (e) {
               print('Error agregando pista a playlist ($pid): $e');
             }

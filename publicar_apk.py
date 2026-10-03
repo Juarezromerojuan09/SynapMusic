@@ -55,10 +55,35 @@ def progress_callback(transferred, total):
 
 print("Iniciando subida al portal web...")
 sftp.put(local_apk, REMOTE_APK_PATH, callback=progress_callback)
-print("\nÂ¡APK publicada con Ã©xito en el portal web!")
+print("\nAPK publicada con exito en el portal web!")
+
+# Sincronizar archivos html del portal
+for html_file in ["index.html", "synapmusic.html"]:
+    local_html = os.path.join("portal", html_file)
+    if os.path.exists(local_html):
+        remote_html = f"/home/juarezromerojuan09/servicios/synapmusic/portal/{html_file}"
+        print(f"Subiendo {html_file}...")
+        sftp.put(local_html, remote_html)
+
+# Sincronizar api-descargas/main.py
+local_main = os.path.join("api-descargas", "main.py")
+if os.path.exists(local_main):
+    print("Sincronizando api-descargas/main.py...")
+    sftp.put(local_main, "/home/juarezromerojuan09/servicios/synapmusic/api-descargas/main.py")
+
 sftp.close()
+
+# Reiniciar servicio synapmusic-api
+print("Reiniciando servicio synapmusic-api en ThinkCentre...")
+stdin, stdout, stderr = ssh.exec_command("echo 'peluso160311' | sudo -S systemctl restart synapmusic-api.service")
+exit_status = stdout.channel.recv_exit_status()
+if exit_status == 0:
+    print("Servicio synapmusic-api reiniciado exitosamente.")
+else:
+    print("Aviso al reiniciar servicio:", stderr.read().decode())
+
 ssh.close()
 
-print(f"\nYa estÃ¡ disponible para descarga en:")
-print(f"  â€¢ Tailscale: http://100.64.134.104:8000/synapmusic")
-print(f"  â€¢ Red Local: http://192.168.1.121:8000/synapmusic")
+print(f"\nYa está disponible para descarga en:")
+print(f"  • Tailscale: http://100.64.134.104:8000/synapmusic")
+print(f"  • Red Local: http://192.168.1.121:8000/synapmusic")

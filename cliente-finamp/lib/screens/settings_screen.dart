@@ -81,7 +81,7 @@ class SettingsScreen extends StatelessWidget {
                     children: [
                       ListTile(
                         leading: const Icon(Icons.admin_panel_settings, color: Color(0xFF8B93FF)),
-                        title: const Text('Panel de Administrador (Sala de Espera)'),
+                        title: const Text('Panel de Administrador'),
                         onTap: () => Navigator.of(context).pushNamed(AdminDashboardScreen.routeName),
                       ),
                       ListTile(

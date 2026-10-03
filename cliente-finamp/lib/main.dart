@@ -307,6 +307,7 @@ class Finamp extends StatelessWidget {
                 valueListenable: ThemeModeHelper.themeModeListener,
                 builder: (_, box, __) {
                   return MaterialApp(
+                    debugShowCheckedModeBanner: false,
                     title: "SynapMusic",
                     routes: {
                       SplashScreen.routeName: (context) => const SplashScreen(),
@@ -439,6 +440,7 @@ class FinampErrorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: "Finamp",
       localizationsDelegates: const [
         AppLocalizations.delegate,

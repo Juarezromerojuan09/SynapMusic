@@ -643,4 +643,373 @@ class SynapApiService {
   String getFeedbackImageUrl(String filename) {
     return '$_baseUrl/feedback/images/$filename';
   }
+
+  // ==========================================
+  // FAVORITOS DE USUARIO (PERSISTENCIA NUBE)
+  // ==========================================
+
+  Future<Map<String, dynamic>?> getUserFavorites(String userId) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/users/$userId/favorites');
+      final response = await http.get(uri, headers: {'X-API-Key': _apiKey});
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      print('Error al obtener favoritos: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> syncUserFavorites(String userId, {List<dynamic>? albums, List<dynamic>? artists}) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/users/$userId/favorites/sync');
+      final response = await http.post(
+        uri,
+        headers: {
+          'X-API-Key': _apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'albums': albums ?? [],
+          'artists': artists ?? [],
+        }),
+      );
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      print('Error al sincronizar favoritos: $e');
+      return null;
+    }
+  }
+
+  Future<bool> addUserFavoriteAlbum(String userId, Map<String, dynamic> album) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/users/$userId/favorites/albums');
+      final response = await http.post(
+        uri,
+        headers: {
+          'X-API-Key': _apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(album),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error al agregar álbum favorito: $e');
+      return false;
+    }
+  }
+
+  Future<bool> removeUserFavoriteAlbum(String userId, String albumId) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/users/$userId/favorites/albums/$albumId');
+      final response = await http.delete(uri, headers: {'X-API-Key': _apiKey});
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error al eliminar álbum favorito: $e');
+      return false;
+    }
+  }
+
+  Future<bool> addUserFavoriteArtist(String userId, Map<String, dynamic> artist) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/users/$userId/favorites/artists');
+      final response = await http.post(
+        uri,
+        headers: {
+          'X-API-Key': _apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(artist),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error al agregar artista favorito: $e');
+      return false;
+    }
+  }
+
+  Future<bool> removeUserFavoriteArtist(String userId, String artistName) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/users/$userId/favorites/artists/${Uri.encodeComponent(artistName)}');
+      final response = await http.delete(uri, headers: {'X-API-Key': _apiKey});
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error al eliminar artista favorito: $e');
+      return false;
+    }
+  }
+
+  // ==========================================
+  // PANEL DE ADMINISTRACIÓN - USUARIOS
+  // ==========================================
+
+  Future<List<Map<String, dynamic>>> getAdminUsers() async {
+    try {
+      final uri = Uri.parse('$_baseUrl/admin/users');
+      final response = await http.get(uri, headers: {'X-API-Key': _apiKey});
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+        return data.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      print('Error obteniendo usuarios de admin: $e');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> getAdminUserDetails(String userId) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/admin/users/$userId');
+      final response = await http.get(uri, headers: {'X-API-Key': _apiKey});
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      print('Error obteniendo detalles del usuario ($userId): $e');
+      return null;
+    }
+  }
+
+  Future<bool> createAdminUser({
+    required String username,
+    required String password,
+    bool isActive = true,
+    bool isAdmin = false,
+  }) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/admin/users');
+      final response = await http.post(
+        uri,
+        headers: {
+          'X-API-Key': _apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'username': username,
+          'password': password,
+          'is_active': isActive,
+          'is_admin': isAdmin,
+        }),
+      );
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      print('Error creando usuario como admin: $e');
+      return false;
+    }
+  }
+
+  Future<bool> setAdminUserStatus(String userId, bool isActive) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/admin/users/$userId/status');
+      final response = await http.post(
+        uri,
+        headers: {
+          'X-API-Key': _apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'is_active': isActive}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error cambiando estado del usuario: $e');
+      return false;
+    }
+  }
+
+  Future<bool> setAdminUserRole(String userId, bool isAdmin) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/admin/users/$userId/role');
+      final response = await http.post(
+        uri,
+        headers: {
+          'X-API-Key': _apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'is_admin': isAdmin}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error cambiando rol del usuario: $e');
+      return false;
+    }
+  }
+
+  Future<bool> setAdminUserPassword(String userId, String newPassword) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/admin/users/$userId/password');
+      final response = await http.post(
+        uri,
+        headers: {
+          'X-API-Key': _apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'new_password': newPassword}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error cambiando contraseña del usuario: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateAdminUserName(String userId, String newName) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/users/$userId/name');
+      final response = await http.post(
+        uri,
+        headers: {
+          'X-API-Key': _apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'name': newName}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error actualizando nombre del usuario: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteAdminUser(String userId) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/admin/users/$userId');
+      final response = await http.delete(uri, headers: {'X-API-Key': _apiKey});
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error eliminando usuario ($userId): $e');
+      return false;
+    }
+  }
+
+  // ==========================================
+  // PANEL DE ADMINISTRACIÓN - BIBLIOTECA GLOBAL
+  // ==========================================
+
+  Future<Map<String, dynamic>?> getAdminLibraryStats() async {
+    try {
+      final uri = Uri.parse('$_baseUrl/admin/library/stats');
+      final response = await http.get(uri, headers: {'X-API-Key': _apiKey});
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      print('Error obteniendo estadísticas de biblioteca: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>> getAdminLibrarySongs({
+    String? search,
+    String sortBy = 'date_added',
+    int limit = 30,
+    int startIndex = 0,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'sort_by': sortBy,
+        'limit': limit.toString(),
+        'start_index': startIndex.toString(),
+      };
+      if (search != null && search.trim().isNotEmpty) {
+        queryParams['search'] = search.trim();
+      }
+      final uri = Uri.parse('$_baseUrl/admin/library/songs').replace(queryParameters: queryParams);
+      final response = await http.get(uri, headers: {'X-API-Key': _apiKey});
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      }
+      return {'total_count': 0, 'items': []};
+    } catch (e) {
+      print('Error buscando canciones en biblioteca global: $e');
+      return {'total_count': 0, 'items': []};
+    }
+  }
+
+  Future<bool> updateAdminSongMetadata(String songId, {String? title, String? artist, String? album}) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/admin/library/songs/$songId/metadata');
+      final response = await http.post(
+        uri,
+        headers: {
+          'X-API-Key': _apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'title': title,
+          'artist': artist,
+          'album': album,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error actualizando metadatos de canción: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateAdminSongCoverUrl(String songId, String imageUrl) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/admin/library/songs/$songId/cover');
+      final response = await http.post(
+        uri,
+        headers: {
+          'X-API-Key': _apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'image_url': imageUrl}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error actualizando portada vía URL: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateAdminSongCoverBytes(String songId, List<int> imageBytes, {String mimeType = 'image/jpeg'}) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/admin/library/songs/$songId/cover');
+      final response = await http.post(
+        uri,
+        headers: {
+          'X-API-Key': _apiKey,
+          'Content-Type': mimeType,
+        },
+        body: imageBytes,
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error subiendo imagen de portada: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteAdminSong(String songId) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/admin/library/songs/$songId');
+      final response = await http.delete(uri, headers: {'X-API-Key': _apiKey});
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error eliminando canción del servidor: $e');
+      return false;
+    }
+  }
+
+  Future<bool> triggerLibraryScan() async {
+    try {
+      final uri = Uri.parse('$_baseUrl/admin/library/scan');
+      final response = await http.post(uri, headers: {'X-API-Key': _apiKey});
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error iniciando escaneo de biblioteca: $e');
+      return false;
+    }
+  }
 }

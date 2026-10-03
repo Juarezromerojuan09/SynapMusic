@@ -148,6 +148,13 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
   void initState() {
     super.initState();
     _imageUrl = 'http://100.64.134.104:8096/Items/${widget.playlist.id}/Images/Primary';
+    _loadSavedSortMode().then((_) {
+      if (mounted) {
+        setState(() {
+          _applySort();
+        });
+      }
+    });
     _loadItems();
     
     _isDownloadedNotifier = ValueNotifier(_downloadsHelper.getDownloadedParent(widget.playlist.id) != null);
@@ -156,6 +163,29 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         _loadItems();
       }
     });
+  }
+
+  Future<void> _loadSavedSortMode() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/synap_playlist_${widget.playlist.id}_sort.txt');
+      if (await file.exists()) {
+        final modeName = await file.readAsString();
+        final savedMode = PlaylistSortMode.values.firstWhere(
+          (m) => m.name == modeName.trim(),
+          orElse: () => PlaylistSortMode.dateAdded,
+        );
+        _sortMode = savedMode;
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveSortMode(PlaylistSortMode mode) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/synap_playlist_${widget.playlist.id}_sort.txt');
+      await file.writeAsString(mode.name);
+    } catch (_) {}
   }
 
   Future<void> _loadItems() async {
@@ -181,7 +211,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
 
     if (offlineTracks.isNotEmpty && mounted) {
       setState(() {
-        _tracks = offlineTracks;
+        _tracks = _deduplicateTracks(offlineTracks);
         _applySort();
         _isLoading = false;
         _errorMessage = null;
@@ -197,15 +227,16 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         ).timeout(const Duration(seconds: 4));
 
         if (value != null) {
+          final deduped = _deduplicateTracks(value);
           try {
             final directory = await getApplicationDocumentsDirectory();
             final cacheFile = File('${directory.path}/synap_playlist_${widget.playlist.id}_tracks.json');
-            await cacheFile.writeAsString(json.encode(value.map((e) => e.toJson()).toList()));
+            await cacheFile.writeAsString(json.encode(deduped.map((e) => e.toJson()).toList()));
           } catch (_) {}
 
           if (mounted) {
             setState(() {
-              _tracks = value;
+              _tracks = deduped;
               _applySort();
               _isLoading = false;
               _errorMessage = null;
@@ -219,7 +250,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           final parent = _downloadsHelper.getDownloadedParent(widget.playlist.id);
           if (parent != null && parent.downloadedChildren.isNotEmpty) {
             setState(() {
-              _tracks = parent.downloadedChildren.values.toList();
+              _tracks = _deduplicateTracks(parent.downloadedChildren.values.toList());
               _applySort();
               _isLoading = false;
               _errorMessage = null;
@@ -235,14 +266,54 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     }
   }
 
+  List<BaseItemDto> _deduplicateTracks(List<BaseItemDto> list) {
+    final seenIds = <String>{};
+    final result = <BaseItemDto>[];
+    for (final item in list) {
+      final id = item.id;
+      if (id.isNotEmpty) {
+        if (seenIds.contains(id)) {
+          continue; // Evita mostrar la misma canción duplicada en la playlist
+        }
+        seenIds.add(id);
+      }
+      result.add(item);
+    }
+    return result;
+  }
+
   void _applySort() {
     if (_tracks == null) return;
+    _tracks = _deduplicateTracks(_tracks!);
     switch (_sortMode) {
       case PlaylistSortMode.artist:
         _tracks!.sort((a, b) {
-          final artistA = a.artists?.isNotEmpty == true ? a.artists![0] : 'z';
-          final artistB = b.artists?.isNotEmpty == true ? b.artists![0] : 'z';
-          return artistA.compareTo(artistB);
+          // 1. Artista (A-Z)
+          final artistA = (a.artists?.isNotEmpty == true ? a.artists![0] : (a.albumArtist ?? '')).toLowerCase().trim();
+          final artistB = (b.artists?.isNotEmpty == true ? b.artists![0] : (b.albumArtist ?? '')).toLowerCase().trim();
+          final cmpArtist = artistA.compareTo(artistB);
+          if (cmpArtist != 0) return cmpArtist;
+
+          // 2. Álbum (A-Z) para agrupar canciones del mismo álbum juntas
+          final albumA = (a.album ?? '').toLowerCase().trim();
+          final albumB = (b.album ?? '').toLowerCase().trim();
+          final cmpAlbum = albumA.compareTo(albumB);
+          if (cmpAlbum != 0) return cmpAlbum;
+
+          // 3. Disco (si tiene múltiples volúmenes/discos)
+          final discA = a.parentIndexNumber ?? 1;
+          final discB = b.parentIndexNumber ?? 1;
+          if (discA != discB) return discA.compareTo(discB);
+
+          // 4. Número de pista en el álbum para mantener el orden del disco
+          final indexA = a.indexNumber ?? 0;
+          final indexB = b.indexNumber ?? 0;
+          if (indexA != indexB) return indexA.compareTo(indexB);
+
+          // 5. Título de la pista
+          final titleA = (a.name ?? '').toLowerCase().trim();
+          final titleB = (b.name ?? '').toLowerCase().trim();
+          return titleA.compareTo(titleB);
         });
         break;
       case PlaylistSortMode.dateAdded:
@@ -253,7 +324,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         _tracks!.sort((a, b) => (b.runTimeTicks ?? 0).compareTo(a.runTimeTicks ?? 0));
         break;
       case PlaylistSortMode.title:
-        _tracks!.sort((a, b) => (a.name ?? 'z').compareTo(b.name ?? 'z'));
+        _tracks!.sort((a, b) => (a.name ?? 'z').toLowerCase().compareTo((b.name ?? 'z').toLowerCase()));
         break;
     }
   }
@@ -271,7 +342,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   RadioListTile<PlaylistSortMode>(
-                    title: const Text('Nombre del artista (A-Z)'),
+                    title: const Text('Artista y álbum (A-Z)'),
                     value: PlaylistSortMode.artist,
                     groupValue: tempMode,
                     activeColor: _synapColor,
@@ -311,6 +382,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                       _sortMode = tempMode;
                       _applySort();
                     });
+                    _saveSortMode(tempMode);
                     Navigator.pop(context);
                   },
                   child: Text('Aplicar', style: TextStyle(color: _synapColor)),

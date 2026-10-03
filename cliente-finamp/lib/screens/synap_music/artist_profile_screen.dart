@@ -15,6 +15,7 @@ import '../../services/jellyfin_api_helper.dart';
 import '../../services/playback_download_coordinator.dart';
 import '../../components/track_options_menu_sheet.dart';
 import '../../services/likes_playlist_helper.dart';
+import '../../services/synap_favorites_helper.dart';
 
 class ArtistProfileScreen extends StatefulWidget {
   final String artistName;
@@ -71,80 +72,30 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
     super.dispose();
   }
 
-  Future<File> _getFavoritesFile() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return File('${dir.path}/synap_favorite_artists.json');
-  }
-
-  Future<void> _checkIfFavorite() async {
-    try {
-      final file = await _getFavoritesFile();
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        final List<dynamic> list = json.decode(content);
-        final found = list.any((item) =>
-            item['name']?.toString().toLowerCase() == widget.artistName.toLowerCase());
-        if (mounted) {
-          setState(() {
-            _isFavorite = found;
-          });
-        }
-      }
-    } catch (e) {
-      print('Error al verificar favoritos: $e');
+  void _checkIfFavorite() {
+    if (mounted) {
+      setState(() {
+        _isFavorite = SynapFavoritesHelper.isArtistFavorite(widget.artistName);
+      });
     }
   }
 
   Future<void> _toggleFavorite() async {
-    try {
-      final file = await _getFavoritesFile();
-      List<dynamic> list = [];
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        list = json.decode(content);
-      }
+    final artistInfo = _profileData?['artist'] ?? {};
+    final artistName = artistInfo['name'] ?? widget.artistName;
+    final pictureUrl = artistInfo['picture_url'] ?? '';
+    final artistId = artistInfo['id']?.toString() ?? widget.artistId ?? '';
 
-      final artistInfo = _profileData?['artist'] ?? {};
-      final artistName = artistInfo['name'] ?? widget.artistName;
-      final pictureUrl = artistInfo['picture_url'] ?? '';
-      final artistId = artistInfo['id']?.toString() ?? '';
+    await SynapFavoritesHelper.toggleArtistFavorite(context, {
+      'id': artistId,
+      'name': artistName,
+      'picture_url': pictureUrl,
+      'picture_medium': pictureUrl,
+      'fans': artistInfo['nb_fan'],
+      'added_at': DateTime.now().toIso8601String(),
+    });
 
-      final existingIndex = list.indexWhere((item) =>
-          item['name']?.toString().toLowerCase() == artistName.toLowerCase());
-
-      if (existingIndex >= 0) {
-        list.removeAt(existingIndex);
-        _isFavorite = false;
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Eliminado de tus artistas favoritos')),
-          );
-        }
-      } else {
-        list.add({
-          'id': artistId,
-          'name': artistName,
-          'picture_url': pictureUrl,
-          'fans': artistInfo['nb_fan'],
-          'added_at': DateTime.now().toIso8601String(),
-        });
-        _isFavorite = true;
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Añadido a tus artistas favoritos')),
-          );
-        }
-      }
-
-      await file.writeAsString(json.encode(list));
-      if (mounted) {
-        setState(() {});
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al modificar favoritos: $e')),
-      );
-    }
+    _checkIfFavorite();
   }
 
   Future<void> _loadProfile() async {
@@ -500,6 +451,73 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
     );
   }
 
+  void _openDiscographyView(String title, List<dynamic> items) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: const Color(0xFF0A0A0A),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF0A0A0A),
+            title: Text('$title - ${widget.artistName}'),
+          ),
+          body: GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.75,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+            ),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => AlbumDetailScreen(albumId: item['id']),
+                  ));
+                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.network(
+                          item['cover_url'] ?? '',
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: Colors.grey[850],
+                            child: const Center(
+                              child: Icon(Icons.album, color: Colors.white, size: 48),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      item['title'] ?? '',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (item['release_date'] != null)
+                      Text(
+                        _formatReleaseDate(item['release_date']),
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -669,11 +687,17 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> {
                 ),
               ],
               if (albums.isNotEmpty) ...[
-                _buildSectionTitle('Álbumes'),
+                _buildSectionTitle(
+                  'Álbumes (${albums.length})',
+                  onMore: albums.length > 3 ? () => _openDiscographyView('Álbumes', albums) : null,
+                ),
                 _buildHorizontalList(albums, isAlbum: true),
               ],
               if (singles.isNotEmpty) ...[
-                _buildSectionTitle('Sencillos / EPs'),
+                _buildSectionTitle(
+                  'Sencillos / EPs (${singles.length})',
+                  onMore: singles.length > 3 ? () => _openDiscographyView('Sencillos / EPs', singles) : null,
+                ),
                 _buildHorizontalList(singles, isAlbum: true),
               ],
               const SizedBox(height: 48),

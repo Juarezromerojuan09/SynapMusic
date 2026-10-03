@@ -18,21 +18,38 @@ class LikesPlaylistHelper {
   static bool _isLoading = false;
   static StreamSubscription<LocalTrackReadyEvent>? _trackReadySub;
 
+  static final Set<String> _inFlightAddingSongIds = {};
+
+  /// Limpia sufijos típicos de YouTube y extras para normalizar coincidencias de canciones
+  static String cleanTitle(String title) {
+    String cleaned = title.replaceAll(
+      RegExp(r'[\(\[][^\)\]]*(official|video|audio|lyric|lyrics|live|cover|hd|hq|1080p|4k|sub\.?\s*español|remastered)[^\)\]]*[\)\]]', caseSensitive: false),
+      '',
+    );
+    cleaned = cleaned.replaceAll(
+      RegExp(r'\s*-\s*(official|video|audio|lyric|lyrics|live|cover|hd|hq|sub\.?\s*español).*$', caseSensitive: false),
+      '',
+    );
+    return cleaned.trim();
+  }
+
   /// Inicializa el helper, carga los likes en memoria y escucha eventos de pistas descargadas
   static void init() {
     loadLikes();
     _trackReadySub?.cancel();
     _trackReadySub = PlaybackDownloadCoordinator().onTrackReady.listen((event) {
       final key = normalizeKey(event.title, event.artist);
-      if (pendingLikeKeys.contains(key) || likedSongKeys.value.contains(key)) {
-        addSongToLikes(event.localId, title: event.title, artist: event.artist);
+      final rawKey = '${event.title.toLowerCase().trim()}||${event.artist.toLowerCase().trim()}';
+      if (pendingLikeKeys.contains(key) || pendingLikeKeys.contains(rawKey)) {
         pendingLikeKeys.remove(key);
+        pendingLikeKeys.remove(rawKey);
+        addSongToLikes(event.localId, title: event.title, artist: event.artist);
       }
     });
   }
 
   static String normalizeKey(String? title, String? artist) {
-    final t = (title ?? '').toLowerCase().trim();
+    final t = cleanTitle(title ?? '').toLowerCase().trim();
     final a = (artist ?? '').toLowerCase().trim();
     return '$t||$a';
   }
@@ -53,11 +70,15 @@ class LikesPlaylistHelper {
       if (likedSongKeys.value.contains(key) || pendingLikeKeys.contains(key)) {
         return true;
       }
+      final rawKey = '${title.toLowerCase().trim()}||${(artist ?? '').toLowerCase().trim()}';
+      if (likedSongKeys.value.contains(rawKey) || pendingLikeKeys.contains(rawKey)) {
+        return true;
+      }
     }
     return false;
   }
 
-  /// Carga en memoria todas las canciones de la playlist "My likes"
+  /// Carga en memoria todas las canciones de la playlist "My likes" y limpia duplicados del servidor si existen
   static Future<void> loadLikes() async {
     if (_isLoading) return;
     _isLoading = true;
@@ -74,10 +95,28 @@ class LikesPlaylistHelper {
 
       final newIds = <String>{};
       final newKeys = <String>{};
+      final duplicateEntryIds = <String>[];
+
       for (final item in items) {
-        if (item.id != null) newIds.add(item.id!);
+        if (newIds.contains(item.id)) {
+          // Duplicado detectado en el servidor Jellyfin
+          if (item.playlistItemId != null) {
+            duplicateEntryIds.add(item.playlistItemId!);
+          }
+          continue;
+        }
+        newIds.add(item.id);
         final artist = (item.artists?.isNotEmpty == true) ? item.artists![0] : (item.albumArtist ?? '');
         newKeys.add(normalizeKey(item.name, artist));
+        newKeys.add('${(item.name ?? '').toLowerCase().trim()}||${artist.toLowerCase().trim()}');
+      }
+
+      // Si habían duplicados en el servidor, eliminarlos en segundo plano
+      if (duplicateEntryIds.isNotEmpty && likesPl.id != null) {
+        jellyfin.removeItemsFromPlaylist(
+          playlistId: likesPl.id!,
+          entryIds: duplicateEntryIds,
+        ).catchError((_) {});
       }
 
       likedSongIds.value = newIds;
@@ -154,6 +193,9 @@ class LikesPlaylistHelper {
 
   /// Agrega una pista por su ID a la playlist "My likes" si aún no está presente.
   static Future<void> addSongToLikes(String songId, {String? title, String? artist}) async {
+    if (_inFlightAddingSongIds.contains(songId)) return;
+    _inFlightAddingSongIds.add(songId);
+
     try {
       // Optimista: actualizar estados en memoria de inmediato
       final updatedIds = Set<String>.from(likedSongIds.value)..add(songId);
@@ -161,9 +203,13 @@ class LikesPlaylistHelper {
 
       if (title != null && title.isNotEmpty) {
         final key = normalizeKey(title, artist);
-        final updatedKeys = Set<String>.from(likedSongKeys.value)..add(key);
+        final rawKey = '${title.toLowerCase().trim()}||${(artist ?? '').toLowerCase().trim()}';
+        final updatedKeys = Set<String>.from(likedSongKeys.value)
+          ..add(key)
+          ..add(rawKey);
         likedSongKeys.value = updatedKeys;
         pendingLikeKeys.remove(key);
+        pendingLikeKeys.remove(rawKey);
       }
 
       final jellyfin = GetIt.instance<JellyfinApiHelper>();
@@ -187,6 +233,8 @@ class LikesPlaylistHelper {
       }
     } catch (e) {
       print('Error al agregar canción a My likes: $e');
+    } finally {
+      _inFlightAddingSongIds.remove(songId);
     }
   }
 

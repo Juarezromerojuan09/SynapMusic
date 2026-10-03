@@ -23,6 +23,7 @@ import 'download_screen.dart';
 import 'library_playlists_screen.dart';
 import 'album_detail_screen.dart';
 import 'artist_profile_screen.dart';
+import '../../services/synap_favorites_helper.dart';
 import 'user_profile_screen.dart';
 import 'help_feedback_screen.dart';
 import '../../services/playback_download_coordinator.dart';
@@ -61,6 +62,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
   void initState() {
     super.initState();
     LikesPlaylistHelper.init();
+    SynapFavoritesHelper.init();
     _refreshSub = SynapEvents.onLibraryRefresh.listen((_) {
       LikesPlaylistHelper.loadLikes();
     });

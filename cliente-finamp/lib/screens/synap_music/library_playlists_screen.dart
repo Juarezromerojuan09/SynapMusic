@@ -18,6 +18,7 @@ import 'package:path_provider/path_provider.dart';
 import 'album_detail_screen.dart';
 import 'artist_profile_screen.dart';
 import '../../services/likes_playlist_helper.dart';
+import '../../services/synap_favorites_helper.dart';
 import '../../components/add_to_playlist_sheet.dart';
 
 class LibraryPlaylistsScreen extends StatefulWidget {
@@ -206,15 +207,13 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
 
   Future<void> _loadFavoriteAlbums() async {
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/synap_favorite_albums.json');
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        if (mounted) {
-          setState(() {
-            _favoriteAlbums = json.decode(content);
-          });
-        }
+      if (SynapFavoritesHelper.favoriteAlbums.value.isEmpty) {
+        await SynapFavoritesHelper.loadFromLocal();
+      }
+      if (mounted) {
+        setState(() {
+          _favoriteAlbums = List<dynamic>.from(SynapFavoritesHelper.favoriteAlbums.value);
+        });
       }
     } catch (e) {
       print('Error al cargar álbumes favoritos: $e');
@@ -223,15 +222,13 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
 
   Future<void> _loadFavoriteArtists() async {
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/synap_favorite_artists.json');
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        if (mounted) {
-          setState(() {
-            _favoriteArtists = json.decode(content);
-          });
-        }
+      if (SynapFavoritesHelper.favoriteArtists.value.isEmpty) {
+        await SynapFavoritesHelper.loadFromLocal();
+      }
+      if (mounted) {
+        setState(() {
+          _favoriteArtists = List<dynamic>.from(SynapFavoritesHelper.favoriteArtists.value);
+        });
       }
     } catch (e) {
       print('Error al cargar artistas favoritos: $e');
