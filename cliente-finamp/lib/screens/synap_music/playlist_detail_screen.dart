@@ -10,6 +10,7 @@ import '../../services/synap_api_service.dart';
 import '../../services/sync_helper.dart';
 import '../../services/downloads_helper.dart';
 import '../../services/finamp_settings_helper.dart';
+import '../../services/finamp_user_helper.dart';
 import '../../models/jellyfin_models.dart';
 import '../../models/finamp_models.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -142,12 +143,22 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     }
   }
 
+  String? _getTrackImageUrl(BaseItemDto track) {
+    final user = GetIt.instance<FinampUserHelper>().currentUser;
+    final baseUrl = user?.baseUrl ?? 'http://100.64.134.104:8096';
+    final targetId = track.imageId ?? (track.id.isNotEmpty ? track.id : null);
+    if (targetId == null) return null;
+    return '$baseUrl/Items/$targetId/Images/Primary?maxWidth=120&maxHeight=120&quality=80';
+  }
+
   StreamSubscription? _refreshSub;
 
   @override
   void initState() {
     super.initState();
-    _imageUrl = 'http://100.64.134.104:8096/Items/${widget.playlist.id}/Images/Primary';
+    final user = GetIt.instance<FinampUserHelper>().currentUser;
+    final baseUrl = user?.baseUrl ?? 'http://100.64.134.104:8096';
+    _imageUrl = '$baseUrl/Items/${widget.playlist.id}/Images/Primary';
     _loadSavedSortMode().then((_) {
       if (mounted) {
         setState(() {
@@ -216,15 +227,18 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         _isLoading = false;
         _errorMessage = null;
       });
+      if (LikesPlaylistHelper.isLikesPlaylist(widget.playlist) && _tracks != null && _tracks!.isNotEmpty) {
+        LikesPlaylistHelper.seedLikesFromTracks(_tracks!);
+      }
     }
 
-    // 2. SINCRONIZACIÓN EN RED (con timeout de 4s para no congelar la pantalla sin internet)
+    // 2. SINCRONIZACIÓN EN RED (con timeout de 8s para sincronizar bibliotecas grandes)
     if (!FinampSettingsHelper.finampSettings.isOffline) {
       try {
         final value = await GetIt.instance<JellyfinApiHelper>().getItems(
           parentItem: widget.playlist,
           isGenres: false,
-        ).timeout(const Duration(seconds: 4));
+        ).timeout(const Duration(seconds: 8));
 
         if (value != null) {
           final deduped = _deduplicateTracks(value);
@@ -241,6 +255,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
               _isLoading = false;
               _errorMessage = null;
             });
+            if (LikesPlaylistHelper.isLikesPlaylist(widget.playlist) && _tracks != null && _tracks!.isNotEmpty) {
+              LikesPlaylistHelper.seedLikesFromTracks(_tracks!);
+            }
           }
         }
       } catch (e) {
@@ -821,7 +838,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                         (context, index) {
                           final track = displayedTracks[index];
                           final artist = (track.artists?.isNotEmpty == true) ? track.artists![0] : (track.albumArtist ?? 'Desconocido');
-                          final trackImageUrl = 'http://100.64.134.104:8096/Items/${track.id}/Images/Primary';
+                          final trackImageUrl = _getTrackImageUrl(track);
                           final trackNumber = _tracks!.indexOf(track) + 1;
                           final downloadedImage = _downloadsHelper.getDownloadedImage(track);
                           final coverFile = downloadedImage?.file;
@@ -832,6 +849,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                             title: track.name ?? 'Canción',
                             artist: artist,
                             isAvailableInServer: true,
+                            isForceLiked: LikesPlaylistHelper.isLikesPlaylist(widget.playlist),
                             coverUrl: trackImageUrl,
                             coverFile: coverFile,
                             onPlayPressed: () async {
@@ -1013,7 +1031,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                     final trackIndex = index - 1;
                     final track = _tracks![trackIndex];
                     final artist = (track.artists?.isNotEmpty == true) ? track.artists![0] : (track.albumArtist ?? 'Desconocido');
-                    final trackImageUrl = 'http://100.64.134.104:8096/Items/${track.id}/Images/Primary';
+                    final trackImageUrl = _getTrackImageUrl(track);
                     final downloadedImage = _downloadsHelper.getDownloadedImage(track);
                     final coverFile = downloadedImage?.file;
 
@@ -1023,6 +1041,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                       title: track.name ?? 'Canción',
                       artist: artist,
                       isAvailableInServer: true,
+                      isForceLiked: LikesPlaylistHelper.isLikesPlaylist(widget.playlist),
                       coverUrl: trackImageUrl,
                       coverFile: coverFile,
                       onPlayPressed: () async {

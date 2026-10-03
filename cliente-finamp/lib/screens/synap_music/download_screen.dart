@@ -786,7 +786,10 @@ class _DownloadScreenState extends State<DownloadScreen> {
 
   Widget _buildLocalJellyfinTrack(BaseItemDto track) {
     final artist = (track.artists?.isNotEmpty == true) ? track.artists![0] : 'Desconocido';
-    final coverUrl = 'http://100.64.134.104:8096/Items/${track.id}/Images/Primary';
+    final user = GetIt.instance<FinampUserHelper>().currentUser;
+    final baseUrl = user?.baseUrl ?? 'http://100.64.134.104:8096';
+    final targetId = track.imageId ?? (track.id.isNotEmpty ? track.id : null);
+    final coverUrl = targetId != null ? '$baseUrl/Items/$targetId/Images/Primary?maxWidth=120&maxHeight=120&quality=80' : null;
     
     return TrackListItem(
       trackId: track.id,

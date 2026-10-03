@@ -503,7 +503,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final serverUrl = 'http://100.64.134.104:8096'; // We can just use the VPN IP for now
+    final serverUrl = GetIt.instance<FinampUserHelper>().currentUser?.baseUrl ?? 'http://100.64.134.104:8096';
     final userImageUrl = '$serverUrl/Users/$_userId/Images/Primary';
 
     return Scaffold(
@@ -650,7 +650,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
 
             _buildSectionTitle('Tus Canciones Más Escuchadas'),
             _buildHorizontalList(_topSongsStream, (item, index) {
-              final cover = 'http://100.64.134.104:8096/Items/${item['Id']}/Images/Primary';
+              final cover = '$serverUrl/Items/${item['Id']}/Images/Primary?maxWidth=200&maxHeight=200&quality=80';
               final artist = (item['Artists'] != null && (item['Artists'] as List).isNotEmpty) 
                   ? item['Artists'][0] : 'Desconocido';
               final playCount = (item['UserData'] != null && item['UserData']['PlayCount'] != null) 

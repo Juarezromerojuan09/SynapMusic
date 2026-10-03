@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:finamp/models/jellyfin_models.dart';
 import 'package:finamp/services/finamp_user_helper.dart';
 import 'package:finamp/services/jellyfin_api_helper.dart';
@@ -48,6 +51,11 @@ class LikesPlaylistHelper {
     });
   }
 
+  /// Normaliza identificadores de Jellyfin (sin guiones y en minúsculas) para evitar discrepancias de GUID
+  static String normalizeId(String id) {
+    return id.toLowerCase().replaceAll('-', '').trim();
+  }
+
   static String normalizeKey(String? title, String? artist) {
     final t = cleanTitle(title ?? '').toLowerCase().trim();
     final a = (artist ?? '').toLowerCase().trim();
@@ -60,9 +68,28 @@ class LikesPlaylistHelper {
     return playlist.name!.trim().toLowerCase() == likesPlaylistName.toLowerCase();
   }
 
+  /// Pre-alimenta la lista reactiva de canciones con like a partir de una lista de tracks (p.ej. al abrir My likes)
+  static void seedLikesFromTracks(List<BaseItemDto> tracks) {
+    final newIds = Set<String>.from(likedSongIds.value);
+    final newKeys = Set<String>.from(likedSongKeys.value);
+    for (final item in tracks) {
+      if (item.id.isNotEmpty) {
+        newIds.add(normalizeId(item.id));
+      }
+      final artist = (item.artists?.isNotEmpty == true) ? item.artists![0] : (item.albumArtist ?? '');
+      newKeys.add(normalizeKey(item.name, artist));
+      newKeys.add('${(item.name ?? '').toLowerCase().trim()}||${artist.toLowerCase().trim()}');
+      if (item.name != null && item.name!.isNotEmpty) {
+        newKeys.add(cleanTitle(item.name!).toLowerCase().trim());
+      }
+    }
+    likedSongIds.value = newIds;
+    likedSongKeys.value = newKeys;
+  }
+
   /// Consulta en memoria si una canción está marcada con like
   static bool isSongLiked({String? trackId, String? title, String? artist}) {
-    if (trackId != null && trackId.isNotEmpty && likedSongIds.value.contains(trackId)) {
+    if (trackId != null && trackId.isNotEmpty && likedSongIds.value.contains(normalizeId(trackId))) {
       return true;
     }
     if (title != null && title.isNotEmpty) {
@@ -72,6 +99,10 @@ class LikesPlaylistHelper {
       }
       final rawKey = '${title.toLowerCase().trim()}||${(artist ?? '').toLowerCase().trim()}';
       if (likedSongKeys.value.contains(rawKey) || pendingLikeKeys.contains(rawKey)) {
+        return true;
+      }
+      final cleanT = cleanTitle(title).toLowerCase().trim();
+      if (likedSongKeys.value.contains(cleanT) || pendingLikeKeys.contains(cleanT)) {
         return true;
       }
     }
@@ -90,6 +121,21 @@ class LikesPlaylistHelper {
       }
       likesPl!.type ??= 'Playlist';
 
+      // 1. Pre-cargar instantáneamente desde el caché local offline si existe (0 ms)
+      try {
+        final directory = await getApplicationDocumentsDirectory();
+        final cacheFile = File('${directory.path}/synap_playlist_${likesPl.id}_tracks.json');
+        if (await cacheFile.exists()) {
+          final content = await cacheFile.readAsString();
+          final List<dynamic> list = json.decode(content);
+          final cachedTracks = list.map((e) => BaseItemDto.fromJson(e)).toList();
+          if (cachedTracks.isNotEmpty) {
+            seedLikesFromTracks(cachedTracks);
+          }
+        }
+      } catch (_) {}
+
+      // 2. Cargar lista actualizada del servidor Jellyfin
       final jellyfin = GetIt.instance<JellyfinApiHelper>();
       final items = await jellyfin.getItems(parentItem: likesPl, isGenres: false) ?? [];
 
@@ -98,17 +144,21 @@ class LikesPlaylistHelper {
       final duplicateEntryIds = <String>[];
 
       for (final item in items) {
-        if (newIds.contains(item.id)) {
+        final normId = normalizeId(item.id);
+        if (newIds.contains(normId)) {
           // Duplicado detectado en el servidor Jellyfin
           if (item.playlistItemId != null) {
             duplicateEntryIds.add(item.playlistItemId!);
           }
           continue;
         }
-        newIds.add(item.id);
+        newIds.add(normId);
         final artist = (item.artists?.isNotEmpty == true) ? item.artists![0] : (item.albumArtist ?? '');
         newKeys.add(normalizeKey(item.name, artist));
         newKeys.add('${(item.name ?? '').toLowerCase().trim()}||${artist.toLowerCase().trim()}');
+        if (item.name != null && item.name!.isNotEmpty) {
+          newKeys.add(cleanTitle(item.name!).toLowerCase().trim());
+        }
       }
 
       // Si habían duplicados en el servidor, eliminarlos en segundo plano
@@ -193,23 +243,27 @@ class LikesPlaylistHelper {
 
   /// Agrega una pista por su ID a la playlist "My likes" si aún no está presente.
   static Future<void> addSongToLikes(String songId, {String? title, String? artist}) async {
-    if (_inFlightAddingSongIds.contains(songId)) return;
-    _inFlightAddingSongIds.add(songId);
+    final normId = normalizeId(songId);
+    if (_inFlightAddingSongIds.contains(normId)) return;
+    _inFlightAddingSongIds.add(normId);
 
     try {
       // Optimista: actualizar estados en memoria de inmediato
-      final updatedIds = Set<String>.from(likedSongIds.value)..add(songId);
+      final updatedIds = Set<String>.from(likedSongIds.value)..add(normId);
       likedSongIds.value = updatedIds;
 
       if (title != null && title.isNotEmpty) {
         final key = normalizeKey(title, artist);
         final rawKey = '${title.toLowerCase().trim()}||${(artist ?? '').toLowerCase().trim()}';
+        final cleanT = cleanTitle(title).toLowerCase().trim();
         final updatedKeys = Set<String>.from(likedSongKeys.value)
           ..add(key)
-          ..add(rawKey);
+          ..add(rawKey)
+          ..add(cleanT);
         likedSongKeys.value = updatedKeys;
         pendingLikeKeys.remove(key);
         pendingLikeKeys.remove(rawKey);
+        pendingLikeKeys.remove(cleanT);
       }
 
       final jellyfin = GetIt.instance<JellyfinApiHelper>();
@@ -222,7 +276,7 @@ class LikesPlaylistHelper {
       likesPl!.type ??= 'Playlist';
 
       final items = await jellyfin.getItems(parentItem: likesPl, isGenres: false) ?? [];
-      final alreadyIn = items.any((i) => i.id == songId);
+      final alreadyIn = items.any((i) => normalizeId(i.id) == normId);
 
       if (!alreadyIn) {
         await jellyfin.addItemstoPlaylist(
@@ -234,22 +288,30 @@ class LikesPlaylistHelper {
     } catch (e) {
       print('Error al agregar canción a My likes: $e');
     } finally {
-      _inFlightAddingSongIds.remove(songId);
+      _inFlightAddingSongIds.remove(normId);
     }
   }
 
   /// Remueve una pista por su ID de la playlist "My likes".
   static Future<void> removeSongFromLikes(String songId, {String? title, String? artist}) async {
+    final normId = normalizeId(songId);
     try {
       // Optimista: retirar de memoria
-      final updatedIds = Set<String>.from(likedSongIds.value)..remove(songId);
+      final updatedIds = Set<String>.from(likedSongIds.value)..remove(normId);
       likedSongIds.value = updatedIds;
 
       if (title != null && title.isNotEmpty) {
         final key = normalizeKey(title, artist);
-        final updatedKeys = Set<String>.from(likedSongKeys.value)..remove(key);
+        final rawKey = '${title.toLowerCase().trim()}||${(artist ?? '').toLowerCase().trim()}';
+        final cleanT = cleanTitle(title).toLowerCase().trim();
+        final updatedKeys = Set<String>.from(likedSongKeys.value)
+          ..remove(key)
+          ..remove(rawKey)
+          ..remove(cleanT);
         likedSongKeys.value = updatedKeys;
         pendingLikeKeys.remove(key);
+        pendingLikeKeys.remove(rawKey);
+        pendingLikeKeys.remove(cleanT);
       }
 
       final jellyfin = GetIt.instance<JellyfinApiHelper>();
@@ -262,7 +324,7 @@ class LikesPlaylistHelper {
       likesPl!.type ??= 'Playlist';
 
       final items = await jellyfin.getItems(parentItem: likesPl, isGenres: false) ?? [];
-      final match = items.where((i) => i.id == songId).firstOrNull;
+      final match = items.where((i) => normalizeId(i.id) == normId).firstOrNull;
 
       if (match?.playlistItemId != null) {
         await jellyfin.removeItemsFromPlaylist(
@@ -284,17 +346,25 @@ class LikesPlaylistHelper {
     String? queryString,
     String? coverUrl,
     BuildContext? context,
+    bool? forceCurrentlyLiked,
   }) async {
     final key = normalizeKey(title, artist);
-    final currentlyLiked = isSongLiked(trackId: trackId, title: title, artist: artist);
+    final currentlyLiked = forceCurrentlyLiked ?? isSongLiked(trackId: trackId, title: title, artist: artist);
 
     if (currentlyLiked) {
       // Quitar like
       pendingLikeKeys.remove(key);
-      final updatedKeys = Set<String>.from(likedSongKeys.value)..remove(key);
+      final rawKey = '${title.toLowerCase().trim()}||${artist.toLowerCase().trim()}';
+      final cleanT = cleanTitle(title).toLowerCase().trim();
+      final updatedKeys = Set<String>.from(likedSongKeys.value)
+        ..remove(key)
+        ..remove(rawKey)
+        ..remove(cleanT);
       likedSongKeys.value = updatedKeys;
 
       if (trackId != null && trackId.isNotEmpty) {
+        final updatedIds = Set<String>.from(likedSongIds.value)..remove(normalizeId(trackId));
+        likedSongIds.value = updatedIds;
         await removeSongFromLikes(trackId, title: title, artist: artist);
       }
 
@@ -329,7 +399,12 @@ class LikesPlaylistHelper {
         // La canción NO existe en el servidor:
         // 1. Pintar morado de inmediato
         pendingLikeKeys.add(key);
-        final updatedKeys = Set<String>.from(likedSongKeys.value)..add(key);
+        final rawKey = '${title.toLowerCase().trim()}||${artist.toLowerCase().trim()}';
+        final cleanT = cleanTitle(title).toLowerCase().trim();
+        final updatedKeys = Set<String>.from(likedSongKeys.value)
+          ..add(key)
+          ..add(rawKey)
+          ..add(cleanT);
         likedSongKeys.value = updatedKeys;
 
         // 2. Descargar en segundo plano y asociar a My likes al finalizar sin reproducir

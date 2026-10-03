@@ -19,6 +19,7 @@ class TrackListItem extends StatelessWidget {
   final String? trackId;
   final String? queryString;
   final Widget? trailingWidget;
+  final bool? isForceLiked;
 
   const TrackListItem({
     Key? key,
@@ -35,12 +36,13 @@ class TrackListItem extends StatelessWidget {
     this.trackId,
     this.queryString,
     this.trailingWidget,
+    this.isForceLiked,
   }) : super(key: key);
 
   Widget _buildPlaceholder() {
     return Container(
-      width: 48,
-      height: 48,
+      width: 46,
+      height: 46,
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A1A),
         borderRadius: BorderRadius.circular(8),
@@ -59,11 +61,12 @@ class TrackListItem extends StatelessWidget {
         return ValueListenableBuilder<Set<String>>(
           valueListenable: LikesPlaylistHelper.likedSongIds,
           builder: (context, likedIds, _) {
-            final isLiked = LikesPlaylistHelper.isSongLiked(
-              trackId: trackId,
-              title: title,
-              artist: artist,
-            );
+            final isLiked = isForceLiked == true ||
+                LikesPlaylistHelper.isSongLiked(
+                  trackId: trackId,
+                  title: title,
+                  artist: artist,
+                );
 
             return IconButton(
               icon: Icon(
@@ -82,6 +85,7 @@ class TrackListItem extends StatelessWidget {
                   queryString: queryString,
                   coverUrl: coverUrl,
                   context: context,
+                  forceCurrentlyLiked: isForceLiked,
                 );
               },
             );
@@ -124,9 +128,7 @@ class TrackListItem extends StatelessWidget {
           ),
         ),
       );
-      if ((coverFile != null) || (coverUrl != null && coverUrl!.isNotEmpty)) {
-        leadingChildren.add(const SizedBox(width: 8));
-      }
+      leadingChildren.add(const SizedBox(width: 8));
     }
 
     if (coverFile != null) {
@@ -155,11 +157,15 @@ class TrackListItem extends StatelessWidget {
             cacheWidth: 120,
             cacheHeight: 120,
             fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return _buildPlaceholder();
+            },
             errorBuilder: (_, __, ___) => _buildPlaceholder(),
           ),
         ),
       );
-    } else if (trackNumber == null) {
+    } else {
       leadingChildren.add(_buildPlaceholder());
     }
 

@@ -43,11 +43,15 @@ ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 ssh.connect(HOSTNAME, username=USERNAME, password=PASSWORD, timeout=10)
 
 sftp = ssh.open_sftp()
-# Asegurar que el directorio remoto exista
-try:
-    sftp.mkdir("/home/juarezromerojuan09/servicios/synapmusic/portal/downloads")
-except:
-    pass
+# Asegurar que los directorios remotos existan
+for dest_dir in [
+    "/home/juarezromerojuan09/servicios/synapmusic/portal/downloads",
+    "/home/juarezromerojuan09/servicios/synapmusic/api-descargas/portal/downloads"
+]:
+    try:
+        sftp.mkdir(dest_dir)
+    except:
+        pass
 
 def progress_callback(transferred, total):
     percent = (transferred / total) * 100
@@ -55,15 +59,20 @@ def progress_callback(transferred, total):
 
 print("Iniciando subida al portal web...")
 sftp.put(local_apk, REMOTE_APK_PATH, callback=progress_callback)
-print("\nAPK publicada con exito en el portal web!")
+# También asegurar copia en api-descargas/portal/downloads
+remote_api_apk = "/home/juarezromerojuan09/servicios/synapmusic/api-descargas/portal/downloads/synapmusic.apk"
+print(f"\nCopiando APK a {remote_api_apk}...")
+sftp.put(local_apk, remote_api_apk)
+print("APK publicada con éxito en ambos portales web!")
 
-# Sincronizar archivos html del portal
+# Sincronizar archivos html del portal en ambas rutas
 for html_file in ["index.html", "synapmusic.html"]:
     local_html = os.path.join("portal", html_file)
     if os.path.exists(local_html):
-        remote_html = f"/home/juarezromerojuan09/servicios/synapmusic/portal/{html_file}"
-        print(f"Subiendo {html_file}...")
-        sftp.put(local_html, remote_html)
+        for base in ["/home/juarezromerojuan09/servicios/synapmusic/portal", "/home/juarezromerojuan09/servicios/synapmusic/api-descargas/portal"]:
+            remote_html = f"{base}/{html_file}"
+            print(f"Subiendo {html_file} a {remote_html}...")
+            sftp.put(local_html, remote_html)
 
 # Sincronizar api-descargas/main.py
 local_main = os.path.join("api-descargas", "main.py")
