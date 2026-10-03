@@ -433,14 +433,15 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
                       final isSelected = _selectedIds.contains(playlist.id);
                       final isDownloaded = playlist.id != null && _downloadsHelper.getDownloadedParent(playlist.id!) != null;
                       final downloadedParent = isDownloaded ? _downloadsHelper.getDownloadedParent(playlist.id!) : null;
+                      final isOfflineMode = FinampSettingsHelper.finampSettings.isOffline;
+                      final int totalSongs = playlist.childCount ?? (downloadedParent?.downloadedChildren.length ?? 0);
                       final bool hasMissingSongs = isDownloaded &&
-                          playlist.childCount != null &&
                           downloadedParent != null &&
-                          playlist.childCount! > downloadedParent.downloadedChildren.length;
+                          totalSongs > downloadedParent.downloadedChildren.length;
                       final downloadedImage = isDownloaded ? _downloadsHelper.getDownloadedImage(playlist) : null;
-                      final songCount = (downloadedParent != null && downloadedParent.downloadedChildren.isNotEmpty)
-                          ? downloadedParent.downloadedChildren.length
-                          : (playlist.childCount ?? 0);
+                      final songCount = isOfflineMode
+                          ? (downloadedParent?.downloadedChildren.length ?? totalSongs)
+                          : totalSongs;
                       final imageUrl = 'http://100.64.134.104:8096/Items/${playlist.id}/Images/Primary';
 
                       return GestureDetector(

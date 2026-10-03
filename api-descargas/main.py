@@ -3529,10 +3529,10 @@ async def download_apk():
 async def get_app_version():
     return {
         "app_name": "SynapMusic",
-        "version": "0.6.36",
-        "version_code": 61,
+        "version": "0.6.37",
+        "version_code": 62,
         "download_url": "/synapmusic/download",
         "release_date": "2026-10-03",
         "min_android_version": "Android 8.0+",
-        "changelog": "Panel de administración: gestión de usuarios y biblioteca global, edición de metadatos/carátula, métricas del servidor en tiempo real y correcciones visuales."
+        "changelog": "Sincronización consistente de conteo de canciones en biblioteca y listas descargadas, corrección de inconsistencias en likes y deduplicación."
     }
