@@ -240,28 +240,70 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     // 2. SINCRONIZACIÓN EN RED (con timeout de 8s para sincronizar bibliotecas grandes)
     if (!FinampSettingsHelper.finampSettings.isOffline) {
       try {
-        final value = await GetIt.instance<JellyfinApiHelper>().getItems(
-          parentItem: widget.playlist,
-          isGenres: false,
-        ).timeout(const Duration(seconds: 8));
+        final isLikes = LikesPlaylistHelper.isLikesPlaylist(widget.playlist);
+        List<BaseItemDto>? value;
+
+        if (isLikes) {
+          final jellyfin = GetIt.instance<JellyfinApiHelper>();
+          final favFuture = jellyfin.getItems(
+            filters: "IsFavorite",
+            includeItemTypes: "Audio",
+            isGenres: false,
+          );
+          final plFuture = jellyfin.getItems(
+            parentItem: widget.playlist,
+            isGenres: false,
+          );
+
+          final results = await Future.wait([favFuture, plFuture]).timeout(const Duration(seconds: 10));
+          final favItems = results[0] ?? [];
+          final plItems = results[1] ?? [];
+
+          final combined = <String, BaseItemDto>{};
+          for (final item in favItems) {
+            if (item.id.isNotEmpty) combined[item.id] = item;
+          }
+          for (final item in plItems) {
+            if (item.id.isNotEmpty) combined[item.id] = item;
+          }
+          value = combined.values.toList();
+        } else {
+          value = await GetIt.instance<JellyfinApiHelper>().getItems(
+            parentItem: widget.playlist,
+            isGenres: false,
+          ).timeout(const Duration(seconds: 8));
+        }
 
         if (value != null) {
-          final deduped = _deduplicateTracks(value);
-          try {
-            final directory = await getApplicationDocumentsDirectory();
-            final cacheFile = File('${directory.path}/synap_playlist_${widget.playlist.id}_tracks.json');
-            await cacheFile.writeAsString(json.encode(deduped.map((e) => e.toJson()).toList()));
-          } catch (_) {}
+          // Si el servidor retornó una lista vacía pero ya teníamos pistas offline/descargadas,
+          // no sobrescribir con vacío para proteger las canciones del usuario.
+          if (value.isEmpty && offlineTracks.isNotEmpty) {
+            if (mounted) {
+              setState(() {
+                _tracks = _deduplicateTracks(offlineTracks);
+                _applySort();
+                _isLoading = false;
+                _errorMessage = null;
+              });
+            }
+          } else {
+            final deduped = _deduplicateTracks(value);
+            try {
+              final directory = await getApplicationDocumentsDirectory();
+              final cacheFile = File('${directory.path}/synap_playlist_${widget.playlist.id}_tracks.json');
+              await cacheFile.writeAsString(json.encode(deduped.map((e) => e.toJson()).toList()));
+            } catch (_) {}
 
-          if (mounted) {
-            setState(() {
-              _tracks = deduped;
-              _applySort();
-              _isLoading = false;
-              _errorMessage = null;
-            });
-            if (LikesPlaylistHelper.isLikesPlaylist(widget.playlist) && _tracks != null && _tracks!.isNotEmpty) {
-              LikesPlaylistHelper.seedLikesFromTracks(_tracks!);
+            if (mounted) {
+              setState(() {
+                _tracks = deduped;
+                _applySort();
+                _isLoading = false;
+                _errorMessage = null;
+              });
+              if (isLikes && _tracks != null && _tracks!.isNotEmpty) {
+                LikesPlaylistHelper.seedLikesFromTracks(_tracks!);
+              }
             }
           }
         }

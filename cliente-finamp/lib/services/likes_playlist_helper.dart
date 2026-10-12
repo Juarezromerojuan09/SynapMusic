@@ -137,7 +137,22 @@ class LikesPlaylistHelper {
 
       // 2. Cargar lista actualizada del servidor Jellyfin
       final jellyfin = GetIt.instance<JellyfinApiHelper>();
-      final items = await jellyfin.getItems(parentItem: likesPl, isGenres: false) ?? [];
+      final favItems = await jellyfin.getItems(
+        filters: "IsFavorite",
+        includeItemTypes: "Audio",
+        isGenres: false,
+      ) ?? [];
+
+      final plItems = await jellyfin.getItems(parentItem: likesPl, isGenres: false) ?? [];
+
+      final combined = <String, BaseItemDto>{};
+      for (final item in favItems) {
+        if (item.id.isNotEmpty) combined[normalizeId(item.id)] = item;
+      }
+      for (final item in plItems) {
+        if (item.id.isNotEmpty) combined[normalizeId(item.id)] = item;
+      }
+      final items = combined.values.toList();
 
       final newIds = <String>{};
       final newKeys = <String>{};

@@ -83,11 +83,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         for (final pl in playlistsData) {
           final dto = BaseItemDto.fromJson(pl);
           if (LikesPlaylistHelper.isLikesPlaylist(dto)) {
-            final jellyfin = GetIt.instance<JellyfinApiHelper>();
-            final items = await jellyfin.getItems(parentItem: dto, isGenres: false) ?? [];
-            likesCount = items.length;
+            likesCount = dto.childCount ?? (LikesPlaylistHelper.likedSongIds.value.isNotEmpty ? LikesPlaylistHelper.likedSongIds.value.length : 0);
             break;
           }
+        }
+        if (likesCount == 0 && LikesPlaylistHelper.likedSongIds.value.isNotEmpty) {
+          likesCount = LikesPlaylistHelper.likedSongIds.value.length;
         }
       } catch (_) {}
 

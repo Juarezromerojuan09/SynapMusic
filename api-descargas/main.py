@@ -935,7 +935,7 @@ async def delete_playlist(playlist_id: str):
 
 @app.get("/playlists", dependencies=[Depends(get_api_key)])
 async def get_playlists(user_id: Optional[str] = None):
-    """Obtiene las playlists del usuario (o todas) desde Jellyfin, deduplicando 'My likes' si existieran duplicados."""
+    """Obtiene las playlists del usuario (o todas) desde Jellyfin con conteo real de canciones y sincronización automática de 'My likes'."""
     try:
         headers = jf_headers()
         url = f"{JELLYFIN_URL.rstrip('/')}/Users/{user_id}/Items" if user_id else f"{JELLYFIN_URL.rstrip('/')}/Items"
@@ -945,7 +945,7 @@ async def get_playlists(user_id: Optional[str] = None):
             "SortBy": "SortName",
         }
         
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             res = await client.get(url, headers=headers, params=params)
             res.raise_for_status()
             data = res.json()
@@ -954,24 +954,65 @@ async def get_playlists(user_id: Optional[str] = None):
             # Deduplicar 'My likes' si Jellyfin tiene múltiples playlists con ese nombre
             likes_items = [it for it in items if it.get("Name", "").strip().lower() == "my likes"]
             if len(likes_items) > 1:
-                # Ordenar: preferir la que tiene más canciones
-                likes_items.sort(key=lambda x: x.get("ChildCount", 0), reverse=True)
                 keeper = likes_items[0]
                 duplicates = likes_items[1:]
-                
-                # Eliminar duplicados vacíos en Jellyfin
-                for dup in duplicates:
-                    dup_id = dup.get("Id")
-                    if dup_id and dup.get("ChildCount", 0) == 0:
-                        try:
-                            await client.delete(f"{JELLYFIN_URL.rstrip('/')}/Items/{dup_id}", headers=headers)
-                            print(f"Eliminado duplicado vacío de 'My likes': {dup_id}")
-                        except Exception as err:
-                            print(f"Aviso eliminando duplicado de playlist {dup_id}: {err}")
-                
-                # Filtrar la lista devuelta para que solo contenga un 'My likes'
                 dup_ids = {d.get("Id") for d in duplicates}
                 items = [it for it in items if it.get("Id") not in dup_ids]
+
+            # Enriquecer cada playlist con su conteo real de canciones
+            if user_id and items:
+                async def enrich_count(it):
+                    pl_id = it.get("Id")
+                    if not pl_id:
+                        return
+                    is_likes = it.get("Name", "").strip().lower() == "my likes"
+                    try:
+                        if is_likes:
+                            fav_resp = await client.get(
+                                f"{JELLYFIN_URL.rstrip('/')}/Users/{user_id}/Items",
+                                headers=headers,
+                                params={"Filters": "IsFavorite", "Recursive": "true", "IncludeItemTypes": "Audio", "Limit": 0}
+                            )
+                            fav_total = fav_resp.json().get("TotalRecordCount", 0) if fav_resp.status_code == 200 else 0
+                            
+                            c_resp = await client.get(
+                                f"{JELLYFIN_URL.rstrip('/')}/Playlists/{pl_id}/Items",
+                                headers=headers,
+                                params={"UserId": user_id, "Limit": 0}
+                            )
+                            pl_total = c_resp.json().get("TotalRecordCount", 0) if c_resp.status_code == 200 else 0
+                            
+                            # Si hay favoritos que aún no están en la playlist, sincronizarlos
+                            if fav_total > pl_total:
+                                fav_items_resp = await client.get(
+                                    f"{JELLYFIN_URL.rstrip('/')}/Users/{user_id}/Items",
+                                    headers=headers,
+                                    params={"Filters": "IsFavorite", "Recursive": "true", "IncludeItemTypes": "Audio"}
+                                )
+                                if fav_items_resp.status_code == 200:
+                                    fav_ids = [fav["Id"] for fav in fav_items_resp.json().get("Items", [])]
+                                    for i in range(0, len(fav_ids), 100):
+                                        chunk = fav_ids[i:i+100]
+                                        await client.post(
+                                            f"{JELLYFIN_URL.rstrip('/')}/Playlists/{pl_id}/Items",
+                                            headers=headers,
+                                            params={"Ids": ",".join(chunk), "UserId": user_id}
+                                        )
+                                    pl_total = len(fav_ids)
+                            
+                            it["ChildCount"] = max(fav_total, pl_total)
+                        else:
+                            c_resp = await client.get(
+                                f"{JELLYFIN_URL.rstrip('/')}/Playlists/{pl_id}/Items",
+                                headers=headers,
+                                params={"UserId": user_id, "Limit": 0}
+                            )
+                            if c_resp.status_code == 200:
+                                it["ChildCount"] = c_resp.json().get("TotalRecordCount", 0)
+                    except Exception as e:
+                        print(f"Aviso enriqueciendo conteo para playlist {pl_id}: {e}")
+
+                await asyncio.gather(*[enrich_count(it) for it in items])
 
             return items
     except Exception as e:
@@ -3529,10 +3570,10 @@ async def download_apk():
 async def get_app_version():
     return {
         "app_name": "SynapMusic",
-        "version": "0.6.39",
-        "version_code": 64,
+        "version": "0.6.40",
+        "version_code": 65,
         "download_url": "/synapmusic/download",
-        "release_date": "2026-10-03",
+        "release_date": "2026-10-11",
         "min_android_version": "Android 8.0+",
-        "changelog": "Agregar álbum completo a playlists con deduplicación inteligente, soporte para creación directa de playlists y optimizaciones de sincronización."
+        "changelog": "Sincronización robusta de canciones en My likes y favoritos, conteo real de biblioteca y protección de listas offline."
     }

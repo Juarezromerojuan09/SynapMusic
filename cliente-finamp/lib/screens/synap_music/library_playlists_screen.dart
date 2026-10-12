@@ -47,6 +47,7 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
   @override
   void initState() {
     super.initState();
+    LikesPlaylistHelper.likedSongIds.addListener(_onLikesChanged);
     _loadPlaylists();
     _refreshSub = SynapEvents.libraryRefreshStream.stream.listen((_) {
       if (mounted) {
@@ -55,8 +56,13 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
     });
   }
 
+  void _onLikesChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    LikesPlaylistHelper.likedSongIds.removeListener(_onLikesChanged);
     _refreshSub?.cancel();
     super.dispose();
   }
@@ -128,18 +134,12 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
       if (playlistsData.isNotEmpty) {
         var playlists = playlistsData.map((e) => BaseItemDto.fromJson(e)).toList();
 
-        // Deduplicar: Si existen múltiples playlists "My likes", conservar únicamente la que tenga más canciones y eliminar la vacía en Jellyfin
+        // Deduplicar: Si existen múltiples playlists "My likes", conservar únicamente la que tenga más canciones
         final likesPlaylists = playlists.where((p) => LikesPlaylistHelper.isLikesPlaylist(p)).toList();
         if (likesPlaylists.length > 1) {
           likesPlaylists.sort((a, b) => (b.childCount ?? 0).compareTo(a.childCount ?? 0));
-          final duplicates = likesPlaylists.sublist(1);
-
-          for (final dup in duplicates) {
-            playlists.removeWhere((p) => p.id == dup.id);
-            if (dup.id != null) {
-              _apiService.deletePlaylist(dup.id!);
-            }
-          }
+          final keeper = likesPlaylists.first;
+          playlists.removeWhere((p) => LikesPlaylistHelper.isLikesPlaylist(p) && p.id != keeper.id);
         }
 
         // Asegurar que la playlist fija "My likes" exista
@@ -434,7 +434,11 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
                       final isDownloaded = playlist.id != null && _downloadsHelper.getDownloadedParent(playlist.id!) != null;
                       final downloadedParent = isDownloaded ? _downloadsHelper.getDownloadedParent(playlist.id!) : null;
                       final isOfflineMode = FinampSettingsHelper.finampSettings.isOffline;
-                      final int totalSongs = playlist.childCount ?? (downloadedParent?.downloadedChildren.length ?? 0);
+                      final int totalSongs = isLikes
+                          ? (LikesPlaylistHelper.likedSongIds.value.isNotEmpty
+                              ? LikesPlaylistHelper.likedSongIds.value.length
+                              : (playlist.childCount ?? (downloadedParent?.downloadedChildren.length ?? 0)))
+                          : (playlist.childCount ?? (downloadedParent?.downloadedChildren.length ?? 0));
                       final bool hasMissingSongs = isDownloaded &&
                           downloadedParent != null &&
                           totalSongs > downloadedParent.downloadedChildren.length;
