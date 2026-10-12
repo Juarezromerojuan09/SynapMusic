@@ -250,9 +250,11 @@ class SynapApiService {
   Future<bool> deletePlaylist(String playlistId) async {
     try {
       final uri = Uri.parse('$_baseUrl/playlist/$playlistId');
-      final request = await HttpClient().deleteUrl(uri);
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 4);
+      final request = await client.deleteUrl(uri).timeout(const Duration(seconds: 4));
       request.headers.add('X-API-Key', _apiKey);
-      final response = await request.close();
+      final response = await request.close().timeout(const Duration(seconds: 4));
 
       if (response.statusCode == 200) {
         return true;

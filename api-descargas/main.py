@@ -925,7 +925,7 @@ async def delete_playlist(playlist_id: str):
     headers = jf_headers()
     url = f"{JELLYFIN_URL.rstrip('/')}/Items/{playlist_id}"
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             res = await client.delete(url, headers=headers)
             res.raise_for_status()
             return {"status": "success", "message": "Playlist eliminada"}
@@ -945,7 +945,7 @@ async def get_playlists(user_id: Optional[str] = None):
             "SortBy": "SortName",
         }
         
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=8.0) as client:
             res = await client.get(url, headers=headers, params=params)
             res.raise_for_status()
             data = res.json()
@@ -982,24 +982,30 @@ async def get_playlists(user_id: Optional[str] = None):
                             )
                             pl_total = c_resp.json().get("TotalRecordCount", 0) if c_resp.status_code == 200 else 0
                             
-                            # Si hay favoritos que aún no están en la playlist, sincronizarlos
+                            # Si hay favoritos que aún no están en la playlist, sincronizarlos en segundo plano
                             if fav_total > pl_total:
-                                fav_items_resp = await client.get(
-                                    f"{JELLYFIN_URL.rstrip('/')}/Users/{user_id}/Items",
-                                    headers=headers,
-                                    params={"Filters": "IsFavorite", "Recursive": "true", "IncludeItemTypes": "Audio"}
-                                )
-                                if fav_items_resp.status_code == 200:
-                                    fav_ids = [fav["Id"] for fav in fav_items_resp.json().get("Items", [])]
-                                    for i in range(0, len(fav_ids), 100):
-                                        chunk = fav_ids[i:i+100]
-                                        await client.post(
-                                            f"{JELLYFIN_URL.rstrip('/')}/Playlists/{pl_id}/Items",
-                                            headers=headers,
-                                            params={"Ids": ",".join(chunk), "UserId": user_id}
-                                        )
-                                    pl_total = len(fav_ids)
-                            
+                                async def bg_sync(pl_target_id, target_user_id):
+                                    try:
+                                        async with httpx.AsyncClient(timeout=30.0) as bg_client:
+                                            fav_items_resp = await bg_client.get(
+                                                f"{JELLYFIN_URL.rstrip('/')}/Users/{target_user_id}/Items",
+                                                headers=headers,
+                                                params={"Filters": "IsFavorite", "Recursive": "true", "IncludeItemTypes": "Audio"}
+                                            )
+                                            if fav_items_resp.status_code == 200:
+                                                fav_ids = [fav["Id"] for fav in fav_items_resp.json().get("Items", [])]
+                                                for i in range(0, len(fav_ids), 100):
+                                                    chunk = fav_ids[i:i+100]
+                                                    await bg_client.post(
+                                                        f"{JELLYFIN_URL.rstrip('/')}/Playlists/{pl_target_id}/Items",
+                                                        headers=headers,
+                                                        params={"Ids": ",".join(chunk), "UserId": target_user_id}
+                                                    )
+                                    except Exception as err:
+                                        print(f"Aviso sync background My likes: {err}")
+                                
+                                asyncio.create_task(bg_sync(pl_id, user_id))
+
                             it["ChildCount"] = max(fav_total, pl_total)
                         else:
                             c_resp = await client.get(

@@ -90,8 +90,10 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
       final cacheFile = File('${directory.path}/synap_playlists_cache.json');
       if (await cacheFile.exists()) {
         final content = await cacheFile.readAsString();
-        final List<dynamic> jsonList = json.decode(content);
-        localCached = jsonList.map((e) => BaseItemDto.fromJson(e)).toList();
+        if (content.trim().isNotEmpty) {
+          final List<dynamic> jsonList = json.decode(content);
+          localCached = jsonList.map((e) => BaseItemDto.fromJson(e)).toList();
+        }
       }
 
       final Map<String, BaseItemDto> mergedMap = {};
@@ -184,9 +186,9 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
           });
         }
       } else {
-        if (mounted && (_playlists == null || _playlists!.isEmpty)) {
+        if (mounted) {
           setState(() {
-            _playlists = [];
+            if (_playlists == null) _playlists = [];
             _isLoading = false;
           });
         }
@@ -197,6 +199,12 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
           if (_playlists == null || _playlists!.isEmpty) {
             _errorMessage = 'Sin conexión al servidor y sin playlists guardadas.';
           }
+          _isLoading = false;
+        });
+      }
+    } finally {
+      if (mounted && _isLoading) {
+        setState(() {
           _isLoading = false;
         });
       }
@@ -268,54 +276,92 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
       return;
     }
 
+    final count = idsToDelete.length;
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar Playlists'),
-        content: Text('¿Estás seguro de eliminar ${idsToDelete.length} playlist(s)? Esta acción no se puede deshacer.'),
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Text(
+          count == 1 ? '¿Eliminar playlist?' : '¿Eliminar playlists?',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          count == 1
+              ? '¿Estás seguro de que deseas eliminar esta playlist? Esta acción no se puede deshacer.'
+              : '¿Estás seguro de eliminar $count playlists? Esta acción no se puede deshacer.',
+          style: const TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
             child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Eliminar', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
 
-    if (confirm == true) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
-      );
+    if (confirm != true || !mounted) return;
 
-      bool allSuccess = true;
+    // 1. ELIMINACIÓN OPTIMISTA INMEDIATA (0 ms de espera)
+    final idsSet = Set<String>.from(idsToDelete);
+    setState(() {
+      _playlists?.removeWhere((p) => idsSet.contains(p.id));
+      _selectedIds.clear();
+    });
+
+    // 2. ACTUALIZAR CACHÉ LOCAL Y LIMPIAR ARCHIVOS INMEDIATAMENTE
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      if (_playlists != null) {
+        final cacheFile = File('${directory.path}/synap_playlists_cache.json');
+        await cacheFile.writeAsString(json.encode(_playlists!.map((p) => p.toJson()).toList()));
+        AddToPlaylistSheet.updateCachedPlaylists(_playlists!);
+      }
       for (final id in idsToDelete) {
-        final success = await _apiService.deletePlaylist(id);
-        if (!success) allSuccess = false;
+        final trackCache = File('${directory.path}/synap_playlist_${id}_tracks.json');
+        if (await trackCache.exists()) {
+          await trackCache.delete();
+        }
+        final sortCache = File('${directory.path}/synap_playlist_${id}_sort.txt');
+        if (await sortCache.exists()) {
+          await sortCache.delete();
+        }
+        await _downloadsHelper.deleteDownloadParent(deletedFor: id);
       }
-
-      Navigator.pop(context); // Cierra indicador
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(allSuccess ? 'Playlists eliminadas.' : 'Hubo un error al eliminar algunas playlists.'),
-            backgroundColor: allSuccess ? Colors.green : Colors.red,
-          ),
-        );
-      }
-
-      setState(() {
-        _selectedIds.clear();
-      });
-      _loadPlaylists();
+    } catch (e) {
+      print('Aviso actualizando cache tras eliminar: $e');
     }
+
+    // 3. MENSAJE VISUAL CONFIRMATORIO INMEDIATO
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(count == 1 ? 'Playlist eliminada.' : '$count playlists eliminadas.'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+
+    // 4. ELIMINACIÓN EN SERVIDOR EN SEGUNDO PLANO (sin spinners bloqueantes ni desincronización de rutas)
+    for (final id in idsToDelete) {
+      try {
+        await _apiService.deletePlaylist(id);
+      } catch (e) {
+        print('Error eliminando playlist $id en servidor: $e');
+      }
+    }
+
+    // Notificar actualización general de la biblioteca
+    SynapEvents.fireLibraryRefresh();
   }
 
   @override
@@ -701,12 +747,14 @@ class _LibraryPlaylistsScreenState extends State<LibraryPlaylistsScreen> {
                               Expanded(
                                 child: ClipRRect(
                                   borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                  child: Image.network(
-                                    album['cover_url'] ?? '',
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    errorBuilder: (_, __, ___) => _buildPlaceholder(),
-                                  ),
+                                  child: (album['cover_url'] != null && (album['cover_url'] as String).isNotEmpty)
+                                      ? Image.network(
+                                          album['cover_url'],
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                          errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                                        )
+                                      : _buildPlaceholder(),
                                 ),
                               ),
                               Padding(

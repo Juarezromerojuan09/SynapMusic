@@ -76,7 +76,9 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
 
   void _onTabTapped(int index) {
     if (_currentIndex == index) {
-      _navigatorKeys[index].currentState?.popUntil((route) => route.isFirst);
+      if (_navigatorKeys[index].currentState?.canPop() == true) {
+        _navigatorKeys[index].currentState?.popUntil((route) => route.isFirst);
+      }
     } else {
       setState(() {
         _currentIndex = index;
@@ -739,13 +741,27 @@ class TabNavigator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Navigator(
-      key: navigatorKey,
-      onGenerateRoute: (routeSettings) {
-        return MaterialPageRoute(
-          builder: (context) => child,
-        );
+    return WillPopScope(
+      onWillPop: () async {
+        final navigator = navigatorKey.currentState;
+        if (navigator != null && navigator.canPop()) {
+          navigator.pop();
+          return false;
+        }
+        return true;
       },
+      child: Navigator(
+        key: navigatorKey,
+        onGenerateRoute: (routeSettings) {
+          return MaterialPageRoute(
+            builder: (context) => WillPopScope(
+              // El widget raíz de una pestaña nunca debe ser popeado fuera del TabNavigator
+              onWillPop: () async => false,
+              child: child,
+            ),
+          );
+        },
+      ),
     );
   }
 }
